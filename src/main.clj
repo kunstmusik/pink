@@ -27,6 +27,31 @@
 (defn sine-osc [freq phase]
     (map #(Math/sin (* 2 Math/PI %)) (phasor freq phase)))
 
+(defn amix 
+  ([] [])
+  ([& a] 
+     (let [len (count a)]
+       (if (= len 1)
+         (first a) 
+         (map #(reduce + %) (partition len (apply interleave a)))))))
+
+
+(def audio-block
+  (map #(* 0.25 %)
+  (amix 
+    (sine-osc 440.0 0)
+    (sine-osc 660.0 0)
+    (sine-osc 990.0 0)
+    (sine-osc 1220.0 0)
+    ))
+  )
+
+
+;(def audio-block
+;    (sine-osc 660.0 0)
+;    )
+
+; JAVASOUND CODE
 
 (defn open-line [audio-format]
   (let [#^SourceDataLine line (AudioSystem/getSourceDataLine audio-format)]
@@ -39,7 +64,7 @@
 (let [cnt (/ (* *sr* 5.0) buffer-size)
       buffer (ByteBuffer/allocate buffer-size)]
   (loop [c cnt 
-         [x & xs] (partition (/ buffer-size 2) (sine-osc 440.0 0))] 
+         [x & xs] (partition (/ buffer-size 2) audio-block)] 
     (when (> c 0)
       (loop [[a & b] x]
         (when a
