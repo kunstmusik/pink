@@ -37,6 +37,21 @@
          (first a) 
          (map #(reduce + %) (partition len (apply interleave a)))))))
 
+(defn amul
+  ([] [])
+  ([& a] 
+     (let [len (count a)]
+       (if (= len 1)
+         (first a) 
+         (map #(reduce * %) (partition len (apply interleave a)))))))
+
+(defn env-lin 
+  [& xs]
+    (lazy-seq 
+      (let [[p1 p2 ] xs cnt 0]
+         (when p2 
+           (cons p1 (apply env-lin (rest xs )))))))
+    
 
 (def audio-block
   (map #(* 0.25 %)
@@ -47,7 +62,6 @@
     (sine-osc 1220.0 0)
     ))
   )
-
 
 ;(def audio-block
 ;    (sine-osc 660.0 0)
@@ -61,24 +75,24 @@
     (.open audio-format)
     (.start))))
 
-(def #^SourceDataLine line (open-line af))
-
-(let [cnt (/ (* *sr* 5.0) buffer-size)
-      buffer (ByteBuffer/allocate buffer-size)]
-  (loop [c cnt 
+(defn run-audio-block [audio-block]
+  (let [#^SourceDataLine line (open-line af)]
+    (let [cnt (/ (* *sr* 5.0) buffer-size)
+        buffer (ByteBuffer/allocate buffer-size)]
+      (loop [c cnt 
          [x & xs] (partition (/ buffer-size 2) audio-block)] 
-    (when (> c 0)
-      (loop [[a & b] x]
-        (when a
-          (.putShort buffer (.shortValue (* Short/MAX_VALUE a)))
-          (recur b))) 
-      (.write line (.array buffer) 0 buffer-size)
-      (.clear buffer)
+       (when (and (> c 0) x)
+         (loop [[a & b] x]
+           (when a
+             (.putShort buffer (.shortValue (* Short/MAX_VALUE a)))
+             (recur b))) 
+         (.write line (.array buffer) 0 buffer-size)
+         (.clear buffer)
       (recur (dec c) xs ))))
+    (.close line)))
 
-(.close line)
         
-
+(defn demo [] (run-audio-block audio-block))
 
 ;(def audio-out-proxy 
 ;  (proxy [AudioInputStream]
