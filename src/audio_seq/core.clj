@@ -1,6 +1,5 @@
-(ns audio-seq.core)
-
-(import '(javax.sound.sampled
+(ns audio-seq.core
+  (:import (javax.sound.sampled
                        AudioFormat
                        AudioFormat$Encoding
                        AudioFileFormat
@@ -8,8 +7,8 @@
                        AudioInputStream
                        AudioSystem
            DataLine$Info SourceDataLine)
-        '(java.nio ByteBuffer)
-        '(java.io File ByteArrayInputStream))
+        (java.nio ByteBuffer)
+        (java.io File ByteArrayInputStream)))
 
 (def af (AudioFormat. 44100 16 1 true true))
 
