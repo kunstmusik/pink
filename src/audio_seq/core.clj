@@ -21,12 +21,23 @@
 ;(def f (File/createTempFile "tmp" ".raw" (File. "."))) 
 ;(println (bean f))
 
-(defn phasor [freq phase]
+(def ^:const PI Math/PI)
+
+(defn ^doubles phasor [^double freq ^double phase]
   (let [phase-incr (/ freq  *sr*)]
     (iterate #(let [p (+ % phase-incr)] (if (> p 1) (dec p) p)) phase)))
 
-(defn sine-osc [freq phase]
-    (map #(Math/sin (* 2 Math/PI %)) (phasor freq phase)))
+(defn ^doubles sine-osc [freq phase]
+    (map #(Math/sin (* 2 PI %)) (phasor freq phase)))
+
+
+(def ^doubles sine-table  
+  (double-array 
+    (map #(Math/sin (* 2.0 PI (/ % 4096.0))) 
+                    (take 4096 (iterate inc 0)))))
+
+(defn ^doubles sine-osc2 [freq phase]
+  (map #(aget ^doubles sine-table ^int (int ^double (* 4095.0 %))) (phasor freq phase))) 
 
 (defn amix 
   ([] [])
@@ -34,7 +45,7 @@
      (let [len (count a)]
        (if (= len 1)
          (first a) 
-         (map #(reduce + %) (partition len (apply interleave a)))))))
+         (apply map + a)))))
 
 (defn amul
   ([] [])
@@ -42,7 +53,7 @@
      (let [len (count a)]
        (if (= len 1)
          (first a) 
-         (map #(reduce * %) (partition len (apply interleave a)))))))
+         (apply map * a)))))
 
 (defn env-lin 
   [& xs]
@@ -50,7 +61,7 @@
       (let [[p1 p2 ] xs cnt 0]
          (when p2 
            (cons p1 (apply env-lin (rest xs )))))))
-    
+   
 
 (def audio-block
   (map #(* 0.25 %)
