@@ -1,4 +1,5 @@
 (defproject audio-seq "0.1.0-SNAPSHOT"
+  :jvm-opts ["-server" "-Xmx2g" "-XX:-UseParallelGC"]
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
