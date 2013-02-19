@@ -85,8 +85,9 @@
     (.open audio-format)
     (.start))))
 
-(defn run-audio-block [audio-block]
-  (let [#^SourceDataLine line (open-line af)]
+(defn run-audio-block [a-block]
+  (let [#^SourceDataLine line (open-line af)
+        audio-block a-block]
     (let [cnt (/ (* *sr* 5.0) buffer-size)
         buffer (ByteBuffer/allocate buffer-size)]
       (loop [c cnt 
@@ -101,9 +102,14 @@
       (recur (dec c) xs ))))
     (.close line)))
 
+(defn audio-block2 []
+  (map #(* 0.01 %) 
+       (apply amix 
+              (map #(sine-osc (* % 60) 0) 
+                   (take 30 (iterate inc 1))))))
         
 (defn demo [] (run-audio-block audio-block))
-
+(defn demo2 [] (run-audio-block (audio-block2)))
 ;(def audio-out-proxy 
 ;  (proxy [AudioInputStream]
 ;    (
