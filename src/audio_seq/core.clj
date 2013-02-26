@@ -39,6 +39,43 @@
 (defn ^doubles sine-osc2 [freq phase]
   (map #(aget ^doubles sine-table ^int (int ^double (* 4095.0 %))) (phasor freq phase))) 
 
+(defn ^double dec-if [^double a] (if (> a 1) (dec a) a))
+
+(defn ^doubles phasor2 [^double freq ^double phase]
+    (let [phase-incr ^double (/ freq  *sr*)
+          phase-val ^doubles (double-array 1)]
+      (aset phase-val 0 phase)
+      (fn [] 
+        (let [v ^double (dec-if (+ phase-incr (aget ^doubles phase-val 0)))]
+          (aset ^doubles phase-val 0 ^double v)
+          phase-val))))
+(defn val-copy [^doubles a ^doubles b]
+  (do (aset b 0 (aget a 0))))
+
+(defn ^double val-get [^doubles a] (aget a 0))
+
+(defn ^doubles sinev [^double freq ^double phase]
+  (let [vals (double-array 1)
+        phasor (phasor2 freq phase)]
+    (fn []
+      (let [p (aget ^doubles (phasor) 0)
+            v ^double (Math/sin (* 2.0 PI p))]
+        (aset ^doubles vals 0 v)
+        vals))))
+
+(defn ^doubles amulv [^doubles a ^double v] 
+  (do
+    (aset a 0 (* v (aget a 0)))
+    a))
+
+(defn ^doubles mixf [& args]
+  (let [vals (double-array 1)]
+    (fn []
+      (let [v ^double (reduce #(+ ^double %1 (aget ^doubles (%2) 0)) 0.0 args)]
+        (aset ^doubles vals 0 ^double v)
+        (amulv vals (/ 1.0 (count args)))
+        vals))))
+
 (defn amix 
   ([] [])
   ([& a] 
@@ -73,6 +110,7 @@
     ))
   )
 
+
 ;(def audio-block
 ;    (sine-osc 660.0 0)
 ;    )
@@ -102,6 +140,24 @@
       (recur (dec c) xs ))))
     (.close line)))
 
+
+(defn run-audio-block2 [a-block]
+  (let [#^SourceDataLine line (open-line af)
+        audio-block a-block]
+    (let [cnt (/ (* *sr* 5.0) buffer-size)
+        buffer (ByteBuffer/allocate buffer-size)
+        write-buffer-size (/ buffer-size 2)]
+      (loop [c cnt] 
+       (when (> c 0) 
+         (loop [x 0]
+           (when (< x write-buffer-size)
+             (.putShort buffer (short (* Short/MAX_VALUE (aget ^doubles (a-block) 0))))
+             (recur (inc x)))) 
+         (.write line (.array buffer) 0 buffer-size)
+         (.clear buffer)
+      (recur (dec c) ))))
+    (.close line)))
+
 (defn audio-block2 []
   (map #(* 0.01 %) 
        (apply amix 
@@ -110,6 +166,14 @@
         
 (defn demo [] (run-audio-block audio-block))
 (defn demo2 [] (run-audio-block (audio-block2)))
+
+(defn audio-block3 []
+  (apply mixf 
+   (map #(sinev (* % 60) 0)
+      (take 140 (iterate inc 1)))))
+
+(defn demo3 [] (run-audio-block2 (audio-block3)))
+
 ;(def audio-out-proxy 
 ;  (proxy [AudioInputStream]
 ;    (
