@@ -50,10 +50,10 @@
     (aset a 0 (* v (aget a 0)))
     a))
 
-(defn ^doubles mixf [& args]
-  (let [vals (double-array 1)]
+(defn ^doubles mixf [a & args]
+  (let [vals (a)]
     (fn []
-      (let [v ^double (reduce #(+ ^double %1 (aget ^doubles (%2) 0)) 0.0 args)]
+      (let [v ^double (reduce #(+ ^double %1 (aget ^doubles (%2) 0)) (val-get vals) args)]
         (aset ^doubles vals 0 ^double v)
         (amulv vals (/ 1.0 (count args)))
         vals))))
