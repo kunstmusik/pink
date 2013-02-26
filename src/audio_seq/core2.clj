@@ -55,7 +55,7 @@
     (fn []
       (let [v ^double (reduce #(+ ^double %1 (aget ^doubles (%2) 0)) (val-get vals) args)]
         (aset ^doubles vals 0 ^double v)
-        (amulv vals (/ 1.0 (count args)))
+        (amulv vals (/ 1.0 (+ 1 (count args))))
         vals))))
 
 ; JAVASOUND CODE
