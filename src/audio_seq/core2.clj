@@ -83,10 +83,10 @@
       (recur (dec c) ))))
     (.close line)))
 
-(defn audio-block3 []
+(defn audio-block3 [x]
   (apply mixf 
    (map #(sinev (* % 60) 0)
-      (take 90 (iterate inc 1)))))
+      (take x (iterate inc 1)))))
 
-(defn demo3 [] (run-audio-block2 (audio-block3)))
+(defn demo3 [x] (run-audio-block2 (audio-block3 x)))
 
