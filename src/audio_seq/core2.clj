@@ -15,8 +15,6 @@
 (def buffer-size 1024)
 
 (def ^:dynamic *sr* 44100)
-
-
 (def ^:const PI Math/PI)
 
 
@@ -25,38 +23,70 @@
 (defn val-copy [^doubles a ^doubles b]
   (do (aset b 0 (aget a 0))))
 
-(defn ^double val-get [^doubles a] (aget a 0))
+(defn ^double getv [^doubles a] (aget a 0))
+(defn setv! [^doubles a ^double v] (do (aset a 0 v) a))
 
 (defn ^doubles phasor2 [^double freq ^double phase]
     (let [phase-incr ^double (/ freq  *sr*)
-          phase-val ^doubles (double-array 1)]
-      (aset phase-val 0 phase)
+          phase-val ^doubles (double-array 1 phase)]
       (fn [] 
-        (let [v ^double (dec-if (+ phase-incr (aget ^doubles phase-val 0)))]
-          (aset ^doubles phase-val 0 ^double v)
-          phase-val))))
+        (let [v (dec-if (+ phase-incr (^double getv phase-val)))]
+          (setv! phase-val v)))))
 
 (defn ^doubles sinev [^double freq ^double phase]
   (let [vals (double-array 1)
         phasor (phasor2 freq phase)]
     (fn []
-      (let [p (aget ^doubles (phasor) 0)
-            v ^double (Math/sin (* 2.0 PI p))]
-        (aset ^doubles vals 0 v)
-        vals))))
+      (let [p ^double (getv (phasor))
+            v (Math/sin (* 2.0 PI p))]
+        (setv! vals v)))))
 
-(defn ^doubles amulv [^doubles a ^double v] 
-  (do
-    (aset a 0 (* v (aget a 0)))
-    a))
+(defn ^doubles mul [a b]
+  (fn []
+    (let [bufa (^doubles a) bufb (^doubles b)]
+    (setv! bufa (* (^double getv bufa) (^double getv bufb))))))
 
-(defn ^doubles mixf [a & args]
+(defn ^doubles mulv [^doubles a ^double v] 
+   (setv! a (* v (^double getv a))))
+
+(defn ^doubles mix
+  ([a] a)
+  ([a & args]
   (let [vals (a)]
     (fn []
-      (let [v ^double (reduce #(+ ^double %1 (aget ^doubles (%2) 0)) (val-get vals) args)]
-        (aset ^doubles vals 0 ^double v)
-        (amulv vals (/ 1.0 (+ 1 (count args))))
-        vals))))
+      (let [v ^double (reduce #(+ ^double %1 (^double getv (%2))) (getv vals) args)]
+        (setv! vals v)
+        (mulv vals (/ 1.0 (+ 1 (count args)))))))))
+
+(defn make-env-data [pts]
+  {:pre (even? (count pts))}
+  (let [[x & xs] (partition 2 pts)]
+    (second (reduce (fn [[[a b] lst] [c d :as p]] 
+              (let [run (double (* c *sr*))
+                   rise (double (/ (- d b) run))] 
+             [p (conj lst [run rise])] ))
+                         [x []] xs))))
+
+(defn env-get-inc [data counter]
+  (loop [cnt 0.0 [x & xs] data]
+    (if x
+      (let [[a b] x
+            c (+ cnt a)]
+        (if (< counter c)
+          b
+          (recur c xs))) 
+      0.0)))
+
+
+(defn ^doubles env [pts]
+ {:pre (even? (count pts))}
+  (let [linedata (make-env-data pts)
+        vals (double-array 1 (nth pts 0))
+        counter (atom -1)]
+  (fn []
+   (setv! vals (+ (^double getv vals) (env-get-inc linedata (swap! counter inc))))
+)))
+    
 
 ; JAVASOUND CODE
 
@@ -84,9 +114,12 @@
     (.close line)))
 
 (defn audio-block3 [x]
-  (apply mixf 
-   (map #(sinev (* % 60) 0)
-      (take x (iterate inc 1)))))
+  (mul
+    (apply mix 
+     (map #(sinev (* % 60) 0)
+        (take x (iterate inc 1))))
+    (env [0.0 0.0 0.05 1 0.05 0.9 0.5 0.9 0.5 0])
+    ))
 
 (defn demo3 [x] (run-audio-block2 (audio-block3 x)))
 
