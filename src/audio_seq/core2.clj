@@ -18,45 +18,45 @@
 (def ^:const PI Math/PI)
 
 
-(defn ^double dec-if [^double a] (if (> a 1) (dec a) a))
+(defn dec-if ^double [^double a] (if (> a 1) (dec a) a))
 
 (defn val-copy [^doubles a ^doubles b]
   (do (aset b 0 (aget a 0))))
 
-(defn ^double getv [^doubles a] (aget a 0))
+(defn getv [^doubles a] (aget a 0))
 (defn setv! [^doubles a ^double v] (do (aset a 0 v) a))
 
-(defn ^doubles phasor2 [^double freq ^double phase]
+(defn phasor2 [^double freq ^double phase]
     (let [phase-incr ^double (/ freq  *sr*)
-          phase-val ^doubles (double-array 1 phase)]
+          phase-val ^doubles (double-array 1 phase)
+          out ^doubles (double-array 1 phase)]
       (fn [] 
         (let [v (dec-if (+ phase-incr (^double getv phase-val)))]
-          (setv! phase-val v)))))
+          (setv! phase-val v)
+          (setv! out v)))))
 
-(defn ^doubles sinev [^double freq ^double phase]
-  (let [vals (double-array 1)
+(defn sinev [^double freq ^double phase]
+  (let [out (double-array 1)
         phasor (phasor2 freq phase)]
     (fn []
       (let [p ^double (getv (phasor))
             v (Math/sin (* 2.0 PI p))]
-        (setv! vals v)))))
+        (setv! out v)))))
 
-(defn ^doubles mul [a b]
+(defn mul [a b]
+  (let [out (double-array 1)]
   (fn []
-    (let [bufa (^doubles a) bufb (^doubles b)]
-    (setv! bufa (* (^double getv bufa) (^double getv bufb))))))
+    (let [bufa ^doubles (a) bufb ^doubles (b)]
+    (setv! out (* (^double getv bufa) (^double getv bufb)))))))
 
-(defn ^doubles mulv [^doubles a ^double v] 
-   (setv! a (* v (^double getv a))))
-
-(defn ^doubles mix
+(defn mix
   ([a] a)
   ([a & args]
-  (let [vals (a)]
+  (let [out (double-array 1)
+        adjust (/ 1.0 (+ 1 (count args)))]
     (fn []
-      (let [v ^double (reduce #(+ ^double %1 (^double getv (%2))) (getv vals) args)]
-        (setv! vals v)
-        (mulv vals (/ 1.0 (+ 1 (count args)))))))))
+      (let [v ^double (* adjust (reduce #(+ ^double %1 (^double getv (%2))) (getv (a)) args))]
+        (setv! out v))))))
 
 (defn make-env-data [pts]
   {:pre (even? (count pts))}
@@ -78,14 +78,16 @@
       0.0)))
 
 
-(defn ^doubles env [pts]
+(defn env [pts]
  {:pre (even? (count pts))}
   (let [linedata (make-env-data pts)
-        vals (double-array 1 (nth pts 0))
+        cur-val (double-array 1 (nth pts 0))
+        out (double-array 1 (nth pts 0))
         counter (atom -1)]
   (fn []
-   (setv! vals (+ (^double getv vals) (env-get-inc linedata (swap! counter inc))))
-)))
+    (let [v (+ (^double getv cur-val) (env-get-inc linedata (swap! counter inc)))]
+      (setv! cur-val v) 
+      (setv! out v)))))
     
 
 ; JAVASOUND CODE
