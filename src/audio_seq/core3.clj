@@ -23,16 +23,23 @@
 (defn val-copy [^doubles a ^doubles b]
   (do (aset b 0 (aget a 0))))
 
-(defn getv [^doubles a] (aget a 0))
-(defn setv! [^doubles a ^double v] (do (aset a 0 v) a))
+(defn getd ^double [^doubles a] (aget a 0))
+(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
+(defn getl ^long [^longs a] (aget a 0))
+(defn setl! ^long [^longs a ^long v] (aset a 0 v))
+
+(defn swapd! ^double [^doubles d f]
+  (setd! d (f (getd d))))
+
+(defn swapl! ^long [^longs l f]
+  (setl! l (f (getl l))))
 
 (defn phasor2 [^double freq ^double phase]
-    (let [phase-incr ^double (/ freq  *sr*)
-          phase-val ^doubles (double-array 1 phase) ]
+  (let [phase-incr ^double (/ freq  *sr*)
+        phase-val ^doubles (double-array 1 phase) ]
       (fn ^double [] 
-        (let [v (dec-if (+ phase-incr (^double getv phase-val)))]
-          (setv! phase-val v)
-          v))))
+        (let [v (dec-if (+ phase-incr (^double getd phase-val)))]
+          (setd! phase-val v)))))
 
 (defn sinev [^double freq ^double phase]
   (let [phasor (phasor2 freq phase)]
@@ -73,10 +80,10 @@
 (defn env [pts]
  {:pre (even? (count pts))}
   (let [linedata (make-env-data pts)
-        cur-val (atom ^double (nth pts 0))
-        counter (atom -1)]
+        cur-val (double-array 1 (nth pts 0))
+        counter (long-array 1 -1)]
   (fn ^double []
-    (swap! cur-val (partial + (env-get-inc linedata (swap! counter inc)))))))
+    (swapd! cur-val (partial + (env-get-inc linedata (swapl! counter inc) ))))))
     
 
 ; JAVASOUND CODE
