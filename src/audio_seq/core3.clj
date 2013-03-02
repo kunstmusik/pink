@@ -28,6 +28,11 @@
 (definline swapl! [l f]
   `(setl! ~l (~f (getl ~l))))
 
+;(defn swapd! ^double [^doubles d f]
+;  (setd! d ^double (f (getd d))))
+
+;(defn swapl! ^long [^longs l f]
+;  (setl! l ^long (f (getl l))))
 
 (defn dec-if ^double [^double a] (if (> a 1) (dec a) a))
 
@@ -44,7 +49,11 @@
 
 (defn mul [a b]
   (fn ^double []
-    (* (a) (b))))
+    (* ^double (a) ^double (b))))
+
+(defn const ^double [^double a]
+  (fn ^double []
+    a))
 
 (defn mix
   ([a] a)
