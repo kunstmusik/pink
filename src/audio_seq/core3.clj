@@ -17,29 +17,25 @@
 (def ^:dynamic *sr* 44100)
 (def ^:const PI Math/PI)
 
-
-(defn dec-if ^double [^double a] (if (> a 1) (dec a) a))
-
-(defn val-copy [^doubles a ^doubles b]
-  (do (aset b 0 (aget a 0))))
-
 (defn getd ^double [^doubles a] (aget a 0))
 (defn setd! ^double [^doubles a ^double v] (aset a 0 v))
 (defn getl ^long [^longs a] (aget a 0))
 (defn setl! ^long [^longs a ^long v] (aset a 0 v))
 
-(defn swapd! ^double [^doubles d f]
-  (setd! d (f (getd d))))
+(definline swapd! [d f]
+  `(setd! ~d (~f (getd ~d))))
 
-(defn swapl! ^long [^longs l f]
-  (setl! l (f (getl l))))
+(definline swapl! [l f]
+  `(setl! ~l (~f (getl ~l))))
+
+
+(defn dec-if ^double [^double a] (if (> a 1) (dec a) a))
 
 (defn phasor2 [^double freq ^double phase]
   (let [phase-incr ^double (/ freq  *sr*)
         phase-val ^doubles (double-array 1 phase) ]
       (fn ^double [] 
-        (let [v (dec-if (+ phase-incr (^double getd phase-val)))]
-          (setd! phase-val v)))))
+        (swapd! phase-val #(dec-if (+ phase-incr %))))))
 
 (defn sinev [^double freq ^double phase]
   (let [phasor (phasor2 freq phase)]
