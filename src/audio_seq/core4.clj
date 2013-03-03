@@ -90,9 +90,7 @@
 (defn phasor2 [^double freq ^double phase]
   (let [phase-incr ^double (/ freq  *sr*)
         cur-phase ^doubles (double-array 1 phase)
-        out ^doubles (create-buffer) 
-        lastindx (- (alength out) 1)
-        len (alength out)]
+        out ^doubles (create-buffer)]
       (fn ^doubles [] 
         (fill out cur-phase #(dec-if (+ phase-incr ^double %))))))
 
@@ -153,8 +151,6 @@
         out (create-buffer)]
   (fn ^doubles[]
     (fill out cur-val #(+ ^double % ^double (env-get-inc linedata (swapl! counter inc)))))))
-
-    ;(swapd! cur-val (partial + (env-get-inc linedata (swapl! counter inc) ))))))
     
 
 ; JAVASOUND CODE
