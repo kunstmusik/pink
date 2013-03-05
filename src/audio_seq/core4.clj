@@ -77,12 +77,9 @@
         lastindx (- len 1)]
     (loop [cnt (unchecked-long 0)]
       (if (< cnt len)
-;        (let [tmp ^double (f v)] 
-;          (aset ^doubles buf cnt ^double tmp)
-;          (recur (unchecked-inc cnt) ^double tmp))
-          (do
-            (aset ^doubles buf cnt (swapd! start #(f ^double %)))
-            (recur (unchecked-inc cnt)))
+        (do
+          (aset ^doubles buf cnt (swapd! start #(f ^double %)))
+          (recur (unchecked-inc cnt)))
         buf))))
 
 (defn dec-if ^double [^double a] (if (> a 1) (dec a) a))
