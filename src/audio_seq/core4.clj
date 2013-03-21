@@ -33,28 +33,31 @@
   ([] (double-array KSMPS))
   ([i] (double-array KSMPS i)))
 
-(def empty-d ^doubles (create-buffer 0))
+(def empty-d (create-buffer 0))
 
 (defn clear-d [^doubles d]
-  (System/arraycopy empty-d 0 d 0 (alength ^doubles empty-d)))
+  (System/arraycopy empty-d 0 d 0 (alength empty-d)))
 
 (defn map-d 
+  "Maps function f across double[] buffers and writes output to final passed in buffer" 
   ([f ^doubles a ^doubles b]
     (let [l (alength a)]
       (loop [cnt 0]
         (when (< cnt l)
-          (aset ^doubles b cnt ^double (f (aget ^doubles a cnt)))
+          (aset b cnt (f (aget a cnt)))
           (recur (unchecked-inc cnt))))
       b))
   ([f ^doubles a ^doubles b ^doubles c]
     (let [l (alength a)]
       (loop [cnt 0]
         (when (< cnt l)
-          (aset ^doubles c cnt ^double (f (aget ^doubles a cnt) (aget ^doubles b cnt)))
+          (aset c cnt (f (aget a cnt) (aget b cnt)))
           (recur (unchecked-inc cnt))))
       c)))
 
 (defn reduce-d
+  "calls f on buffers generates from fns in a manner similar to reduce, 
+  writing the reduced values into out buffer"
   ([f ^doubles out fns]
     (clear-d out)
     (loop [[x & xs] fns]
@@ -63,7 +66,7 @@
               len (alength buf)]
           (loop [cnt 0]
             (when (< cnt len) 
-              (aset out cnt ^double (f (aget ^doubles out cnt) (aget ^doubles buf cnt)))
+              (aset out cnt ^double (f (aget out cnt) (aget buf cnt)))
               (recur (unchecked-inc cnt)))))
         (recur xs)))
    out))
@@ -78,7 +81,7 @@
     (loop [cnt (unchecked-long 0)]
       (if (< cnt len)
         (do
-          (aset ^doubles buf cnt (swapd! start #(f ^double %)))
+          (aset buf cnt (swapd! start #(f ^double %)))
           (recur (unchecked-inc cnt)))
         buf))))
 
@@ -86,14 +89,14 @@
 
 (defn phasor2 [^double freq ^double phase]
   (let [phase-incr ^double (/ freq  *sr*)
-        cur-phase ^doubles (double-array 1 phase)
-        out ^doubles (create-buffer)]
+        cur-phase (double-array 1 phase)
+        out (create-buffer)]
       (fn ^doubles [] 
         (fill out cur-phase #(dec-if (+ phase-incr ^double %))))))
 
 (defn sinev [^double freq ^double phase]
   (let [phasor (phasor2 freq phase)
-        out ^doubles (create-buffer)]
+        out (create-buffer)]
     (fn ^doubles []
       (map-d #(Math/sin (* 2.0 PI ^double %)) (phasor) out))))
 
@@ -101,12 +104,12 @@
    (map-d #(* ^double %1 ^double %2) a b out))
 
 (defn mul [a b]
-  (let [out ^doubles (create-buffer)]
+  (let [out (create-buffer)]
     (fn ^doubles []
       (map-d #(* ^double %1 ^double %2) ^doubles (a) ^doubles (b) out))))
 
 (defn const [^double a]
-  (let [out ^doubles (create-buffer a)]
+  (let [out (create-buffer a)]
   (fn ^doubles []
     out)))
 
@@ -172,7 +175,7 @@
              (let [buf ^doubles (a-block)]
                (loop [y 0]
                  (when (< y (alength buf))
-                   (.putShort buffer (short (* Short/MAX_VALUE ^double (aget ^doubles buf y))))
+                   (.putShort buffer (short (* Short/MAX_VALUE (aget buf y))))
                    (recur (unchecked-inc y)))) 
                (recur (unchecked-inc x)))))
          (.write line (.array buffer) 0 buffer-size)
