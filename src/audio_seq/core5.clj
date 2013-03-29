@@ -1,4 +1,4 @@
-(ns audio-seq.core4
+(ns audio-seq.core5
   (:use [audio-seq.engine :as engine]))
 
 ;(def ^:dynamic *sr* 44100)
