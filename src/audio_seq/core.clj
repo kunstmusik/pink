@@ -1,180 +1,156 @@
-(ns audio-seq.core
-  (:import (javax.sound.sampled
-                       AudioFormat
-                       AudioFormat$Encoding
-                       AudioFileFormat
-                       AudioFileFormat$Type
-                       AudioInputStream
-                       AudioSystem
-           DataLine$Info SourceDataLine)
-        (java.nio ByteBuffer)
-        (java.io File ByteArrayInputStream)))
+(ns audio-seq.core5
+  (:use [audio-seq.engine :as engine]))
 
-(def af (AudioFormat. 44100 16 1 true true))
-
-(def buffer-size 1024)
-
-(def ^:dynamic *sr* 44100)
-
-
-;(def audio-stream (AudioInputStream/getAudioInputStream
-;(def f (File/createTempFile "tmp" ".raw" (File. "."))) 
-;(println (bean f))
-
+;(def ^:dynamic *sr* 44100)
 (def ^:const PI Math/PI)
+;(def ^:dynamic *ksmps* 64)
 
-(defn ^doubles phasor [^double freq ^double phase]
-  (let [phase-incr (/ freq  *sr*)]
-    (iterate #(let [p (+ % phase-incr)] (if (> p 1) (dec p) p)) phase)))
-
-(defn ^doubles sine-osc [freq phase]
-    (map #(Math/sin (* 2 PI %)) (phasor freq phase)))
+(defn getd ^double [^doubles a] (aget a 0))
+(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
+(defn getl ^long [^longs a] (aget a 0))
+(defn setl! ^long [^longs a ^long v] (aset a 0 v))
 
 
-(def ^doubles sine-table  
-  (double-array 
-    (map #(Math/sin (* 2.0 PI (/ % 4096.0))) 
-                    (take 4096 (iterate inc 0)))))
+;(defn ^double swapd! [d f] 
+;  (setd! d (f (getd d))))
 
-(defn ^doubles sine-osc2 [freq phase]
-  (map #(aget ^doubles sine-table ^int (int ^double (* 4095.0 %))) (phasor freq phase))) 
+(definline swapd! [d f] 
+  `(setd! ~d (~f (getd ~d))))
+
+;(defn ^long swapl! [l f]
+;  (setl! l (f (getl l))))
+
+(definline swapl! [l f]
+  `(setl! ~l (~f (getl ~l))))
+
+(defn create-buffer 
+  ([] (double-array *ksmps*))
+  ([i] (double-array *ksmps* i)))
+
+(def empty-d (create-buffer 0))
+
+(defn clear-d [^doubles d]
+  (System/arraycopy empty-d 0 d 0 (alength ^doubles empty-d)))
+
+(defn map-d 
+  "Maps function f across double[] buffers and writes output to final passed in buffer" 
+  ([f ^doubles a ^doubles b]
+    (let [l (alength a)]
+      (loop [cnt 0]
+        (when (< cnt l)
+          (aset b cnt ^double (f (aget a cnt)))
+          (recur (unchecked-inc cnt))))
+      b))
+  ([f ^doubles a ^doubles b ^doubles c]
+    (let [l (alength a)]
+      (loop [cnt 0]
+        (when (< cnt l)
+          (aset c cnt ^double (f (aget a cnt) (aget b cnt)))
+          (recur (unchecked-inc cnt))))
+      c)))
+
+(defn reduce-d
+  "calls f on buffers generates from fns in a manner similar to reduce, 
+  writing the reduced values into out buffer"
+  ([f ^doubles out fns]
+    (clear-d out)
+    (loop [[x & xs] fns]
+      (when x
+        (let [buf ^doubles (x)
+              len (alength buf)]
+          (loop [cnt 0]
+            (when (< cnt len) 
+              (aset out cnt ^double (f (aget out cnt) (aget buf cnt)))
+              (recur (unchecked-inc cnt)))))
+        (recur xs)))
+   out))
+        
+(defn fill 
+  "Fills double[] buf with values. Initial value is set to value from double[] start, 
+  then f called like iterate with the value.  Last value is stored back into the start.
+  Returns buf at end."
+  [^doubles buf ^doubles start f]
+  (let [len (alength buf)
+        lastindx (- len 1)]
+    (loop [cnt (unchecked-long 0)]
+      (when (< cnt len)
+        (aset ^doubles buf cnt ^double (swapd! start #(f ^double %)))
+        (recur (unchecked-inc cnt))))
+    buf))
 
 (defn ^double dec-if [^double a] (if (> a 1) (dec a) a))
 
-(defn ^doubles phasor2 [^double freq ^double phase]
-    (let [phase-incr ^double (/ freq  *sr*)
-          phase-val ^doubles (double-array 1)]
-      (aset phase-val 0 phase)
-      (fn [] 
-        (let [v ^double (dec-if (+ phase-incr (aget ^doubles phase-val 0)))]
-          (aset ^doubles phase-val 0 ^double v)
-          phase-val))))
-(defn val-copy [^doubles a ^doubles b]
-  (do (aset b 0 (aget a 0))))
+(defn phasor2 [^double freq ^double phase]
+  (let [phase-incr ^double (/ freq  *sr*)
+        cur-phase (double-array 1 phase)
+        out (create-buffer)]
+      (fn ^doubles [] 
+        (fill out cur-phase #(dec-if (+ phase-incr ^double %))))))
 
-(defn ^double val-get [^doubles a] (aget a 0))
+(defn sinev [^double freq ^double phase]
+  (let [phasor (phasor2 freq phase)
+        out (create-buffer)]
+    (fn ^doubles []
+      (map-d #(Math/sin (* 2.0 PI ^double %)) (phasor) out))))
 
-(defn ^doubles sinev [^double freq ^double phase]
-  (let [vals (double-array 1)
-        phasor (phasor2 freq phase)]
-    (fn []
-      (let [p (aget ^doubles (phasor) 0)
-            v ^double (Math/sin (* 2.0 PI p))]
-        (aset ^doubles vals 0 v)
-        vals))))
+(defn ^doubles mul-d [^doubles a ^doubles b ^doubles out]
+   (map-d #(* ^double %1 ^double %2) a b out))
 
-(defn ^doubles amulv [^doubles a ^double v] 
-  (do
-    (aset a 0 (* v (aget a 0)))
-    a))
+(defn mul [a b]
+  (let [out (create-buffer)]
+    (fn ^doubles []
+      (map-d #(* ^double %1 ^double %2) ^doubles (a) ^doubles (b) out))))
 
-(defn ^doubles mixf [& args]
-  (let [vals (double-array 1)]
-    (fn []
-      (let [v ^double (reduce #(+ ^double %1 (aget ^doubles (%2) 0)) 0.0 args)]
-        (aset ^doubles vals 0 ^double v)
-        (amulv vals (/ 1.0 (count args)))
-        vals))))
+(defn const [^double a]
+  (let [out (create-buffer a)]
+  (fn ^doubles []
+    out)))
 
-(defn amix 
-  ([] [])
-  ([& a] 
-     (let [len (count a)]
-       (if (= len 1)
-         (first a) 
-         (apply map + a)))))
+(defn mix
+  [& args]
+    (if (> (count args) 1)
+      (let [tmp (create-buffer)
+            out (create-buffer)
+          adjust (create-buffer (/ 1.0 (count args)))]
+        (fn ^doubles []
+          (mul-d adjust (reduce-d #(+ ^double %1 ^double %2) tmp args) out)))
+      (nth args 0)))
 
-(defn amul
-  ([] [])
-  ([& a] 
-     (let [len (count a)]
-       (if (= len 1)
-         (first a) 
-         (apply map * a)))))
+(defn make-env-data [pts]
+  {:pre (even? (count pts))}
+  (let [[x & xs] (partition 2 pts)]
+    (second (reduce (fn [[[a b] lst] [c d :as p]] 
+              (let [run (double (* c *sr*))
+                   rise (double (/ (- d b) run))] 
+             [p (conj lst [run rise])] ))
+                         [x []] xs))))
 
-(defn env-lin 
-  [& xs]
-    (lazy-seq 
-      (let [[p1 p2 ] xs cnt 0]
-         (when p2 
-           (cons p1 (apply env-lin (rest xs )))))))
-   
-
-(def audio-block
-  (map #(* 0.25 %)
-  (amix 
-    (sine-osc 440.0 0)
-    (sine-osc 660.0 0)
-    (sine-osc 990.0 0)
-    (sine-osc 1220.0 0)
-    ))
-  )
+(defn env-get-inc [data counter]
+  (loop [cnt 0.0 [x & xs] data]
+    (if x
+      (let [[a b] x
+            c (+ cnt a)]
+        (if (< counter c)
+          b
+          (recur c xs))) 
+      0.0)))
 
 
-;(def audio-block
-;    (sine-osc 660.0 0)
-;    )
+(defn env [pts]
+ {:pre (even? (count pts))}
+  (let [linedata (make-env-data pts)
+        cur-val (double-array 1 (nth pts 0))
+        counter (long-array 1 -1)
+        out (create-buffer)]
+  (fn ^doubles[]
+    (fill out cur-val #(+ ^double % ^double (env-get-inc linedata (swapl! counter inc)))))))
+    
+(defn audio-block3 [x]
+  (mul
+    (apply mix 
+     (map #(sinev (* % 60) 0)
+        (take x (iterate inc 1))))
+    (env [0.0 0.0 0.05 1 0.05 0.9 0.5 0.9 0.5 0])))
 
-; JAVASOUND CODE
-
-(defn open-line [audio-format]
-  (let [#^SourceDataLine line (AudioSystem/getSourceDataLine audio-format)]
-    (doto line 
-    (.open audio-format)
-    (.start))))
-
-(defn run-audio-block [a-block]
-  (let [#^SourceDataLine line (open-line af)
-        audio-block a-block]
-    (let [cnt (/ (* *sr* 5.0) buffer-size)
-        buffer (ByteBuffer/allocate buffer-size)]
-      (loop [c cnt 
-         [x & xs] (partition (/ buffer-size 2) audio-block)] 
-       (when (and (> c 0) x)
-         (loop [[a & b] x]
-           (when a
-             (.putShort buffer (.shortValue (* Short/MAX_VALUE a)))
-             (recur b))) 
-         (.write line (.array buffer) 0 buffer-size)
-         (.clear buffer)
-      (recur (dec c) xs ))))
-    (.close line)))
-
-
-(defn run-audio-block2 [a-block]
-  (let [#^SourceDataLine line (open-line af)
-        audio-block a-block]
-    (let [cnt (/ (* *sr* 5.0) buffer-size)
-        buffer (ByteBuffer/allocate buffer-size)
-        write-buffer-size (/ buffer-size 2)]
-      (loop [c cnt] 
-       (when (> c 0) 
-         (loop [x 0]
-           (when (< x write-buffer-size)
-             (.putShort buffer (short (* Short/MAX_VALUE (aget ^doubles (a-block) 0))))
-             (recur (inc x)))) 
-         (.write line (.array buffer) 0 buffer-size)
-         (.clear buffer)
-      (recur (dec c) ))))
-    (.close line)))
-
-(defn audio-block2 []
-  (map #(* 0.01 %) 
-       (apply amix 
-              (map #(sine-osc (* % 60) 0) 
-                   (take 30 (iterate inc 1))))))
-        
-(defn demo [] (run-audio-block audio-block))
-(defn demo2 [] (run-audio-block (audio-block2)))
-
-(defn audio-block3 []
-  (apply mixf 
-   (map #(sinev (* % 60) 0)
-      (take 140 (iterate inc 1)))))
-
-(defn demo3 [] (run-audio-block2 (audio-block3)))
-
-;(def audio-out-proxy 
-;  (proxy [AudioInputStream]
-;    (
+(defn demo3 [x] (engine/run-audio-block (audio-block3 x)))
 
