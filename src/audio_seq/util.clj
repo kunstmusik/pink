@@ -1,4 +1,6 @@
-(ns audio-seq.util
+(ns #^{:author "Steven Yi"
+       :doc "Audio utility code for working with buffers (double[])"}
+  audio-seq.util
   (:use [audio-seq.engine :only (*ksmps*)]))
 
 (defn getd ^double [^doubles a] (aget a 0))
@@ -74,3 +76,26 @@
         (recur (unchecked-inc cnt))))
     buf))
 
+
+(defn ^doubles mul-d [^doubles a ^doubles b ^doubles out]
+   (map-d #(* ^double %1 ^double %2) a b out))
+
+(defn mul [a b]
+  (let [out (create-buffer)]
+    (fn ^doubles []
+      (map-d #(* ^double %1 ^double %2) ^doubles (a) ^doubles (b) out))))
+
+(defn const [^double a]
+  (let [out (create-buffer a)]
+  (fn ^doubles []
+    out)))
+
+(defn mix
+  [& args]
+    (if (> (count args) 1)
+      (let [tmp (create-buffer)
+            out (create-buffer)
+          adjust (create-buffer (/ 1.0 (count args)))]
+        (fn ^doubles []
+          (mul-d adjust (reduce-d #(+ ^double %1 ^double %2) tmp args) out)))
+      (nth args 0)))

@@ -1,4 +1,6 @@
-(ns audio-seq.engine
+(ns #^{:author "Steven Yi"
+       :doc "Audio Engine Code"}
+  audio-seq.engine
   (:import (javax.sound.sampled
                        AudioFormat
                        AudioFormat$Encoding
@@ -17,7 +19,35 @@
 (def ^:dynamic *sr* 44100)
 (def ^:dynamic *ksmps* 64)
 
-; JAVASOUND CODE
+;;;; Engine
+
+(defn engine-create []
+  "Creates an engine"
+  {:status (atom :stopped)
+   :line nil
+   :current-audio-funcs nil})
+
+(defn engine-start [engine]
+  (when (= @(:status engine) :stopped)
+    (swap! (:status engine) :initializing)
+    (comment do setup, open audio line, start running)
+    ))
+
+(defn engine-stop [engine]
+  (when (not= @(:status engine) :running)
+    (println "Stopping Engine")))
+
+(defn engine-status [engine]
+  @(:status engine))
+
+;; should do initialization of f on separate thread?
+(defn engine-add-active-func [engine f]
+  (println "adding audio function"))
+
+(defn engine-remove-func [engine f]
+  (println "removing audio function")) 
+
+;;;; JAVASOUND CODE
 
 (defn open-line [audio-format]
   (let [#^SourceDataLine line (AudioSystem/getSourceDataLine audio-format)]
