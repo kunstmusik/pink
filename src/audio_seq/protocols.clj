@@ -1,8 +1,5 @@
-(ns #^{:author "Steven Yi"
-       :doc "Protocols for Audio Engine"}
-  audio-seq.protocols
-  (:use audio-seq.util)
-  (:use [audio-seq.engine :only (*sr* )]))
+(ns audio-seq.protocols
+  "Protocols for Audio Engine")
 
 (defprotocol AudioBlock
   (get-buffer [this] "Returns an audio buffer (double[]) full with audio"))

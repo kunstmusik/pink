@@ -1,7 +1,6 @@
-(ns #^{:author "Steven Yi"
-       :doc "Audio utility code for working with buffers (double[])"}
-  audio-seq.util
-  (:use [audio-seq.engine :only (*ksmps*)]))
+(ns audio-seq.util
+  "Audio utility code for working with buffers (double[])"
+  (:require [audio-seq.engine :refer [*ksmps*]]))
 
 (defn getd ^double [^doubles a] (aget a 0))
 (defn setd! ^double [^doubles a ^double v] (aset a 0 v))

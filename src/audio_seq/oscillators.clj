@@ -1,8 +1,7 @@
-(ns #^{:author "Steven Yi"
-       :doc "Oscillator Functions"}
-  audio-seq.oscillators
-  (:use audio-seq.util)
-  (:use [audio-seq.engine :only (*sr* )]))
+(ns audio-seq.oscillators
+  "Oscillator Functions"
+  (:require [audio-seq.engine :refer [*sr*]]
+            [audio-seq.util :refer [create-buffer fill map-d]]))
 
 (def ^:const PI Math/PI)
 

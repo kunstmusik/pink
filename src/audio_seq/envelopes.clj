@@ -1,8 +1,7 @@
-(ns #^{:author "Steven Yi"
-       :doc "Envelope Generator Functions"}
-  audio-seq.envelopes
-  (:use audio-seq.util)
-  (:use [audio-seq.engine :only (*sr* )]))
+(ns audio-seq.envelopes
+  "Envelope Generator Functions"
+  (:require [audio-seq.engine :refer [*sr*]]
+            [audio-seq.util :refer [create-buffer fill swapl!]]))
 
 (defn- make-env-data [pts]
   {:pre (even? (count pts))}

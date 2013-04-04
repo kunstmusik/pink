@@ -1,16 +1,8 @@
-(ns #^{:author "Steven Yi"
-       :doc "Audio Engine Code"}
-  audio-seq.engine
-  (:import (javax.sound.sampled
-                       AudioFormat
-                       AudioFormat$Encoding
-                       AudioFileFormat
-                       AudioFileFormat$Type
-                       AudioInputStream
-                       AudioSystem
-           DataLine$Info SourceDataLine)
-        (java.nio ByteBuffer)
-        (java.io File ByteArrayInputStream)))
+(ns audio-seq.engine
+  "Audio Engine Code"
+  (:import (java.nio ByteBuffer)
+           (javax.sound.sampled AudioFormat AudioSystem
+                                SourceDataLine)))
 
 (def af (AudioFormat. 44100 16 1 true true))
 
