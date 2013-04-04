@@ -63,7 +63,7 @@
         write-buffer-size (/ buffer-size 2)
         frames (quot write-buffer-size *ksmps*)]
       (loop [c cnt] 
-       (when (> c 0) 
+       (when (pos? c) 
          (loop [x 0]
            (when (< x frames)
              (let [buf ^doubles (a-block)]

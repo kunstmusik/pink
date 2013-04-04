@@ -69,21 +69,21 @@
   Returns buf at end."
   [^doubles buf ^doubles start f]
   (let [len (alength buf)
-        lastindx (- len 1)]
+        lastindx (dec len)]
     (loop [cnt (unchecked-long 0)]
       (when (< cnt len)
-        (aset ^doubles buf cnt ^double (swapd! start #(f ^double %)))
+        (aset ^doubles buf cnt ^double (swapd! start f))
         (recur (unchecked-inc cnt))))
     buf))
 
 
 (defn ^doubles mul-d [^doubles a ^doubles b ^doubles out]
-   (map-d #(* ^double %1 ^double %2) a b out))
+   (map-d * a b out))
 
 (defn mul [a b]
   (let [out (create-buffer)]
     (fn ^doubles []
-      (map-d #(* ^double %1 ^double %2) ^doubles (a) ^doubles (b) out))))
+      (map-d * ^doubles (a) ^doubles (b) out))))
 
 (defn const [^double a]
   (let [out (create-buffer a)]
@@ -97,5 +97,5 @@
             out (create-buffer)
           adjust (create-buffer (/ 1.0 (count args)))]
         (fn ^doubles []
-          (mul-d adjust (reduce-d #(+ ^double %1 ^double %2) tmp args) out)))
+          (mul-d adjust (reduce-d + tmp args) out)))
       (nth args 0)))
