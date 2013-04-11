@@ -24,56 +24,63 @@
   ([] (double-array *ksmps*))
   ([i] (double-array *ksmps* i)))
 
-(def empty-d (create-buffer 0))
+(def empty-d (create-buffer 0)) 
 
 (defn clear-d [^doubles d]
-  (System/arraycopy empty-d 0 d 0 (alength ^doubles empty-d)))
+  (when d
+    (let [len (min (alength ^doubles d) (alength ^doubles empty-d))]
+    (System/arraycopy empty-d 0 d 0 len))))
 
 (defn map-d 
   "Maps function f across double[] buffers and writes output to final passed in buffer" 
   ([f ^doubles a ^doubles b]
-    (let [l (alength a)]
-      (loop [cnt 0]
-        (when (< cnt l)
-          (aset b cnt ^double (f (aget a cnt)))
-          (recur (unchecked-inc cnt))))
-      b))
+    (when (and a b)
+      (let [l (alength a)]
+        (loop [cnt 0]
+          (when (< cnt l)
+            (aset b cnt ^double (f (aget a cnt)))
+            (recur (unchecked-inc cnt))))
+        b)))
   ([f ^doubles a ^doubles b ^doubles c]
-    (let [l (alength a)]
-      (loop [cnt 0]
-        (when (< cnt l)
-          (aset c cnt ^double (f (aget a cnt) (aget b cnt)))
-          (recur (unchecked-inc cnt))))
-      c)))
+    (when (and a b c)
+      (let [l (alength a)]
+        (loop [cnt 0]
+          (when (< cnt l)
+            (aset c cnt ^double (f (aget a cnt) (aget b cnt)))
+            (recur (unchecked-inc cnt))))
+        c))))
 
 (defn reduce-d
   "calls f on buffers generates from fns in a manner similar to reduce, 
   writing the reduced values into out buffer"
   ([f ^doubles out fns]
-    (clear-d out)
-    (loop [[x & xs] fns]
-      (when x
-        (let [buf ^doubles (x)
-              len (alength buf)]
-          (loop [cnt 0]
-            (when (< cnt len) 
-              (aset out cnt ^double (f (aget out cnt) (aget buf cnt)))
-              (recur (unchecked-inc cnt)))))
-        (recur xs)))
-   out))
+    (when (and out fns (not-empty fns))
+      (clear-d out)
+      (loop [[x & xs] fns]
+        (if x
+          (when-let [buf ^doubles (x)]
+            (let [len (alength buf)]
+              (when buf
+                (loop [cnt 0]
+                  (when (< cnt len) 
+                    (aset out cnt ^double (f (aget out cnt) (aget buf cnt)))
+                    (recur (unchecked-inc cnt))))
+                (recur xs))))
+          out)))))
         
 (defn fill 
   "Fills double[] buf with values. Initial value is set to value from double[] start, 
   then f called like iterate with the value.  Last value is stored back into the start.
   Returns buf at end."
   [^doubles buf ^doubles start f]
-  (let [len (alength buf)
-        lastindx (dec len)]
-    (loop [cnt (unchecked-long 0)]
-      (when (< cnt len)
-        (aset ^doubles buf cnt ^double (swapd! start f))
-        (recur (unchecked-inc cnt))))
-    buf))
+  (when (and buf start f)
+    (let [len (alength buf)
+          lastindx (dec len)]
+      (loop [cnt (unchecked-long 0)]
+        (when (< cnt len)
+          (aset ^doubles buf cnt ^double (swapd! start f))
+          (recur (unchecked-inc cnt))))
+      buf)))
 
 
 (defn ^doubles mul-d [^doubles a ^doubles b ^doubles out]
