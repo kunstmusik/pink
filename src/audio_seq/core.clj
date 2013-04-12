@@ -25,7 +25,7 @@
       (const 0.25)
       (env [0.0 0.0 0.02 1 0.05 0.9 0.2 0.9 0.2 0]))))
 
-(defn demo3 [x] (engine/run-audio-block (audio-block3 x)))
+(defn demo3 [x] (eng/run-audio-block (audio-block3 x)))
 
 (defn demo4 []
   (let [melody (take (* 4 4) (cycle [220 330 440 330]))
@@ -41,5 +41,5 @@
     (eng/engine-stop e)))
 
      
-     
+
 
