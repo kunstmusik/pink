@@ -52,7 +52,8 @@
    :line nil
    :out-buffer (double-array *ksmps*)
    :buffer (ByteBuffer/allocate buffer-size)
-   :audio-funcs []}))
+   :audio-funcs []
+   :frame-count 0}))
 
 
 ;; should do initialization of f on separate thread?
@@ -102,15 +103,28 @@
         (.clear buffer)
         afs))))
 
+(defn process-buffer
+  [afs ^doubles outbuffer ^ByteBuffer buffer]
+  (Arrays/fill ^doubles outbuffer 0.0)
+  (let [newfs (run-audio-funcs afs outbuffer)]
+    (map-over-d #(.putShort buffer (limit (* Short/MAX_VALUE %))) outbuffer)
+    newfs))
+
+(defn buf->line [^ByteBuffer buffer ^SourceDataLine line]
+  (.write line (.array buffer) 0 buffer-size)
+  (.clear buffer))
+
 (defn engine-run [engine a]
   (if (= (engine :status) :running)
     (let [line (engine :line)
           outbuf (engine :out-buffer)
           buf (engine :buffer)
-          afs (process-frame (engine :audio-funcs) outbuf line buf frames)
-          neweng (assoc engine :audio-funcs afs)]
+          afs (process-buffer (engine :audio-funcs) outbuf buf)
+          frame-count (rem (inc (engine :frame-count)) frames)]
+      (when (zero? frame-count)
+        (buf->line buf line))
       (send a engine-run a)
-      neweng)
+      (assoc engine :audio-funcs afs :frame-count frame-count))
     (do
       (println "stopping...")
       (doto ^SourceDataLine (engine :line)
