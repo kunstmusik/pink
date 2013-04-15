@@ -29,7 +29,7 @@
 (def af (AudioFormat. 44100 16 1 true true))
 
 (def ^:dynamic *sr* 44100)
-(def ^:dynamic *ksmps* 64)
+(def ^:dynamic *ksmps* 32)
 
 (def buffer-size 256)
 (def write-buffer-size (/ buffer-size 2))
@@ -48,12 +48,10 @@
 
 (defn engine-create []
   "Creates an engine"
-  (agent {:status :stopped
-   :line nil
-   :out-buffer (double-array *ksmps*)
-   :buffer (ByteBuffer/allocate buffer-size)
-   :audio-funcs []
-   :frame-count 0}))
+  {:status (ref :stopped)
+   :audio-funcs (ref [])
+   :pending-funcs (ref [])
+   })
 
 
 ;; should do initialization of f on separate thread?
@@ -114,36 +112,42 @@
   (.write line (.array buffer) 0 buffer-size)
   (.clear buffer))
 
-(defn engine-run [engine a]
-  (if (= (engine :status) :running)
-    (let [line (engine :line)
-          outbuf (engine :out-buffer)
-          buf (engine :buffer)
-          afs (process-buffer (engine :audio-funcs) outbuf buf)
-          frame-count (rem (inc (engine :frame-count)) frames)]
-      (when (zero? frame-count)
-        (buf->line buf line))
-      (send a engine-run a)
-      (assoc engine :audio-funcs afs :frame-count frame-count))
-    (do
-      (println "stopping...")
-      (doto ^SourceDataLine (engine :line)
-        (.flush)
-        (.close))
-      engine)))
+(defn engine-run2 [engine]
+  (let [#^SourceDataLine line (open-line af)        
+        outbuf (double-array *ksmps*)
+        buf (ByteBuffer/allocate buffer-size)
+        audio-funcs (engine :audio-funcs)
+        pending-funcs (engine :pending-funcs)]
+    (loop [frame-count 0]
+      (if (= @(engine :status) :running)
+        (let [f-count (rem (inc frame-count) frames)
+              afs (process-buffer @audio-funcs outbuf buf)]  
+          (dosync
+            (if (empty? @pending-funcs)
+              (ref-set audio-funcs afs)
+              (do
+                (ref-set audio-funcs (concat afs @pending-funcs))
+                (ref-set pending-funcs []))))
+          (when (zero? f-count)
+            (buf->line buf line))
+          (recur (long f-count)))
+        (do
+          (println "stopping...")
+          (doto line
+            (.flush)
+            (.close)))))))
 
 (defn engine-start [engine]
-  (when (= (:status @engine) :stopped)
-    (let [#^SourceDataLine line (open-line af)]
-      (send engine assoc :status :running :line line)
-      (send engine engine-run engine))))
+  (when (= @(engine :status) :stopped)
+    (dosync (ref-set (engine :status) :running))
+    (.start (Thread. (partial engine-run2 engine)))))
 
 (defn engine-stop [engine]
-  (when (= (:status @engine) :running)
-    (send engine assoc :status :stopped :line nil)))
+  (when (= @(engine :status) :running)
+    (dosync (ref-set (engine :status) :stopped))))
 
 (defn engine-status [engine]
-  (:status @engine))
+  @(:status engine))
 
 
 (defn run-audio-block [a-block]
