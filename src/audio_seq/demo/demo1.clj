@@ -9,12 +9,12 @@
 (defn simple-synth [freq]
   (mul
     (mix 
-      (sine freq 0)
-      (mul (const 0.5) (sine (* 2 freq) 0))
-      (mul (const 0.25) (sine (* 3 freq) 0))
-      (mul (const 0.125) (sine (* 4 freq) 0)))
+      (sine freq)
+      (mul (const 0.5) (sine (* 2 freq)))
+      (mul (const 0.25) (sine (* 3 freq)))
+      (mul (const 0.125) (sine (* 4 freq))))
     (mul
-      (const 0.25)
+      0.25
       (env [0.0 0.0 0.02 1 0.02 0.9 0.2 0.9 0.2 0]))))
 
 
@@ -60,7 +60,7 @@
 (eng/engine-start e)
 (dosync (alter (e :pending-funcs) conj (demo-afunc e)))
 (eng/engine-stop e)
-
+(eng/engine-clear e)
 (every 250 (partial note-sender e) my-pool :fixed-delay true)
 (every 250 (partial note-sender e) my-pool)
          

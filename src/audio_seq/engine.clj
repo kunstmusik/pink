@@ -49,16 +49,17 @@
 (defn engine-create []
   "Creates an engine"
   {:status (ref :stopped)
+   :clear (ref false)
    :audio-funcs (ref [])
    :pending-funcs (ref [])
    })
 
 
 ;; should do initialization of f on separate thread?
-(defn engine-add-active-func [engine f]
-  (println "adding audio function"))
+(defn engine-add-afunc [engine f]
+  (dosync (alter (engine :pending-funcs) conj f)))
 
-(defn engine-remove-func [engine f]
+(defn engine-remove-afunc [engine f]
   (println "removing audio function")) 
 
 ;;;; JAVASOUND CODE
@@ -117,17 +118,23 @@
         outbuf (double-array *ksmps*)
         buf (ByteBuffer/allocate buffer-size)
         audio-funcs (engine :audio-funcs)
-        pending-funcs (engine :pending-funcs)]
+        pending-funcs (engine :pending-funcs)
+        clear-flag (engine :clear)]
     (loop [frame-count 0]
       (if (= @(engine :status) :running)
         (let [f-count (rem (inc frame-count) frames)
               afs (process-buffer @audio-funcs outbuf buf)]  
           (dosync
-            (if (empty? @pending-funcs)
-              (ref-set audio-funcs afs)
+            (if @clear-flag
               (do
-                (ref-set audio-funcs (concat afs @pending-funcs))
-                (ref-set pending-funcs []))))
+                (ref-set audio-funcs [])
+                (ref-set pending-funcs [])
+                (ref-set clear-flag false))
+              (if (empty? @pending-funcs)
+                (ref-set audio-funcs afs)
+                (do
+                  (ref-set audio-funcs (concat afs @pending-funcs))
+                  (ref-set pending-funcs [])))))
           (when (zero? f-count)
             (buf->line buf line))
           (recur (long f-count)))
@@ -140,12 +147,20 @@
 (defn engine-start [engine]
   (when (= @(engine :status) :stopped)
     (dosync (ref-set (engine :status) :running))
-    (.start (Thread. (partial engine-run2 engine)))))
+    (.start (Thread. ^Runnable (partial engine-run2 engine)))))
 
 (defn engine-stop [engine]
   (when (= @(engine :status) :running)
     (dosync (ref-set (engine :status) :stopped))))
 
+(defn engine-clear [engine]
+  (if (= @(engine :status) :running)
+    (dosync (ref-set (engine :clear) true))
+    (dosync 
+      (ref-set (engine :audio-funcs) [])
+      (ref-set (engine :pending-funcs) []))))
+    
+                            
 (defn engine-status [engine]
   @(:status engine))
 

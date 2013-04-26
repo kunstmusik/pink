@@ -24,6 +24,22 @@
   ([] (double-array *ksmps*))
   ([i] (double-array *ksmps* i)))
 
+
+(defn const [^double a]
+  "Initializes a *ksmps*-sized buffer with the given value,
+  returns a function that will return that buffer on each call"
+  (let [out (create-buffer a)]
+  (fn ^doubles []
+    out)))
+
+(defn arg
+  "Utility function to pass through if it is a function, or
+  wrap within a const if it is a number"
+  [a]
+  (if (number? a)
+    (const (double a))
+    a))
+
 (def empty-d (create-buffer 0)) 
 
 (defn clear-d [^doubles d]
@@ -87,21 +103,20 @@
    (map-d * a b out))
 
 (defn mul [a b]
-  (let [out (create-buffer)]
+  (let [out (create-buffer)
+        af (arg a)
+        bf (arg b)]
     (fn ^doubles []
-      (map-d * ^doubles (a) ^doubles (b) out))))
+      (map-d * ^doubles (af) ^doubles (bf) out))))
 
-(defn const [^double a]
-  (let [out (create-buffer a)]
-  (fn ^doubles []
-    out)))
 
 (defn mix
-  [& args]
+  [& xs]
+  (let [args (map arg xs)]
     (if (> (count args) 1)
       (let [tmp (create-buffer)
             out (create-buffer)
-          adjust (create-buffer (/ 1.0 (count args)))]
+            adjust (create-buffer (/ 1.0 (count args)))]
         (fn ^doubles []
           (mul-d adjust (reduce-d + tmp args) out)))
-      (nth args 0)))
+      (nth args 0))))
