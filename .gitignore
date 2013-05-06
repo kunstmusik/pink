@@ -12,3 +12,6 @@ pom.xml
 .lein-failures
 .lein-plugins
 .lein-repl-history
+.idea
+.classpath
+audio-seq.iml
