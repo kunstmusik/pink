@@ -30,6 +30,7 @@
 
 (def ^:dynamic *sr* 44100)
 (def ^:dynamic *ksmps* 32)
+(def ^:dynamic *nchnls* 1)
 
 (def buffer-size 256)
 (def write-buffer-size (/ buffer-size 2))

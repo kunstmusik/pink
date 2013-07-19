@@ -1,9 +1,13 @@
 (ns audio-seq.util
   "Audio utility code for working with buffers (double[])"
-  (:require [audio-seq.engine :refer [*ksmps*]]))
+  (:require [audio-seq.engine :refer [*ksmps*]]
+            [hiphip.double :as dbl]
+            [hiphip.array :as arr]
+            ))
 
 (defn getd ^double [^doubles a] (aget a 0))
 (defn setd! ^double [^doubles a ^double v] (aset a 0 v))
+
 (defn getl ^long [^longs a] (aget a 0))
 (defn setl! ^long [^longs a ^long v] (aset a 0 v))
 
@@ -12,7 +16,7 @@
 ;  (setd! d (f (getd d))))
 
 (definline swapd! [d f] 
-  `(setd! ~d (~f (getd ~d))))
+  `(dbl/aset ~d 0 (~f (dbl/aget ~d 0))))
 
 ;(defn ^long swapl! [l f]
 ;  (setl! l (f (getl l))))
@@ -54,7 +58,7 @@
       (let [l (alength a)]
         (loop [cnt 0]
           (when (< cnt l)
-            (aset b cnt ^double (f (aget a cnt)))
+            (dbl/aset b cnt (f (dbl/aget a cnt)))
             (recur (unchecked-inc cnt))))
         b)))
   ([f ^doubles a ^doubles b ^doubles c]
@@ -100,14 +104,18 @@
 
 
 (defn ^doubles mul-d [^doubles a ^doubles b ^doubles out]
-   (map-d * a b out))
+  (when (and a b)
+    (dbl/amap [x a y b] (* x y))))
 
 (defn mul [a b]
-  (let [out (create-buffer)
+  (let [ ;out (create-buffer)
         af (arg a)
         bf (arg b)]
     (fn ^doubles []
-      (map-d * ^doubles (af) ^doubles (bf) out))))
+      (let [as (af) 
+            bs (bf)]
+        (when (and as bs) 
+          (dbl/amap [v0 as v1 bs] (* v0 v1)))))))
 
 
 (defn mix

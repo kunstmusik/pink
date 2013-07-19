@@ -1,7 +1,7 @@
-(ns audio-seq.demo.demo2
+(ns audio-seq.demo.demo3
   (:require [audio-seq.engine :as eng]
             [audio-seq.envelopes :refer [env]]
-            [audio-seq.oscillators :refer [sine sine2]]
+            [audio-seq.oscillators2 :refer [sine sine2]]
             [audio-seq.util :refer [mix mul const create-buffer getd setd!]]))
 
 

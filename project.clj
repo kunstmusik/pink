@@ -20,7 +20,9 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [overtone/at-at "1.1.1"]]
+                 [overtone/at-at "1.1.1"]
+                 [prismatic/hiphip "0.1.0"]
+                 ]
   :profiles {
              :dev {
                    :warn-on-reflection true
