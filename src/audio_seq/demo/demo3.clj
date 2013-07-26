@@ -1,4 +1,4 @@
-(ns audio-seq.demo.demo3
+(ns audio-seq.demo.demo2
   (:require [audio-seq.engine :as eng]
             [audio-seq.envelopes :refer [env]]
             [audio-seq.oscillators2 :refer [sine sine2]]
@@ -6,15 +6,14 @@
 
 
 (defn fm-synth [freq]
-  (mul
-    (sine2 (mul
-             freq
-             (mul
-               (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])
-               (sine (* 1 freq)))))
-    (mul
-      0.5
-      (env [0.0 0.0 0.02 1 0.02 0.9 0.2 0.9 0.2 0]))))
+  (fn [] 
+    (let [e (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])] 
+
+      (mul
+        (sine2 (mul
+                 freq
+                 (mul e (sine (* 1 freq)))))
+        (mul 0.5 e)))))
 
 
 (defn demo [e]

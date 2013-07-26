@@ -1,8 +1,15 @@
 (ns audio-seq.protocols
   "Protocols for Audio Engine")
 
-(defprotocol AudioBlock
-  (get-buffer [this] "Returns an audio buffer (double[]) full with audio"))
+(defprotocol AudioFunc
+  (process [this] "process one *ksmps* block"))
 
-(defprotocol EventBlock
-  (process-events [this] "process all current events")) 
+(defn audio-func [a]
+  "Utility function to convert a simple funciton into an AudioFunc"
+  (reify AudioFunc 
+    (process [this] (a) )))
+
+(comment
+  (defn test-audio-func [] 5)
+  (def b (audio-func test-audio-func)))
+
