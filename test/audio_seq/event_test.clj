@@ -24,6 +24,7 @@
 
 (deftest event-list-add-test
   (let [test-note (event test-audio-func 0.0 1.0 440.0)
+        test-note-dupe (event test-audio-func 0.0 1.0 440.0)
         test-note2 (event test-audio-func 0.0 1.1 880.0)
         test-note3 (event test-audio-func 0.0 1.0 220.0)
         evtlst (event-list [test-note2])]
@@ -39,6 +40,13 @@
     (event-list-add evtlst test-note3)
     (is (= 3 (count @(.evts evtlst))))
     (is (= #{test-note test-note2 test-note3} @(.evts evtlst))) 
+
+
+    ;;Test that adding notes with same values is allowed 
+
+    (event-list-add evtlst test-note-dupe)
+    (is (= 4 (count @(.evts evtlst))))
+    (is (= #{test-note test-note2 test-note3 test-note-dupe} @(.evts evtlst))) 
     ))
 
 (deftest event-list-remove-test

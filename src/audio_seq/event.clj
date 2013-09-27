@@ -1,6 +1,17 @@
 (ns audio-seq.event
   (:require [audio-seq.util :as util]
-            [audio-seq.protocols :refer :all]))
+            [audio-seq.protocols :refer :all]
+            [audio-seq.engine :refer [*ksmps]]
+            ))
+
+;;(deftype Event [init-func perf-func init-args start duration state]
+;;;  AudioFunc
+;;;  (process [this] nil)
+;;  Object
+;;  (toString [this]
+;;      
+;;    )
+;;  )
 
 (defn event [f start end & args]
   {:init-func f 
@@ -76,6 +87,7 @@
   (events test-func [1 2 3] [4 5 6])
 
 (def test-note (event test-func 0.0 1.0 440.0))
+(def test-note-dupe (event test-func 0.0 1.0 440.0))
 (def test-note2 (event test-func 0.0 1.0 220.0))
 (def test-note3 (event test-func 1.0 1.5 110.0))
 
