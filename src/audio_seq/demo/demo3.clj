@@ -1,14 +1,77 @@
-(ns audio-seq.demo.demo2
+(ns audio-seq.demo.demo3
   (:require [audio-seq.engine :as eng]
             [audio-seq.envelopes :refer [env]]
             [audio-seq.oscillators2 :refer [sine sine2]]
             [audio-seq.util :refer [mix mul const create-buffer getd setd!]]))
 
+;TODO The below doesn't work as mul returns a function... need to sort out how to break up and share something like the result of env amongst multiple other uses
+;
+
+
+(comment
+  (defmacro letm 
+  [args & body]
+  (let [parts (partition 2 args)]
+    (do
+      (println parts) 
+      `(fn []
+         ((println ~args)
+          ~@body)))))
+
+(macroexpand-1 '(letm [e "a"] 
+  (println "test2")
+  ))
+  
+  )
+
+(defn read-buffer [buffer-ref] (fn [] @buffer-ref))
+(defn write-buffer 
+  [buffer-ref func] 
+  (fn []
+   (reset! buffer-ref (func))))
+
+(defn split-comp 
+  [func]
+  (let [buffer-ref (atom create-buffer)]
+   [(read-buffer buffer-ref)
+    (write-buffer buffer-ref func)] ))
+
+
+(comment
+  
+  function should return two functions, one that updates an a-buffer, another that
+  reads from it
+ 
+
+  )
+
+(defn shared [afn] 
+  "Wraps an audio function so that it only generates values once per ksmps block; uses 
+  *curent-buffer-num* dynamic variable to track if update is required" 
+  (let [my-buf-num (atom -1)
+        buffer (atom nil) ]
+    (fn []
+      (if (not= @my-buf-num eng/*current-buffer-num*)
+        (do 
+          (reset! my-buf-num eng/*current-buffer-num*)
+          (reset! buffer (afn))) 
+        @buffer))))
+
+(let [f (atom 0)] 
+  (defn t [] (swap! f inc)))
+
+(def q (shared t))
+
+(def z 
+  (let [cur-time (atom -1)]
+  (fn [] 
+    (binding [eng/*current-buffer-num* (swap! cur-time inc)]
+      (* (q) (q))))))
+;;(z)
 
 (defn fm-synth [freq]
-  (fn [] 
-    (let [e (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])] 
-
+  (let [e (shared (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0]))] 
+    (fn [] 
       (mul
         (sine2 (mul
                  freq
@@ -51,7 +114,6 @@
   (defn note-sender[e]
     (dosync
       (alter (e :pending-funcs) conj (fm-synth 440) (fm-synth 660))))
-
 
   (def e (eng/engine-create))
   (eng/engine-start e)

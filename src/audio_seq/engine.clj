@@ -31,6 +31,7 @@
 (def ^:dynamic *sr* 44100)
 (def ^:dynamic *ksmps* 32)
 (def ^:dynamic *nchnls* 1)
+(def ^:dynamic *current-buffer-num* 0)
 
 (def buffer-size 256)
 (def write-buffer-size (/ buffer-size 2))
@@ -120,11 +121,14 @@
         buf (ByteBuffer/allocate buffer-size)
         audio-funcs (engine :audio-funcs)
         pending-funcs (engine :pending-funcs)
-        clear-flag (engine :clear)]
+        clear-flag (engine :clear)
+        bufnum (atom -1)
+        ]
     (loop [frame-count 0]
       (if (= @(engine :status) :running)
         (let [f-count (rem (inc frame-count) frames)
-              afs (process-buffer @audio-funcs outbuf buf)]  
+              afs  (binding [*current-buffer-num* (swap! bufnum inc)]
+                (process-buffer @audio-funcs outbuf buf))]  
           (dosync
             (if @clear-flag
               (do
