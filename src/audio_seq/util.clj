@@ -1,6 +1,6 @@
 (ns audio-seq.util
   "Audio utility code for working with buffers (double[])"
-  (:require [audio-seq.engine :refer [*ksmps*]]
+  (:require [audio-seq.engine :refer [*ksmps* *current-buffer-num*]]
             [hiphip.double :as dbl]
             [hiphip.array :as arr]
             ))
@@ -43,6 +43,19 @@
   (if (number? a)
     (const (double a))
     a))
+
+
+(defn shared [afn] 
+  "Wraps an audio function so that it only generates values once per ksmps block; uses 
+  *curent-buffer-num* dynamic variable to track if update is required" 
+  (let [my-buf-num (atom -1)
+        buffer (atom nil) ]
+    (fn []
+      (if (not= @my-buf-num *current-buffer-num*)
+        (do 
+          (reset! my-buf-num *current-buffer-num*)
+          (reset! buffer (afn))) 
+        @buffer))))
 
 (def empty-d (create-buffer 0)) 
 

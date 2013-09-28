@@ -53,4 +53,5 @@
    (let [phsr (vphasor (arg f) (arg p))
          out (create-buffer)]
      (fn ^doubles []
-       (dbl/amap [x (phsr)] (Math/sin (* 2.0 PI x)) )))))
+       (when-let [p (phsr)]
+         (dbl/amap [x p] (Math/sin (* 2.0 PI x)) ))))))
