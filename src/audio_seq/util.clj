@@ -57,6 +57,34 @@
           (reset! buffer (afn))) 
         @buffer))))
 
+(defn- decorate-shared [args]
+  "Utility function for let-s macro to decorated bindings with (shared)"
+  (reduce 
+      (fn [a [b c]] 
+        (conj (conj a b) (list `shared c)))
+        [] 
+      (partition 2 args)))
+
+
+(defmacro let-s
+  [bindings & body]
+  "Macro that decorates bindings with (shared) to simplify instrument building."
+  `(let ~(decorate-shared bindings)
+     ~@body))
+
+(comment
+
+"This code here needs to be moved to a unit test..."
+
+(decorate-shared '[e #(+ 1 2)])
+(macroexpand-1 
+  '(let-s [e #(+ 1 2)] 
+     (println "test3")))
+  
+  )
+
+
+
 (def empty-d (create-buffer 0)) 
 
 (defn clear-d [^doubles d]

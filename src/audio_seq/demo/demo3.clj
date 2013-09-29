@@ -2,50 +2,13 @@
   (:require [audio-seq.engine :as eng]
             [audio-seq.envelopes :refer [env]]
             [audio-seq.oscillators2 :refer [sine sine2]]
-            [audio-seq.util :refer [mix mul const create-buffer getd setd! arg shared]]))
+            [audio-seq.util :refer [mix mul const create-buffer getd setd! arg shared let-s]]))
 
-
-(comment
-  (defmacro letm 
-  [args & body]
-  (let [parts (partition 2 args)]
-    (do
-      (println parts) 
-      `(fn []
-         ((println ~args)
-          ~@body)))))
-
-(macroexpand-1 '(letm [e "a"] 
-  (println "test2")
-  ))
-  
-  )
-
-(defn read-buffer [buffer-ref] (fn [] @buffer-ref))
-(defn write-buffer 
-  [buffer-ref func] 
-  (fn []
-   (reset! buffer-ref (func))))
-
-(defn split-comp 
-  [func]
-  (let [buffer-ref (atom create-buffer)]
-   [(read-buffer buffer-ref)
-    (write-buffer buffer-ref func)] ))
-
-
-(comment
-  
-  function should return two functions, one that updates an a-buffer, another that
-  reads from it
-
-  )
 
 (defn fm-synth [freq]
-  (let [e (shared (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0]))] 
+  (let-s [e (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])] 
     (mul
-        (sine2 (mul freq
-                    (mul e (sine (* 1 freq)))))
+        (sine2 (mul freq (mul e (sine freq))))
         (mul 0.4 e))))
 
 (defn demo [e]
