@@ -127,7 +127,7 @@
     (loop [frame-count 0]
       (if (= @(engine :status) :running)
         (let [f-count (rem (inc frame-count) frames)
-              afs  (binding [*current-buffer-num* (swap! bufnum inc)]
+              afs  (binding [*current-buffer-num* (swap! bufnum unchecked-inc)]
                 (process-buffer @audio-funcs outbuf buf))]  
           (dosync
             (if @clear-flag

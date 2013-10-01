@@ -148,6 +148,8 @@
   (when (and a b)
     (dbl/amap [x a y b] (* x y))))
 
+;;(defmacro op [opfn & args])
+
 (defn mul [a b]
   (let [ ;out (create-buffer)
         af (arg a)
@@ -158,6 +160,12 @@
         (when (and as bs) 
           (dbl/amap [v0 as v1 bs] (* v0 v1)))))))
 
+(defn mul2 [& a]
+  (let [args (map arg a)]
+    (fn ^doubles []
+      (let [buffers (map #((%)) args)]
+        (when (not-any? nil? buffers) 
+          (reduce #(dbl/amap [x %1 y %2] (* x y)) buffers))))))
 
 (defn mix
   [& xs]
@@ -168,4 +176,15 @@
             adjust (create-buffer (/ 1.0 (count args)))]
         (fn ^doubles []
           (mul-d adjust (reduce-d + tmp args) out)))
+      (nth args 0))))
+
+
+(defn sum 
+  [& xs]
+  (let [args (map arg xs)]
+    (if (> (count args) 1)
+      (let [tmp (create-buffer)
+            out (create-buffer)]
+        (fn ^doubles []
+          (reduce-d + tmp args)))
       (nth args 0))))
