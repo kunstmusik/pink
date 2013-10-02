@@ -1,3 +1,5 @@
+;; Test of FM synthesis
+
 (ns audio-seq.demo.demo3
   (:require [audio-seq.engine :as eng]
             [audio-seq.envelopes :refer [env]]
@@ -8,10 +10,9 @@
 (defn fm-synth [freq]
   (let-s [e (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])] 
     (mul
-        (sine2 (mul freq (mul e (sine freq))))
+        (sine2 (sum freq (mul e 440 (sine freq))))
         (mul 0.4 e))))
 
-;; TODO - still need to fix these fm examples
 (defn fm-bell [freq]
   (let-s [e (env [0.0 0.0 0.05 1.0 0.3 0])] 
     (mul

@@ -150,20 +150,20 @@
 
 ;;(defmacro op [opfn & args])
 
-(defn mul [a b]
-  (let [ ;out (create-buffer)
-        af (arg a)
-        bf (arg b)]
-    (fn ^doubles []
-      (let [as (af) 
-            bs (bf)]
-        (when (and as bs) 
-          (dbl/amap [v0 as v1 bs] (* v0 v1)))))))
+;(defn mul [a b]
+;  (let [ ;out (create-buffer)
+;        af (arg a)
+;        bf (arg b)]
+;    (fn ^doubles []
+;      (let [as (af) 
+;            bs (bf)]
+;        (when (and as bs) 
+;          (dbl/amap [v0 as v1 bs] (* v0 v1)))))))
 
-(defn mul2 [& a]
+(defn mul [& a]
   (let [args (map arg a)]
     (fn ^doubles []
-      (let [buffers (map #((%)) args)]
+      (let [buffers (map (fn [a] (a)) args)]
         (when (not-any? nil? buffers) 
           (reduce #(dbl/amap [x %1 y %2] (* x y)) buffers))))))
 
