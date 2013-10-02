@@ -26,7 +26,7 @@
   :profiles {
              :dev {
                    :warn-on-reflection true
-                   :dependencies [[criterium "0.4.1"]]}}
+                   :dependencies [[criterium "0.4.2"]]}}
 
   ;:main 
   )
