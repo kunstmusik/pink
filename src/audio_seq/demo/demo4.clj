@@ -1,4 +1,5 @@
-;; Test of FM synthesis
+;; Test of Mutable Control input
+;; index is held in an atom, reader reads from atom and returns a buffer
 
 (ns audio-seq.demo.demo4
   (:require [audio-seq.engine :as eng]
@@ -20,19 +21,21 @@
 (def index (atom 1))
 (defn reader [atm] 
   (let [last (atom 0)
-        buffer (atom (create-buffer))
-        ]
-    (when (not= @atm @last)
-      (swapd! buffer (fn [a] @atm))
-      (reset last @atm))
-    buffer))
+        buffer (atom (create-buffer))]
+    (fn []
+      (when (not= @atm @last)
+         (reset! buffer (create-buffer @atm))
+         (reset! last @atm))
+      @buffer)))
 
-(reader index)
+(def t (reader index))
+(reset! index 3.25)
+(aget (t) 0) 
 
 (defn fm-bell [freq]
   (let-s [e (env [0.0 0.0 0.05 1.0 0.3 0])] 
     (mul
-        (sine2 (sum freq (mul 880.0 (sine (* 4.77 freq)))))
+        (sine2 (sum freq (mul freq t (sine (* 4.77 freq)))))
         (mul 0.4 e))))
 
 (defn demo-afunc [e]
