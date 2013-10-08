@@ -5,7 +5,7 @@
   (:require [audio-seq.engine :as eng]
             [audio-seq.envelopes :refer [env]]
             [audio-seq.oscillators2 :refer [sine sine2]]
-            [audio-seq.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s]]))
+            [audio-seq.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
 
 
 (defn fm-synth [freq]
@@ -19,17 +19,9 @@
 ;; reader will be the audio-func to read from the atom
 
 (def index (atom 1))
-(defn reader [atm] 
-  (let [last (atom 0)
-        buffer (atom (create-buffer))]
-    (fn []
-      (when (not= @atm @last)
-         (reset! buffer (create-buffer @atm))
-         (reset! last @atm))
-      @buffer)))
-
 (def t (reader index))
 (reset! index 3.25)
+
 (aget (t) 0) 
 
 (defn fm-bell [freq]

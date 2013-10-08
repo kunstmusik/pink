@@ -83,6 +83,15 @@
   
   )
 
+(defn reader [atm] 
+  "Returns function that reads from atom and returns a buffer. Useful for mutable data derived from external source such as MIDI or OSC"
+  (let [last (atom 0)
+        buffer (atom (create-buffer))]
+    (fn []
+      (when (not= @atm @last)
+         (reset! buffer (create-buffer @atm))
+         (reset! last @atm))
+      @buffer)))
 
 
 (def empty-d (create-buffer 0)) 
