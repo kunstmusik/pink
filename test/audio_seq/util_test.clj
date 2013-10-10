@@ -24,7 +24,7 @@
     ))
 
 
-(deftest test-reaer
+(deftest test-reader
   (let [a (atom 1)
         rdr (util/reader a)]
     (is 1 (aget (rdr) 0)) 

@@ -85,10 +85,15 @@
           (* ^double % x)
           0.0))))))
 
-(def pts [0.0 0.001 0.05 1.0 0.3 0.001])
-(def t (exp-env pts))
-(def pts-data (make-exp-env-data pts))
-(def pts-data2 (make-env-data pts))
-(map #(print %) pts-data)
-(map #(print %) pts-data2)
-(t)
+
+(comment
+
+  (def pts [0.0 0.001 0.05 1.0 0.3 0.001])
+  (def t (exp-env pts))
+  (def pts-data (make-exp-env-data pts))
+  (def pts-data2 (make-env-data pts))
+  (map #(print %) pts-data)
+  (map #(print %) pts-data2)
+  (t)
+
+  )
