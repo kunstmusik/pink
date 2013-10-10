@@ -86,6 +86,23 @@
           0.0))))))
 
 
+;; Simple Envs
+
+(defn adsr [a d s r & {:keys [dur] :or {dur 1.0}}]
+  "Linear Attack-Decay-Sustain-Release Envelope"
+  (env [0.0 0.0 a 1.0 d s dur s r 0.0]))
+
+
+(defn xadsr [a d s r & {:keys [dur] :or {dur 1.0}}]
+
+  "Exponential Attack-Decay-Sustain-Release Envelope"
+  (exp-env [0.0 0.00001 a 1.0 d s dur s r 0.00001]))
+
+
+(defn xar [a r]
+  "Exponential Attack-Release Envelope"
+  (exp-env [0.0 0.00001 a 1.0 r 0.00001]))
+
 (comment
 
   (def pts [0.0 0.001 0.05 1.0 0.3 0.001])

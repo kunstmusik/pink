@@ -3,7 +3,7 @@
 
 (ns audio-seq.demo.demo5
   (:require [audio-seq.engine :as eng]
-            [audio-seq.envelopes :refer [env exp-env]]
+            [audio-seq.envelopes :refer [env exp-env adsr xadsr xar]]
             [audio-seq.oscillators2 :refer [sine sine2]]
             [audio-seq.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
 
@@ -25,10 +25,12 @@
 (aget (t) 0) 
 
 (defn fm-bell [freq]
-  (let-s [e (exp-env [0.0 0.00001 0.05 1.0 3 0.000001])] 
+  (
+   ;let-s [e (exp-env [0.0 0.00001 0.05 1.0 3 0.000001])] 
+   let-s [e (xar 0.0001 1.3)] 
     (mul
         (sine2 (sum freq (mul freq t (sine (* 4.77 freq)))))
-        (mul 0.4 e))))
+        (mul 0.2 e))))
 
 (defn demo-afunc [e]
   (let [melody (ref (take (* 4 8) (cycle [220 330 440 330])))
