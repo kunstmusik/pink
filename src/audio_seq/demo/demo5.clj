@@ -61,8 +61,11 @@
   (eng/engine-start e)
   (eng/engine-add-afunc e (demo-afunc e))
   (eng/engine-stop e)
-
+ 
   (eng/engine-clear e)
+
+  (eng/engines-clear)
+
   e
 
   (let [e (eng/engine-create)]

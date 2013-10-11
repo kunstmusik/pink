@@ -48,13 +48,17 @@
 
 ;;;; Engine
 
+(def engines (ref []))
+
 (defn engine-create []
   "Creates an engine"
-  {:status (ref :stopped)
-   :clear (ref false)
-   :audio-funcs (ref [])
-   :pending-funcs (ref [])
-   })
+  (let  [e {:status (ref :stopped)
+            :clear (ref false)
+            :audio-funcs (ref [])
+            :pending-funcs (ref [])
+            }]
+    (dosync (alter engines conj e))
+    e))
 
 
 ;; should do initialization of f on separate thread?
@@ -160,7 +164,8 @@
 
 (defn engine-clear [engine]
   (if (= @(engine :status) :running)
-    (dosync (ref-set (engine :clear) true))
+    (dosync 
+      (ref-set (engine :clear) true))
     (dosync 
       (ref-set (engine :audio-funcs) [])
       (ref-set (engine :pending-funcs) []))))
@@ -169,6 +174,20 @@
 (defn engine-status [engine]
   @(:status engine))
 
+(defn engine-kill-all []
+  "Kills all engines and clears them"
+  (dosync
+    (loop [[a & b] @engines]
+      (when a
+        (engine-clear a)
+        (recur b)
+        ))))
+
+(defn engines-clear []
+  "Kills all engines and clears global engines list. Useful for development in REPL, but user must be 
+  careful after clearing not to use existing engines."
+  (engine-kill-all)
+  (dosync (ref-set engines [])))
 
 (defn run-audio-block [a-block]
   (let [#^SourceDataLine line (open-line af) 
