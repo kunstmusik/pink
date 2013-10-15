@@ -1,4 +1,4 @@
-(ns audio-seq.protocols
+(ns audio-seq.audio.protocols
   "Protocols for Audio Engine")
 
 (defprotocol AudioFunc

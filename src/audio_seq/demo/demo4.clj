@@ -2,10 +2,10 @@
 ;; index is held in an atom, reader reads from atom and returns a buffer
 
 (ns audio-seq.demo.demo4
-  (:require [audio-seq.engine :as eng]
-            [audio-seq.envelopes :refer [env]]
-            [audio-seq.oscillators2 :refer [sine sine2]]
-            [audio-seq.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
+  (:require [audio-seq.audio.engine :as eng]
+            [audio-seq.audio.envelopes :refer [env]]
+            [audio-seq.audio.oscillators2 :refer [sine sine2]]
+            [audio-seq.audio.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
 
 
 (defn fm-synth [freq]

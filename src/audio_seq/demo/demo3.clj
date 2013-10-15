@@ -1,10 +1,10 @@
 ;; Test of FM synthesis
 
 (ns audio-seq.demo.demo3
-  (:require [audio-seq.engine :as eng]
-            [audio-seq.envelopes :refer [env]]
-            [audio-seq.oscillators2 :refer [sine sine2]]
-            [audio-seq.util :refer [mix mul sum const create-buffer getd setd! arg shared let-s]]))
+  (:require [audio-seq.audio.engine :as eng]
+            [audio-seq.audio.envelopes :refer [env]]
+            [audio-seq.audio.oscillators2 :refer [sine sine2]]
+            [audio-seq.audio.util :refer [mix mul sum const create-buffer getd setd! arg shared let-s]]))
 
 
 (defn fm-synth [freq]

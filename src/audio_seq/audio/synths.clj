@@ -1,4 +1,4 @@
-(ns audio-seq.synths
+(ns audio-seq.audio.synths
   "Synths encapsulate polyphonic audio entities")
 
 (defn synth-create []

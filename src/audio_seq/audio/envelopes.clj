@@ -1,7 +1,7 @@
-(ns audio-seq.envelopes
+(ns audio-seq.audio.envelopes
   "Envelope Generator Functions"
-  (:require [audio-seq.engine :refer [*sr*]]
-            [audio-seq.util :refer [create-buffer fill swapl! getl]]))
+  (:require [audio-seq.audio.engine :refer [*sr*]]
+            [audio-seq.audio.util :refer [create-buffer fill swapl! getl]]))
 
 (defn- make-env-data [pts]
   {:pre (even? (count pts))}
