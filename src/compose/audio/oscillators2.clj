@@ -1,7 +1,7 @@
-(ns audio-seq.audio.oscillators2
+(ns compose.audio.oscillators2
   "Oscillator Functions"
-  (:require [audio-seq.audio.engine :refer [*sr*]]
-            [audio-seq.audio.util :refer [create-buffer fill map-d swapd! setd! getd arg]]  
+  (:require [compose.audio.engine :refer [*sr*]]
+            [compose.audio.util :refer [create-buffer fill map-d swapd! setd! getd arg]]  
             [hiphip.double :as dbl]
             [hiphip.array :as arr]
             ))

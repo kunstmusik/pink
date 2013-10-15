@@ -1,4 +1,4 @@
-(ns audio-seq.engine
+(ns compose.engine
   "Audio Engine Code"
   (:import 
     (java.util Arrays)))

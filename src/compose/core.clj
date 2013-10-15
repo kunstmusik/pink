@@ -1,8 +1,8 @@
-(ns audio-seq.core
-  (:require [audio-seq.audio.engine :as eng]
-            [audio-seq.audio.envelopes :refer [env]]
-            [audio-seq.audio.oscillators :refer [sine]]
-            [audio-seq.audio.util :refer [mix mul const]]))
+(ns compose.core
+  (:require [compose.audio.engine :as eng]
+            [compose.audio.envelopes :refer [env]]
+            [compose.audio.oscillators :refer [sine]]
+            [compose.audio.util :refer [mix mul const]]))
 
 
     

@@ -1,7 +1,7 @@
-(ns audio-seq.audio.oscillators
+(ns compose.audio.oscillators
   "Oscillator Functions"
-  (:require [audio-seq.audio.engine :refer [*sr*]]
-            [audio-seq.audio.util :refer [create-buffer fill map-d swapd! setd! getd arg]]))
+  (:require [compose.audio.engine :refer [*sr*]]
+            [compose.audio.util :refer [create-buffer fill map-d swapd! setd! getd arg]]))
 
 (def ^:const PI Math/PI)
 

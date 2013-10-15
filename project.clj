@@ -1,4 +1,4 @@
-(defproject audio-seq "0.1.0-SNAPSHOT"
+(defproject compose "0.1.0-SNAPSHOT"
   :jvm-opts ;["-server" "-Xmx2g" "-XX:-UseParallelGC"]
    ["-Xms512m" "-Xmx1g"           ; Minimum and maximum sizes of the heap
     "-XX:+UseParNewGC"            ; Use the new parallel GC in conjunction with

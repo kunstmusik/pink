@@ -1,6 +1,6 @@
-(ns audio-seq.event
+(ns compose.event
   (:require 
-            [audio-seq.audio.protocols :refer :all]
+            [compose.audio.protocols :refer :all]
             ))
 
 ;;(deftype Event [init-func perf-func init-args start duration state]

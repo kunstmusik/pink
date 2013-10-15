@@ -1,6 +1,6 @@
-(ns audio-seq.audio.engine
+(ns compose.audio.engine
   "Audio Engine Code"
-;   (:require [audio-seq.engine :as eng])
+;   (:require [compose.engine :as eng])
   (:import 
     (java.util Arrays)
     (java.nio ByteBuffer)

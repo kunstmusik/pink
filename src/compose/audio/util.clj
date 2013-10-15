@@ -1,6 +1,6 @@
-(ns audio-seq.audio.util
+(ns compose.audio.util
   "Audio utility code for working with buffers (double[])"
-  (:require [audio-seq.audio.engine :refer [*ksmps* *current-buffer-num*]]
+  (:require [compose.audio.engine :refer [*ksmps* *current-buffer-num*]]
             [hiphip.double :as dbl]
             [hiphip.array :as arr]
             ))

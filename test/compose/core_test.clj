@@ -1,6 +1,6 @@
-(ns audio-seq.core-test
+(ns compose.core-test
   (:use clojure.test
-        audio-seq.core))
+        compose.core))
 
 ;(deftest a-test
 ;  (testing "FIXME, I fail."

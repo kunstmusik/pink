@@ -1,8 +1,8 @@
-(ns audio-seq.demo.demo1
-  (:require [audio-seq.audio.engine :as eng]
-            [audio-seq.audio.envelopes :refer [env]]
-            [audio-seq.audio.oscillators :refer [sine]]
-            [audio-seq.audio.util :refer [mix mul const create-buffer getd setd!]])
+(ns compose.demo.demo1
+  (:require [compose.audio.engine :as eng]
+            [compose.audio.envelopes :refer [env]]
+            [compose.audio.oscillators :refer [sine]]
+            [compose.audio.util :refer [mix mul const create-buffer getd setd!]])
   (:use [overtone.at-at]))
 
 

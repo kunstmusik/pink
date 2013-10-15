@@ -1,11 +1,11 @@
-;; Test of Mutable Control input
+;; Test of Exponential Envelope 
 ;; index is held in an atom, reader reads from atom and returns a buffer
 
-(ns audio-seq.demo.demo4
-  (:require [audio-seq.audio.engine :as eng]
-            [audio-seq.audio.envelopes :refer [env]]
-            [audio-seq.audio.oscillators2 :refer [sine sine2]]
-            [audio-seq.audio.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
+(ns compose.demo.demo5
+  (:require [compose.audio.engine :as eng]
+            [compose.audio.envelopes :refer [env exp-env adsr xadsr xar]]
+            [compose.audio.oscillators2 :refer [sine sine2]]
+            [compose.audio.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
 
 
 (defn fm-synth [freq]
@@ -25,10 +25,12 @@
 (aget (t) 0) 
 
 (defn fm-bell [freq]
-  (let-s [e (env [0.0 0.0 0.05 1.0 0.3 0])] 
+  (
+   ;let-s [e (exp-env [0.0 0.00001 0.05 1.0 3 0.000001])] 
+   let-s [e (xar 0.0001 1.3)] 
     (mul
         (sine2 (sum freq (mul freq t (sine (* 4.77 freq)))))
-        (mul 0.4 e))))
+        (mul 0.2 e))))
 
 (defn demo-afunc [e]
   (let [melody (ref (take (* 4 8) (cycle [220 330 440 330])))
@@ -59,8 +61,11 @@
   (eng/engine-start e)
   (eng/engine-add-afunc e (demo-afunc e))
   (eng/engine-stop e)
-
+ 
   (eng/engine-clear e)
+
+  (eng/engines-clear)
+
   e
 
   (let [e (eng/engine-create)]
