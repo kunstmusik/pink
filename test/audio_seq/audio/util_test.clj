@@ -1,6 +1,6 @@
-(ns audio-seq.util-test
-  (:require [audio-seq.util :as util]
-            [audio-seq.engine :as eng]
+(ns audio-seq.audio.util-test
+  (:require [audio-seq.audio.util :as util]
+            [audio-seq.audio.engine :as eng]
             )
   (:use clojure.test))
 

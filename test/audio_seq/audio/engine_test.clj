@@ -1,5 +1,5 @@
-(ns audio-seq.engine-test
-  (:use [audio-seq.engine])
+(ns audio-seq.audio.engine-test
+  (:use [audio-seq.audio.engine])
   (:use clojure.test))
 
 (deftest test-engine-kill-all

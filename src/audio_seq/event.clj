@@ -1,7 +1,6 @@
 (ns audio-seq.event
-  (:require [audio-seq.util :as util]
-            [audio-seq.protocols :refer :all]
-            [audio-seq.engine :refer [*ksmps]]
+  (:require 
+            [audio-seq.audio.protocols :refer :all]
             ))
 
 ;;(deftype Event [init-func perf-func init-args start duration state]

@@ -1,5 +1,5 @@
-(ns audio-seq.envelopes-test
-  (:use [audio-seq.envelopes])
+(ns audio-seq.audio.envelopes-test
+  (:use [audio-seq.audio.envelopes])
   (:use clojure.test))
 
 
@@ -15,7 +15,7 @@
 ;(def pts-data2 (make-env-data pts))
 
 (deftest test-make-env-data
-  (with-private-fns [audio-seq.envelopes [make-env-data]]
+  (with-private-fns [audio-seq.audio.envelopes [make-env-data]]
     (let [a (make-env-data pts)]
       (is (= 2205.0 (first (first a))))
       (is (= 2 (count a))) 

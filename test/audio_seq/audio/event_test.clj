@@ -1,4 +1,4 @@
-(ns audio-seq.event-test
+(ns audio-seq.audio.event-test
   (:require [audio-seq.event :refer :all]
             [clojure.test :refer :all]
             )
