@@ -59,7 +59,7 @@
    (EventList.
      (ref (apply sorted-set-by event-comparator evts)) 
      (ref #{})
-     (ref (into #{} evts)) 
+     (ref (set evts)) 
      0.0)))
 
 (defn event-list-add [^EventList evtlst evt]

@@ -109,8 +109,8 @@
   (def t (exp-env pts))
   (def pts-data (make-exp-env-data pts))
   (def pts-data2 (make-env-data pts))
-  (map #(print %) pts-data)
-  (map #(print %) pts-data2)
+  (map print pts-data)
+  (map print pts-data2)
   (t)
 
   )

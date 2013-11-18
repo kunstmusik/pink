@@ -1,6 +1,6 @@
 (ns compose.audio.engine
   "Audio Engine Code"
-;   (:require [compose.engine :as eng])
+   (:require [compose.engine :as eng])
   (:import 
     (java.util Arrays)
     (java.nio ByteBuffer)
@@ -51,7 +51,7 @@
 (def engines (ref []))
 
 (defn engine-create []
-  "Creates an engine"
+  "Creates an audio engine"
   (let  [e {:status (ref :stopped)
             :clear (ref false)
             :audio-funcs (ref [])

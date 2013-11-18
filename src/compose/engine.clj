@@ -46,7 +46,7 @@
           (ref-set pending-funcs [])
           (ref-set clear-flag false))
         (do
-          (when (not (empty? @pending-funcs))
+          (when (seq @pending-funcs)
             (dosync
               (alter active-funcs concat @pending-funcs)
               (ref-set pending-funcs [])) 
