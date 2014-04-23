@@ -1,4 +1,4 @@
-(ns compose.audio.protocols
+(ns pink.audio.protocols
   "Protocols for Audio Engine")
 
 (defprotocol AudioFunc

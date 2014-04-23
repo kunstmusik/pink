@@ -1,8 +1,8 @@
-(ns compose.core
-  (:require [compose.audio.engine :as eng]
-            [compose.audio.envelopes :refer [env]]
-            [compose.audio.oscillators :refer [sine]]
-            [compose.audio.util :refer [mix mul const]]))
+(ns pink.core
+  (:require [pink.audio.engine :as eng]
+            [pink.audio.envelopes :refer [env]]
+            [pink.audio.oscillators :refer [sine]]
+            [pink.audio.util :refer [mix mul const]]))
 
 
     

@@ -1,11 +1,8 @@
-(ns compose.audio.engine
+(ns pink.audio.engine
   "Audio Engine Code"
-   (:require [compose.engine :as eng])
-  (:import 
-    (java.util Arrays)
-    (java.nio ByteBuffer)
-    (javax.sound.sampled AudioFormat AudioSystem
-                                SourceDataLine)))
+  (:import (java.nio ByteBuffer)
+           (java.util Arrays)
+           (javax.sound.sampled AudioFormat AudioSystem SourceDataLine)))
 
 
 (defn map-d 

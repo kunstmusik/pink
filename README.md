@@ -1,4 +1,4 @@
-# compose
+# Pink
 
 A Clojure library designed to ... well, that part is up to you.
 
@@ -27,6 +27,6 @@ FIXME
 
 ## License
 
-Copyright © 2013 FIXME
+Copyright © 2014 Steven Yi 
 
 Distributed under the Eclipse Public License, the same as Clojure.

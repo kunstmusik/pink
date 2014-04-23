@@ -1,8 +1,8 @@
-(ns compose.demo.demo2
-  (:require [compose.audio.engine :as eng]
-            [compose.audio.envelopes :refer [env]]
-            [compose.audio.oscillators :refer [sine sine2]]
-            [compose.audio.util :refer [mix mul const create-buffer getd setd!]]))
+(ns pink.demo.demo2
+  (:require [pink.audio.engine :as eng]
+            [pink.audio.envelopes :refer [env]]
+            [pink.audio.oscillators :refer [sine sine2]]
+            [pink.audio.util :refer [mix mul const create-buffer getd setd!]]))
 
 
 (defn fm-synth [freq]

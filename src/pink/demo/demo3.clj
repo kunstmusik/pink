@@ -1,11 +1,10 @@
-;; Test of Exponential Envelope 
-;; index is held in an atom, reader reads from atom and returns a buffer
+;; Test of FM synthesis
 
-(ns compose.demo.demo5
-  (:require [compose.audio.engine :as eng]
-            [compose.audio.envelopes :refer [env exp-env adsr xadsr xar]]
-            [compose.audio.oscillators2 :refer [sine sine2]]
-            [compose.audio.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
+(ns pink.demo.demo3
+  (:require [pink.audio.engine :as eng]
+            [pink.audio.envelopes :refer [env]]
+            [pink.audio.oscillators2 :refer [sine sine2]]
+            [pink.audio.util :refer [mix mul sum const create-buffer getd setd! arg shared let-s]]))
 
 
 (defn fm-synth [freq]
@@ -14,23 +13,22 @@
         (sine2 (sum freq (mul e 440 (sine freq))))
         (mul 0.4 e))))
 
-;; test design work
-;; mutable value will be held in an atom
-;; reader will be the audio-func to read from the atom
-
-(def index (atom 1))
-(def t (reader index))
-(reset! index 3.25)
-
-(aget (t) 0) 
-
 (defn fm-bell [freq]
-  (
-   ;let-s [e (exp-env [0.0 0.00001 0.05 1.0 3 0.000001])] 
-   let-s [e (xar 0.0001 1.3)] 
+  (let-s [e (env [0.0 0.0 0.05 1.0 0.3 0])] 
     (mul
-        (sine2 (sum freq (mul freq t (sine (* 4.77 freq)))))
-        (mul 0.2 e))))
+        (sine2 (sum freq (mul 880.0 (sine (* 4.77 freq)))))
+        (mul 0.4 e))))
+
+(defn demo [e]
+  (let [melody (take (* 4 8) (cycle [220 330 440 330]))
+        dur 0.25]
+    (loop [[x & xs] melody]
+      (when x
+        (let [afs (e :pending-funcs)]
+          (dosync
+            (alter afs conj (fm-synth x) (fm-synth (* 2 x))))
+          (recur xs))))))
+
 
 (defn demo-afunc [e]
   (let [melody (ref (take (* 4 8) (cycle [220 330 440 330])))
@@ -61,11 +59,8 @@
   (eng/engine-start e)
   (eng/engine-add-afunc e (demo-afunc e))
   (eng/engine-stop e)
- 
+
   (eng/engine-clear e)
-
-  (eng/engines-clear)
-
   e
 
   (let [e (eng/engine-create)]

@@ -1,6 +1,6 @@
-(ns compose.event
+(ns pink.event
   (:require 
-            [compose.audio.protocols :refer :all]
+            [pink.audio.protocols :refer :all]
             ))
 
 ;;(deftype Event [init-func perf-func init-args start duration state]

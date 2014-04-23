@@ -1,4 +1,4 @@
-(ns compose.audio.synths
+(ns pink.audio.synths
   "Synths encapsulate polyphonic audio entities")
 
 (defn synth-create []

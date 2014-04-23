@@ -1,7 +1,10 @@
-(ns compose.audio.oscillators
+(ns pink.audio.oscillators2
   "Oscillator Functions"
-  (:require [compose.audio.engine :refer [*sr*]]
-            [compose.audio.util :refer [create-buffer fill map-d swapd! setd! getd arg]]))
+  (:require [pink.audio.engine :refer [*sr*]]
+            [pink.audio.util :refer [create-buffer fill map-d swapd! setd! getd arg]]  
+            [hiphip.double :as dbl]
+            [hiphip.array :as arr]
+            ))
 
 (def ^:const PI Math/PI)
 
@@ -10,7 +13,8 @@
 (defn phasor [^double freq ^double phase]
   (let [phase-incr ^double (/ freq  *sr*)
         cur-phase (double-array 1 phase)
-        out (create-buffer)]
+        out (create-buffer)
+        ]
       (fn ^doubles [] 
         (fill out cur-phase #(dec-if (+ phase-incr ^double %))))))
 
@@ -21,7 +25,7 @@
    (let [phsr (phasor freq phase)
          out (create-buffer)]
      (fn ^doubles []
-       (map-d #(Math/sin (* 2.0 PI ^double %)) (phsr) out)))))
+       (dbl/amap [x (phsr)] (Math/sin (* 2.0 PI x)))))))
 
 
 (defn vphasor [freq phase]
@@ -49,4 +53,5 @@
    (let [phsr (vphasor (arg f) (arg p))
          out (create-buffer)]
      (fn ^doubles []
-       (map-d #(Math/sin (* 2.0 PI ^double %)) (phsr) out)))))
+       (when-let [p (phsr)]
+         (dbl/amap [x p] (Math/sin (* 2.0 PI x)) ))))))

@@ -1,7 +1,7 @@
-(ns compose.audio.envelopes
+(ns pink.audio.envelopes
   "Envelope Generator Functions"
-  (:require [compose.audio.engine :refer [*sr*]]
-            [compose.audio.util :refer [create-buffer fill swapl! getl]]))
+  (:require [pink.audio.engine :refer [*sr*]]
+            [pink.audio.util :refer [create-buffer fill swapl! getl]]))
 
 (defn- make-env-data [pts]
   {:pre (even? (count pts))}

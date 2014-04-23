@@ -1,4 +1,4 @@
-(ns compose.engine
+(ns pink.engine
   "Audio Engine Code"
   (:import 
     (java.util Arrays)))
