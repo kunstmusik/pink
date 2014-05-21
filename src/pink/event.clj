@@ -17,8 +17,6 @@
    :perf-func nil 
    :init-args args
    :start start
-   :duration end
-   :state (atom :inactive)
    }
   )
 
@@ -53,21 +51,25 @@
   )
 
 (defn event-list
-  "Creates an EventList"
+  "Creates an EventList. 
+  
+  EventList's its own internal time and fires off events whose start times have
+  been met.  Event have no notion of duration. An event may do things like 
+  schedule an audio function to be added to an engine's performance list, force
+  turning off an audio function, and so on."
+
   ([] (event-list []))
   ([evts] 
-   (EventList.
-     (ref (apply sorted-set-by event-comparator evts)) 
-     (ref #{})
-     (ref (set evts)) 
-     0.0)))
+   { :events (ref (apply sorted-set-by event-comparator evts))       
+     :curevent nil
+     :cur-buffer 0
+    }))
 
-(defn event-list-add [^EventList evtlst evt]
+(defn event-list-add [evtlst evt]
   "Add and event to an event list"
   (do
     (dosync
-      (alter (.evts evtlst) conj evt)
-      (alter (.inactive evtlst) conj evt))
+      (alter (:events evtlst) conj evt))
     evtlst))
 
 (defn event-list-remove [^EventList evtlst evt]
