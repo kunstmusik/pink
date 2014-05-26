@@ -1,5 +1,5 @@
-(ns compose.audio.event-test
-  (:require [compose.event :refer :all]
+(ns pink.audio.event-test
+  (:require [pink.event :refer :all]
             [clojure.test :refer :all]
             )
   )

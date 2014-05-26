@@ -1,6 +1,6 @@
-(ns compose.audio.util-test
-  (:require [compose.audio.util :as util]
-            [compose.audio.engine :as eng]
+(ns pink.audio.util-test
+  (:require [pink.audio.util :as util]
+            [pink.audio.engine :as eng]
             )
   (:use clojure.test))
 
