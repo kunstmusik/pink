@@ -3,6 +3,11 @@
             [pink.audio.protocols :refer :all]
             ))
 
+(deftype Event [event-func event-args ^Double start]
+ ; Object
+ ;(toString [e]  (format "\t%s\t%s\t%s\n" event-func start event-args )) 
+  )
+
 ;;(deftype Event [init-func perf-func init-args start duration state]
 ;;;  AudioFunc
 ;;;  (process [this] nil)
@@ -12,25 +17,13 @@
 ;;    )
 ;;  )
 
-(defn event [f start end & args]
-  {:init-func f 
-   :perf-func nil 
-   :init-args args
-   :start start
-   }
+(defn event [f start & args]
+  ;{:event-func f 
+  ; :event-args args
+  ; :start start
+  ; }
+  (Event. f args start)
   )
-
-(defn event-comparator [a b]
-  "comparator function for sorted set of events"
-  (if (= a b)
-    0
-    (let [x (compare (:start a) (:start b))]
-      (if (not= 0 x)
-        x 
-        (let [y (compare (:duration a) (:duration b))]
-          (if (not= 0 y)
-            y
-            -1))))))
 
 
 (defn events [f & args]
@@ -45,10 +38,10 @@
 ;    ))
 
 ;; NOTE - wondering if this should be something that implements ISeq or Set interface, as an event list is something like a sorted list of events, with active and inactive being separate views...
-(deftype EventList [evts active inactive curtime]
-  AudioFunc
-  (process [this] nil)
-  )
+;(deftype EventList [evts active inactive curtime]
+;  AudioFunc
+;  (process [this] nil)
+;  )
 
 (defn event-list
   "Creates an EventList. 
@@ -60,26 +53,28 @@
 
   ([] (event-list []))
   ([evts] 
-   { :events (ref (apply sorted-set-by event-comparator evts))       
-     :curevent nil
-     :cur-buffer 0
+   {:events (ref (sort-by #(.start ^Event %) evts))       
+    :curevent nil
+    :cur-buffer 0
     }))
 
-(defn event-list-add [evtlst evt]
-  "Add and event to an event list"
-  (do
+(defn event-list-add [evtlst ^Event evt]
+  "Add an event to an event list"
+  (do (when (< (.indexOf @(:events evtlst) evt) 0)
     (dosync
-      (alter (:events evtlst) conj evt))
-    evtlst))
+        (alter (:events evtlst) (fn [a] (sort-by #(.start ^Event %) (conj a evt))))))
+  evtlst))
 
-(defn event-list-remove [^EventList evtlst evt]
+(defn event-list-remove [evtlst evt]
   "remove an event from the event list"
   (do
     (dosync
-      (alter (.evts evtlst) disj evt)
-      (alter (.active evtlst) disj evt)
-      (alter (.inactive evtlst) disj evt)) 
+      (alter (:events evtlst) (fn [a] (remove #(= % evt) a)))) 
     evtlst))
+
+(defn event-list-tick [evtlst] 
+       
+  )
 
 (comment
 
@@ -91,11 +86,11 @@
 (def test-note-dupe (event test-func 0.0 1.0 440.0))
 (def test-note2 (event test-func 0.0 1.0 220.0))
 (def test-note3 (event test-func 1.0 1.5 110.0))
-
-(def n (apply sorted-set-by event-comparator [test-note test-note2 test-note3]))
-(= n #{test-note test-note2 test-note3})  
-
+(print (.start test-note3))
 (def evtlst (event-list [test-note]))
 (event-list-add evtlst test-note2)
+
 (event-list-remove evtlst test-note)
+(print evtlst)
+
   )
