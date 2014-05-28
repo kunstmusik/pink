@@ -1,8 +1,8 @@
 (ns pink.event
   (:require 
-    [pink.audio.engine :refer [*sr* *ksmps*]]
+    [pink.audio.engine :refer :all]
     [pink.audio.protocols :refer :all]
-    ))
+    [pink.audio.util :refer [create-buffer]] ))
 
 (deftype Event [event-func ^Double start event-args ]
   Object
@@ -71,6 +71,30 @@
           (recur b))))
     (swap! cur-buffer inc)))
 
+;; Events functions dealing with audio engines
+
+(defn fire-engine-event [arglst] 
+  "create an instance of an audio function and adds to the engine" 
+  (let [[eng f & args] arglst]
+    (engine-add-afunc eng (apply f args))))
+
+(defn wrap-engine-event [eng ^Event evt]
+  (event fire-engine-event 
+         (.start evt)
+          (cons eng (cons (.event-func evt) (.event-args evt)))))
+
+(defn engine-events [eng & args]
+  (event-list (map #(wrap-engine-event eng %) args)))
+
+
+(defn eng-events-runner [evtlst]
+  (let [buf (create-buffer)]
+    (fn ^doubles []
+      (event-list-tick evtlst)
+      (if (empty? @(:events evtlst))
+        nil
+        buf))))
+
 (comment
 
   (defn test-event-list [evtlst]
@@ -79,8 +103,8 @@
         (event-list-tick evtlst)
 
         (when (> (count @(:events evtlst)) 0)
-            (Thread/sleep 1) 
-            (recur)
+          (Thread/sleep 1) 
+          (recur)
           ))))
 
 
@@ -101,6 +125,21 @@
 
   (.start (Thread. ^Runnable (partial test-event-list evtlst))) 
 
+
+
+  (def eng (engine-create))
+
+  (def eng-events 
+    (engine-events eng
+                   (event test-func 0.0 1.5 110.0) 
+                   (event test-func 0.0 1.5 120.0) 
+                   (event test-func 1.0 1.5 130.0) 
+                   (event test-func 2.0 1.5 140.0)))
+  (print eng-events)
+  (print (count @(:events eng-events)))
+  (.start (Thread. ^Runnable (partial test-event-list eng-events))) 
+
+  (print eng)
 
   ;(event-list-remove evtlst test-note)
   ;(event-list-tick evtlst)
