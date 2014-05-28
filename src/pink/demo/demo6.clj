@@ -54,19 +54,15 @@
 
 (comment
 
-  (defn note-sender[e]
-    (dosync
-      (alter (e :pending-funcs) conj (fm-synth 440) (fm-synth 660))))
-
   (def e (eng/engine-create))
   (eng/engine-start e)
 
   (def eng-events 
     (engine-events e
       (event fm-bell 0.0 440.0) 
-      (event fm-bell 0.0 550.0) 
+      (event fm-bell 0.5 550.0) 
       (event fm-bell 1.0 660.0) 
-      (event fm-bell 2.0 880.0)))
+      (event fm-bell 1.5 880.0)))
 
   (eng/engine-add-afunc e (eng-events-runner eng-events))
   (eng/engine-stop e)
