@@ -28,5 +28,6 @@
                    :warn-on-reflection true
                    :dependencies [[criterium "0.4.2"]]}}
 
+  :plugins [[codox "0.8.8"]]
   ;:main 
   )
