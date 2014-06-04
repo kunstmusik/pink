@@ -6,8 +6,9 @@
 
 (def engines (ref []))
 
-(defn engine-create []
+(defn engine-create 
   "Creates an engine"
+  []
   (let  [e {:status (ref :stopped)
             :clear (ref false)
             :active-funcs (ref [])
@@ -54,15 +55,17 @@
           (recur (inc counter))))))
     (println "stopping...")))
 
-(defn engine-start [engine]
+(defn engine-start 
   "Starts an engine to run using a Thread.  User can optionally drive engine with another 
   timing source by setting the engine status to :running and calling engine-run"
+  [engine]
   (when (= @(engine :status) :stopped)
     (dosync (ref-set (engine :status) :running))
     (.start (Thread. ^Runnable (partial engine-run engine)))))
 
-(defn engine-stop [engine]
+(defn engine-stop 
   "Stops an engine by altering the engine status, which signals the thread runner to stop."
+  [engine]
   (when (= @(engine :status) :running)
     (dosync (ref-set (engine :status) :stopped))))
 
@@ -78,8 +81,9 @@
 (defn engine-status [engine]
   @(:status engine))
 
-(defn engine-kill-all []
+(defn engine-kill-all 
   "Kills all engines and clears them"
+  [] 
   (dosync
     (loop [[a & b] @engines]
       (when a
@@ -87,9 +91,10 @@
         (recur b)
         ))))
 
-(defn engines-clear []
+(defn engines-clear
   "Kills all engines and clears global engines list. Useful for development in REPL, but user must be 
   careful after clearing not to use existing engines."
+  []
   (engine-kill-all)
   (dosync (ref-set engines [])))
 

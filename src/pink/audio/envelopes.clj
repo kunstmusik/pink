@@ -26,8 +26,9 @@
 
 ;;(defn- not-env-complete
 
-(defn env [pts]
+(defn env
   "Generates an envelop given time-tagged pairs of values (t0, v0, t1, v1 ...)"
+ [pts] 
  {:pre (even? (count pts))}
   (let [linedata (make-env-data pts)
         line-samples (reduce + (map first linedata))
@@ -88,19 +89,21 @@
 
 ;; Simple Envs
 
-(defn adsr [a d s r & {:keys [dur] :or {dur 1.0}}]
+(defn adsr 
   "Linear Attack-Decay-Sustain-Release Envelope"
+  [a d s r & {:keys [dur] :or {dur 1.0}}]
   (env [0.0 0.0 a 1.0 d s dur s r 0.0]))
 
 
-(defn xadsr [a d s r & {:keys [dur] :or {dur 1.0}}]
-
+(defn xadsr 
   "Exponential Attack-Decay-Sustain-Release Envelope"
+  [a d s r & {:keys [dur] :or {dur 1.0}}]
   (exp-env [0.0 0.00001 a 1.0 d s dur s r 0.00001]))
 
 
-(defn xar [a r]
+(defn xar 
   "Exponential Attack-Release Envelope"
+  [a r]
   (exp-env [0.0 0.00001 a 1.0 r 0.00001]))
 
 (comment

@@ -29,9 +29,10 @@
   ([i] (double-array *ksmps* i)))
 
 
-(defn const [^double a]
+(defn const 
   "Initializes a *ksmps*-sized buffer with the given value,
   returns a function that will return that buffer on each call"
+  [^double a] 
   (let [out (create-buffer a)]
   (fn ^doubles []
     out)))
@@ -45,9 +46,10 @@
     a))
 
 
-(defn shared [afn] 
+(defn shared 
   "Wraps an audio function so that it only generates values once per ksmps block; uses 
   *curent-buffer-num* dynamic variable to track if update is required" 
+  [afn] 
   (let [my-buf-num (atom -1)
         buffer (atom nil) ]
     (fn []
@@ -57,8 +59,9 @@
           (reset! buffer (afn))) 
         @buffer))))
 
-(defn- decorate-shared [args]
+(defn- decorate-shared 
   "Utility function for let-s macro to decorated bindings with (shared)"
+  [args] 
   (reduce 
       (fn [a [b c]] 
         (conj (conj a b) (list `shared c)))
@@ -67,8 +70,8 @@
 
 
 (defmacro let-s
-  [bindings & body]
   "Macro that decorates bindings with (shared) to simplify instrument building."
+  [bindings & body]
   `(let ~(decorate-shared bindings)
      ~@body))
 
@@ -83,8 +86,9 @@
   
   )
 
-(defn reader [atm] 
+(defn reader 
   "Returns function that reads from atom and returns a buffer. Useful for mutable data derived from external source such as MIDI or OSC"
+  [atm] 
   (let [last (atom 0)
         buffer (atom (create-buffer))]
     (fn []

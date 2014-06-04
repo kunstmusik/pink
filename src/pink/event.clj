@@ -32,24 +32,27 @@
     :cur-buffer (atom 0)
     }))
 
-(defn event-list-add [evtlst ^Event evt]
+(defn event-list-add 
   "Add an event to an event list"
+  [evtlst ^Event evt] 
   (when (< (.indexOf @(:events evtlst) evt) 0)
     (dosync
       (alter (:events evtlst) 
              (fn [a] (sort-by #(.start ^Event %) (conj a evt))))))
   evtlst)
 
-(defn event-list-remove [evtlst evt]
+(defn event-list-remove 
   "remove an event from the event list"
+  [evtlst evt] 
   (do
     (dosync
       (alter (:events evtlst) (fn [a] (remove #(= % evt) a)))) 
     evtlst))
 
-(defn- get-events! [evtlst cur-time]
+(defn- get-events! 
   "alters an event list, returns events that are scheduled to be fired, updates 
   events in the event list"
+  [evtlst cur-time]
   (dosync 
     (let [events (:events evtlst)
           [ready pending] (split-with #(<=  (.start ^Event %) cur-time) @events)]
@@ -73,8 +76,9 @@
 
 ;; Events functions dealing with audio engines
 
-(defn fire-engine-event [arglst] 
+(defn fire-engine-event 
   "create an instance of an audio function and adds to the engine" 
+  [arglst]  
   (let [[eng f & args] arglst]
     (engine-add-afunc eng (apply f args))))
 

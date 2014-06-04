@@ -47,8 +47,9 @@
 
 (def engines (ref []))
 
-(defn engine-create []
+(defn engine-create 
   "Creates an audio engine"
+  [] 
   (let  [e {:status (ref :stopped)
             :clear (ref false)
             :audio-funcs (ref [])
@@ -171,8 +172,9 @@
 (defn engine-status [engine]
   @(:status engine))
 
-(defn engine-kill-all []
+(defn engine-kill-all
   "Kills all engines and clears them"
+  []
   (dosync
     (loop [[a & b] @engines]
       (when a
@@ -180,9 +182,10 @@
         (recur b)
         ))))
 
-(defn engines-clear []
+(defn engines-clear
   "Kills all engines and clears global engines list. Useful for development in REPL, but user must be 
   careful after clearing not to use existing engines."
+  []
   (engine-kill-all)
   (dosync (ref-set engines [])))
 
