@@ -1,4 +1,4 @@
-(defproject compose "0.1.0-SNAPSHOT"
+(defproject kunstmusik/pink "0.1.0-SNAPSHOT"
   :jvm-opts ;["-server" "-Xmx2g" "-XX:-UseParallelGC"]
    ["-Xms512m" "-Xmx1g"           ; Minimum and maximum sizes of the heap
     "-XX:+UseParNewGC"            ; Use the new parallel GC in conjunction with
@@ -14,7 +14,7 @@
     "-XX:MaxTenuringThreshold=0"] ; Makes the full NewSize available to every NewGC
   :description "A library for music research, composition, and performance."
 
-  :url "http://example.com/FIXME"
+  :url "http://github.com/kunstmusik/pink"
 
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
