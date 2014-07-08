@@ -9,10 +9,16 @@
   (toString [e]  (format "\t%s\t%s\t%s\n" event-func start event-args )) 
   )
 
-(defn event [f start & args]
-  (Event. f start args)
+(defn event 
+  "Create an Event object. Can either pass args as list or variadic args."
+  ([f start args]
+   (if (sequential? args)
+     (Event. f start args) 
+     (Event. f start [args]))) 
+  ([f start x & args]
+   (println f start x args)
+   (Event. f start (list* x args)))
   )
-
 
 (defn events [f & args]
   (map #(apply event f %) args))
@@ -87,8 +93,13 @@
          (.start evt)
           (cons eng (cons (.event-func evt) (.event-args evt)))))
 
-(defn engine-events [eng & args]
-  (event-list (map #(wrap-engine-event eng %) args)))
+(defn engine-events 
+  "Takes an engine and series of events, wrapping the events as engine-events.
+  If single arg given, assumes it is a list of events."
+  ([eng args]
+   (event-list (map #(wrap-engine-event eng %) args)))
+  ([eng x & args]
+   (engine-events eng (list* x args))))
 
 
 (defn eng-events-runner [evtlst]
