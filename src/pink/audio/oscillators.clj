@@ -1,7 +1,10 @@
 (ns pink.audio.oscillators
   "Oscillator Functions"
   (:require [pink.audio.engine :refer [*sr*]]
-            [pink.audio.util :refer [create-buffer fill map-d swapd! setd! getd arg]]))
+            [pink.audio.util :refer [create-buffer fill map-d 
+                                     swapd! setd! getd arg]]
+            [pink.audio.gen :refer [gen-sine]] 
+            ))
 
 (def ^:const PI Math/PI)
 
@@ -58,5 +61,19 @@
      (fn ^doubles []
        (map-d #(Math/sin (* 2.0 PI ^double %)) (phsr) out)))))
 
+(def sine-table (gen-sine))
 
+;; fixme - handle amplitude as function by updating map-d to take in multiple buffers
+(defn oscil
+  "Oscillator with table (defaults to sine wave table, truncates indexing)"
+  ([amp freq]
+   (oscil amp freq sine-table 0))
+  ([amp freq table]
+   (oscil amp freq table 0))
+  ([amp freq ^doubles table phase]
+   (let [phsr (vphasor (arg freq) (arg phase))
+         out (create-buffer)
+         tbl-len (alength table)]
+      (fn ^doubles []
+        (map-d #(* amp (aget ^doubles table (int (* % tbl-len)))) (phsr) out)))))
 
