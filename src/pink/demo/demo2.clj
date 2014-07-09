@@ -65,7 +65,7 @@
   (let [e (eng/engine-create)]
     (eng/engine-start e)
     (demo e)
-    (Thread/sleep 500)
+    (Thread/sleep 2000)
     (eng/engine-stop e)))
 
 

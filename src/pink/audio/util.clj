@@ -1,9 +1,6 @@
 (ns pink.audio.util
   "Audio utility code for working with buffers (double[])"
-  (:require [pink.audio.engine :refer [*ksmps* *current-buffer-num*]]
-            [hiphip.double :as dbl]
-            [hiphip.array :as arr]
-            ))
+  (:require [pink.audio.engine :refer [*ksmps* *current-buffer-num*]]))
 
 (defn getd ^double [^doubles a] (aget a 0))
 (defn setd! ^double [^doubles a ^double v] (aset a 0 v))
@@ -12,17 +9,17 @@
 (defn setl! ^long [^longs a ^long v] (aset a 0 v))
 
 
-;(defn ^double swapd! [d f] 
-;  (setd! d (f (getd d))))
+(defn ^double swapd! [d f] 
+  (setd! d (f (getd d))))
 
-(definline swapd! [d f] 
-  `(dbl/aset ~d 0 (~f (dbl/aget ~d 0))))
+;(definline swapd! [d f] 
+;  `(aset ~d 0 (~f (aget ~d 0))))
 
-;(defn ^long swapl! [l f]
-;  (setl! l (f (getl l))))
+(defn ^long swapl! [l f]
+  (setl! l (f (getl l))))
 
-(definline swapl! [l f]
-  `(setl! ~l (~f (getl ~l))))
+;(definline swapl! [l f]
+;  `(setl! ~l (~f (getl ~l))))
 
 (defn create-buffer 
   ([] (double-array *ksmps*))
@@ -106,23 +103,17 @@
     (System/arraycopy empty-d 0 d 0 len))))
 
 (defn map-d 
-  "Maps function f across double[] buffers and writes output to final passed in buffer" 
-  ([f ^doubles a ^doubles b]
-    (when (and a b)
-      (let [l (alength a)]
-        (loop [cnt 0]
-          (when (< cnt l)
-            (dbl/aset b cnt (f (dbl/aget a cnt)))
+  "Maps function f across double[] buffers and writes output to out buffer" 
+  ([^doubles out f & buffers]
+   (when (not-any? nil? buffers)
+     (let [l (alength out)]
+       (loop [cnt (unchecked-long 0)]
+         (when (< cnt l)
+           (aset out cnt ^double 
+                 (apply f (map (fn [^doubles a] 
+                                 (aget a cnt)) buffers)))
             (recur (unchecked-inc cnt))))
-        b)))
-  ([f ^doubles a ^doubles b ^doubles c]
-    (when (and a b c)
-      (let [l (alength a)]
-        (loop [cnt 0]
-          (when (< cnt l)
-            (aset c cnt ^double (f (aget a cnt) (aget b cnt)))
-            (recur (unchecked-inc cnt))))
-        c))))
+       out))))
 
 (defn reduce-d
   "calls f on buffers generates from fns in a manner similar to reduce, 
@@ -157,28 +148,24 @@
       buf)))
 
 
-(defn ^doubles mul-d [^doubles a ^doubles b ^doubles out]
-  (when (and a b)
-    (dbl/amap [x a y b] (* x y))))
-
-;;(defmacro op [opfn & args])
-
-;(defn mul [a b]
-;  (let [ ;out (create-buffer)
-;        af (arg a)
-;        bf (arg b)]
-;    (fn ^doubles []
-;      (let [as (af) 
-;            bs (bf)]
-;        (when (and as bs) 
-;          (dbl/amap [v0 as v1 bs] (* v0 v1)))))))
+(defn- operator 
+  "takes in func and list of generators funcs, map operator across the result buffers"
+  [f a]
+  (let [args (map arg a)]
+    (if (> (count args) 1)
+      (let [out (create-buffer)]
+        (fn ^doubles []
+          (let [buffers (map (fn [a] (a)) args) ]
+            (when (not-any? nil? buffers)
+              (apply map-d out f buffers)))))
+      (nth args 0))))
 
 (defn mul [& a]
-  (let [args (map arg a)]
-    (fn ^doubles []
-      (let [buffers (map (fn [a] (a)) args)]
-        (when (not-any? nil? buffers) 
-          (reduce #(dbl/amap [x %1 y %2] (* x y)) buffers))))))
+  (operator * a))
+
+(defn sum 
+  [& a]
+  (operator + a))
 
 (defn mix
   [& xs]
@@ -188,16 +175,8 @@
             out (create-buffer)
             adjust (create-buffer (/ 1.0 (count args)))]
         (fn ^doubles []
-          (mul-d adjust (reduce-d + tmp args) out)))
+          (let [buffers (map (fn [a] (a)) args)]
+           (map-d out * adjust (apply map-d tmp + buffers)))))
       (nth args 0))))
 
 
-(defn sum 
-  [& xs]
-  (let [args (map arg xs)]
-    (if (> (count args) 1)
-      (let [tmp (create-buffer)
-            out (create-buffer)]
-        (fn ^doubles []
-          (reduce-d + tmp args)))
-      (nth args 0))))

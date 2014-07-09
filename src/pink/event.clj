@@ -16,7 +16,6 @@
      (Event. f start args) 
      (Event. f start [args]))) 
   ([f start x & args]
-   (println f start x args)
    (Event. f start (list* x args)))
   )
 
@@ -84,20 +83,22 @@
 
 (defn fire-engine-event 
   "create an instance of an audio function and adds to the engine" 
-  [arglst]  
-  (let [[eng f & args] arglst]
-    (engine-add-afunc eng (apply f args))))
+  [eng f & args]  
+  (println "Fire: " eng f args)
+  (engine-add-afunc eng (apply f args)))
 
 (defn wrap-engine-event [eng ^Event evt]
   (event fire-engine-event 
          (.start evt)
-          (cons eng (cons (.event-func evt) (.event-args evt)))))
+         (list* eng (.event-func evt) (.event-args evt))))
 
 (defn engine-events 
   "Takes an engine and series of events, wrapping the events as engine-events.
   If single arg given, assumes it is a list of events."
   ([eng args]
-   (event-list (map #(wrap-engine-event eng %) args)))
+   (if (sequential? args)
+     (event-list (map #(wrap-engine-event eng %) args))    
+     (event-list (map #(wrap-engine-event eng %) [args]))))
   ([eng x & args]
    (engine-events eng (list* x args))))
 

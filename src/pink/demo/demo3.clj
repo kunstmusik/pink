@@ -3,7 +3,7 @@
 (ns pink.demo.demo3
   (:require [pink.audio.engine :as eng]
             [pink.audio.envelopes :refer [env]]
-            [pink.audio.oscillators2 :refer [sine sine2]]
+            [pink.audio.oscillators :refer [sine sine2]]
             [pink.audio.util :refer [mix mul sum const create-buffer getd setd! arg shared let-s]]))
 
 

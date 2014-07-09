@@ -21,7 +21,6 @@
 
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [overtone/at-at "1.2.0"]
-                 [prismatic/hiphip "0.1.0"]
                  ]
   :profiles {
              :dev {

@@ -8,7 +8,7 @@
 
 (def ^:const PI Math/PI)
 
-(defn- ^double dec-if [^double a] (if (> a 1) (dec a) a))
+(defn- ^double dec-if [^double a] (if (>= a 1.0) (dec a) a))
 
 (defn phasor 
   "Phasor with fixed frequency and starting phase"
@@ -27,7 +27,7 @@
    (let [phsr (phasor freq phase)
          out (create-buffer)]
      (fn ^doubles []
-       (map-d #(Math/sin (* 2.0 PI ^double %)) (phsr) out)))))
+       (map-d out #(Math/sin (* 2.0 PI ^double %)) (phsr))))))
 
 
 (defn vphasor [freq phase]
@@ -59,7 +59,7 @@
    (let [phsr (vphasor (arg f) (arg p))
          out (create-buffer)]
      (fn ^doubles []
-       (map-d #(Math/sin (* 2.0 PI ^double %)) (phsr) out)))))
+       (map-d out #(Math/sin (* 2.0 PI ^double %)) (phsr))))))
 
 (def sine-table (gen-sine))
 
@@ -75,5 +75,5 @@
          out (create-buffer)
          tbl-len (alength table)]
       (fn ^doubles []
-        (map-d #(* amp (aget ^doubles table (int (* % tbl-len)))) (phsr) out)))))
+        (map-d out #(* amp (aget table (int (* % tbl-len)))) (phsr))))))
 
