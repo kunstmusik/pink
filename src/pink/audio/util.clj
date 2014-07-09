@@ -115,23 +115,6 @@
             (recur (unchecked-inc cnt))))
        out))))
 
-(defn reduce-d
-  "calls f on buffers generates from fns in a manner similar to reduce, 
-  writing the reduced values into out buffer"
-  ([f ^doubles out fns]
-    (when (and out fns (not-empty fns))
-      (clear-d out)
-      (loop [[x & xs] fns]
-        (if x
-          (when-let [buf ^doubles (x)]
-            (let [len (alength buf)]
-              (when buf
-                (loop [cnt 0]
-                  (when (< cnt len) 
-                    (aset out cnt ^double (f (aget out cnt) (aget buf cnt)))
-                    (recur (unchecked-inc cnt))))
-                (recur xs))))
-          out)))))
         
 (defn fill 
   "Fills double[] buf with values. Initial value is set to value from double[] start, 
