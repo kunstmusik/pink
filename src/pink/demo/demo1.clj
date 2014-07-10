@@ -2,8 +2,7 @@
   (:require [pink.audio.engine :as eng]
             [pink.audio.envelopes :refer [env]]
             [pink.audio.oscillators :refer [sine]]
-            [pink.audio.util :refer [mix mul const create-buffer getd setd!]])
-  (:use [overtone.at-at]))
+            [pink.audio.util :refer [mix mul const create-buffer getd setd!]]))
 
 
 (defn simple-synth [freq]
@@ -54,19 +53,13 @@
     (dosync
      (alter (e :pending-funcs) conj (simple-synth 440) (simple-synth 660))))
 
-(def my-pool (mk-pool))
-
 (def e (eng/engine-create))
 (eng/engine-start e)
 (dosync (alter (e :pending-funcs) conj (demo-afunc e)))
 (eng/engine-stop e)
 (eng/engine-clear e)
-(every 250 (partial note-sender e) my-pool :fixed-delay true)
-(every 250 (partial note-sender e) my-pool)
-         
-(stop-and-reset-pool! my-pool)
-e
 
+e
 
   (let [e (eng/engine-create)]
     (eng/engine-start e)
