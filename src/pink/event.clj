@@ -84,7 +84,6 @@
 (defn fire-engine-event 
   "create an instance of an audio function and adds to the engine" 
   [eng f & args]  
-  (println "Fire: " eng f args)
   (engine-add-afunc eng (apply f args)))
 
 (defn wrap-engine-event [eng ^Event evt]
