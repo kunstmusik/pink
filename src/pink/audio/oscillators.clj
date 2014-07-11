@@ -77,3 +77,41 @@
       (fn ^doubles []
         (map-d out #(* amp (aget table (int (* % tbl-len)))) (phsr))))))
 
+
+(defn oscili
+  "Linear-interpolating oscillator with table (defaults to sine wave table)"
+  ([amp freq]
+   (oscili amp freq sine-table 0))
+  ([amp freq table]
+   (oscili amp freq table 0))
+  ([amp freq ^doubles table phase]
+   (let [phsr (vphasor (arg freq) (arg phase))
+         out (create-buffer)
+         tbl-len (alength table)]
+      (fn ^doubles []
+        (map-d out 
+               #(let [phs (* % tbl-len)
+                      pt0 (int phs)
+                      pt1 (mod (inc pt0) tbl-len)  
+                      frac (if (zero? pt0) 
+                             phs
+                             (rem phs pt0))
+                      v0  (aget table pt0)
+                      v1  (aget table pt1)]
+                 (* amp 
+                   (+ v0 (* frac (- v1 v0))))) 
+               (phsr))))))
+
+
+(defn oscil3
+  "Cubic-interpolating oscillator with table (defaults to sine wave table) (not yet implemented!)"
+  ([amp freq]
+   (oscil3 amp freq sine-table 0))
+  ([amp freq table]
+   (oscil3 amp freq table 0))
+  ([amp freq ^doubles table phase]
+   (let [phsr (vphasor (arg freq) (arg phase))
+         out (create-buffer)
+         tbl-len (alength table)]
+      (fn ^doubles []
+        (map-d out #(* amp (aget table (int (* % tbl-len)))) (phsr))))))
