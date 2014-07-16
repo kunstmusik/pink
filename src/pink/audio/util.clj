@@ -2,21 +2,56 @@
   "Audio utility code for working with buffers (double[])"
   (:require [pink.audio.engine :refer [*ksmps* *current-buffer-num*]]))
 
-(defn getd ^double [^doubles a] (aget a 0))
-(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
+;(defn getd ^double [^doubles a] (aget a 0))
+;(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
 
-(defn getl ^long [^longs a] (aget a 0))
-(defn setl! ^long [^longs a ^long v] (aset a 0 v))
+(defn- tagit 
+  [a t]
+  (with-meta a {:tag t}))
+
+(defn- tag-doubles 
+  [a]
+  (tagit a "doubles"))
+
+(defn- tag-double
+  [a]
+  (tagit a "double"))
+
+(defn- tag-longs
+  [a]
+  (tagit a "longs"))
+
+(defn- tag-long
+  [a]
+  (tagit a "long")
+  )
+
+(defmacro getd
+  ([a]
+  `(aget ~(tag-doubles a) 0)))
+
+(defmacro setd! 
+  [a v] 
+  `(aset ~(tag-doubles a) 0 ~(tag-double v)))
 
 
-(defn ^double swapd! [d f] 
-  (setd! d (f (getd d))))
+(defmacro getl 
+  [a] 
+  `(aget ~(tag-longs a) 0))
+
+(defmacro setl! 
+  [a v] 
+  `(aset ~(tag-longs a) 0 ~(tag-long v)))
+
+
+(defmacro swapd! [d f] 
+  `(setd! ~d (~f (getd ~d))))
 
 ;(definline swapd! [d f] 
 ;  `(aset ~d 0 (~f (aget ~d 0))))
 
-(defn ^long swapl! [l f]
-  (setl! l (f (getl l))))
+(defmacro swapl! [l f]
+  `(setl! ~l (~f (getl ~l))))
 
 ;(definline swapl! [l f]
 ;  `(setl! ~l (~f (getl ~l))))
@@ -47,12 +82,12 @@
   "Wraps an audio function so that it only generates values once per ksmps block; uses 
   *curent-buffer-num* dynamic variable to track if update is required" 
   [afn] 
-  (let [my-buf-num (atom -1)
+  (let [my-buf-num (long-array 1 -1)
         buffer (atom nil) ]
     (fn []
-      (if (not= @my-buf-num *current-buffer-num*)
+      (if (not= (getl my-buf-num) *current-buffer-num*)
         (do 
-          (reset! my-buf-num *current-buffer-num*)
+          (setl! my-buf-num *current-buffer-num*)
           (reset! buffer (afn))) 
         @buffer))))
 
@@ -102,34 +137,77 @@
     (let [len (min (alength ^doubles d) (alength ^doubles empty-d))]
     (System/arraycopy empty-d 0 d 0 len))))
 
+;(defmacro map-d2
+;  "Maps function f across double[] buffers and writes output to out buffer" 
+;  [out f & buffers]
+;  (let [count-sym (gensym 'count) 
+;        get-bufs (map #('(aget ~% ~count-sym)) buffers)]
+;   `(if (not-any? nil? [~@buffers])
+;    (let [l# (alength out)]
+;      (loop [~cnt (unchecked-long 0)]
+;        (when (< ~cnt l#)
+;          (aset ~out ~cnt
+;            (~f ~@get-bufs)) 
+;          (recur (unchecked-inc ~cnt))
+;          ))
+;      ~out
+;      )
+;     nil
+;    ))
+;  )
+
+;(macroexpand-1 '(map-d2 (create-buffer) #(inc %) 3))
+
+(defmacro map-d-impl
+  [out f & buffers]  
+  (let [cnt (gensym 'count)
+        get-bufs (map (fn [a] (list 'aget a cnt)) buffers )
+        apply-line `(~f ~@get-bufs)
+        ] 
+    `(when (and ~@buffers)
+     (let [l# (alength ~out)]
+       (loop [~cnt (unchecked-long 0)]
+         (when (< ~cnt l#)
+           (aset ~out ~cnt
+                  ~(tag-double apply-line)) 
+           (recur (unchecked-inc ~cnt))
+           ))
+       ~out
+       )    
+     )))
+
+;(macroexpand-1 '(map-d-impl out func a b c))
 (defn map-d 
   "Maps function f across double[] buffers and writes output to out buffer" 
-  ([^doubles out f & buffers]
-   (when (not-any? nil? buffers)
-     (let [l (alength out)]
-       (loop [cnt (unchecked-long 0)]
-         (when (< cnt l)
-           (aset out cnt ^double 
-                 (apply f (map (fn [^doubles a] 
-                                 (aget a cnt)) buffers)))
-            (recur (unchecked-inc cnt))))
-       out))))
-
+  ([^doubles out f ^doubles x]
+    (map-d-impl out f x)   
+   )
+  ([^doubles out f ^doubles x ^doubles y ]
+    (map-d-impl out f x y)   
+   )
+  ([^doubles out f ^doubles x ^doubles y  ^doubles z]
+    (map-d-impl out f x y z)   
+   )
+  )
         
 (defn fill 
-  "Fills double[] buf with values. Initial value is set to value from double[] start, 
+  "Fills double[] buf with values. Initial value is set to value from double[1] start, 
   then f called like iterate with the value.  Last value is stored back into the start.
   Returns buf at end."
-  [^doubles buf ^doubles start f]
-  (when (and buf start f)
-    (let [len (alength buf)
-          lastindx (dec len)]
-      (loop [cnt (unchecked-long 0)]
-        (when (< cnt len)
-          (aset ^doubles buf cnt ^double (swapd! start f))
-          (recur (unchecked-inc cnt))))
-      buf)))
+  [^doubles out ^doubles start f]
+  (when (and out start f)
+    (let [len (alength out)]
+      (loop [cnt (unchecked-long 0)
+             cur-val (getd start)]
+        (if (< cnt len)
+          (do 
+            (let [^double v(f cur-val)] 
+              (aset out cnt  v)
+              (recur (unchecked-inc cnt) v)))
+          (aset start 0 cur-val)))
+      out)))  
 
+(defn- gen-buffer [x] (x))
 
 (defn- operator 
   "takes in func and list of generators funcs, map operator across the result buffers"
@@ -138,7 +216,7 @@
     (if (> (count args) 1)
       (let [out (create-buffer)]
         (fn ^doubles []
-          (let [buffers (map (fn [a] (a)) args) ]
+          (let [buffers (map gen-buffer args) ]
             (when (not-any? nil? buffers)
               (apply map-d out f buffers)))))
       (nth args 0))))

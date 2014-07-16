@@ -3,7 +3,7 @@
 (ns pink.demo.demo8
   (:require [pink.audio.engine :as eng]
             [pink.audio.envelopes :refer [env exp-env adsr xadsr xar]]
-            [pink.audio.oscillators :refer [oscil oscili]]
+            [pink.audio.oscillators :refer [oscil oscili oscil3]]
             [pink.audio.gen :refer [gen-sine]]
             [pink.audio.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]
              [pink.event :refer :all] ))
@@ -20,6 +20,12 @@
   (println "Interpolating...")
   (mul
      (oscili 0.05 freq sine256)
+     (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])))
+
+(defn table-synth-cubic [freq]
+  (println "Cubic...")
+  (mul
+     (oscil3 0.05 freq sine256)
      (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])))
 
 (comment

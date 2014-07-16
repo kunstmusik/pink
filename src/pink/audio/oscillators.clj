@@ -30,6 +30,10 @@
        (map-d out #(Math/sin (* 2.0 PI ^double %)) (phsr))))))
 
 
+(defn- phs-incr
+  [cur incr phs-adj]
+  (dec-if (+ cur incr phs-adj)))
+
 (defn vphasor [freq phase]
   "Phasor with variable frequency and phase (where freq and phase are generator
   functions"
@@ -42,13 +46,13 @@
             p (phase)]
         (when (and f p)
           (loop [cnt (unchecked-long 0)]
-            (if (< cnt len)
+            (when (< cnt len)
               (let [incr ^double (/ (aget ^doubles f cnt) *sr*)
-                    phs-adj (aget ^doubles p cnt)
-                    phs-func (fn [^double c] ^double (+ c incr phs-adj))] 
-                (aset out cnt (setd! cur-phase (dec-if (phs-func (getd cur-phase)))))
-                (recur (unchecked-inc cnt)))
-              out)))))))
+                    phs-adj (aget ^doubles p cnt)] 
+                (aset out cnt (setd! cur-phase (phs-incr (getd cur-phase) incr phs-adj)))
+                (recur (unchecked-inc cnt)))) 
+            )
+          out)))))
 
 (defn sine2 
   "Sine generator with variable frequency and phase (where freq and phase are

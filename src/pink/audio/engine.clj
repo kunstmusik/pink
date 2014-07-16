@@ -27,7 +27,7 @@
 (def af (AudioFormat. 44100 16 1 true true))
 
 (def ^:dynamic *sr* 44100)
-(def ^:dynamic *ksmps* 32)
+(def ^:dynamic *ksmps* 64)
 (def ^:dynamic *nchnls* 1)
 (def ^:dynamic *current-buffer-num* 0)
 
