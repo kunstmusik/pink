@@ -8,7 +8,9 @@
 
 (def ^:const PI Math/PI)
 
-(defn- ^double dec-if [^double a] (if (>= a 1.0) (dec a) a))
+(defmacro dec-if 
+  [a] 
+  `(if (>= ~a 1.0) (dec ~a) ~a))
 
 (defn phasor 
   "Phasor with fixed frequency and starting phase"
@@ -30,9 +32,9 @@
        (map-d out #(Math/sin (* 2.0 PI ^double %)) (phsr))))))
 
 
-(defn- phs-incr
+(defmacro phs-incr
   [cur incr phs-adj]
-  (dec-if (+ cur incr phs-adj)))
+  `(dec-if (+ ~cur ~incr ~phs-adj)))
 
 (defn vphasor [freq phase]
   "Phasor with variable frequency and phase (where freq and phase are generator
@@ -45,12 +47,12 @@
       (let [f (freq)
             p (phase)]
         (when (and f p)
-          (loop [cnt (unchecked-long 0)]
+          (loop [cnt (unchecked-int 0)]
             (when (< cnt len)
               (let [incr ^double (/ (aget ^doubles f cnt) *sr*)
                     phs-adj (aget ^doubles p cnt)] 
                 (aset out cnt (setd! cur-phase (phs-incr (getd cur-phase) incr phs-adj)))
-                (recur (unchecked-inc cnt)))) 
+                (recur (unchecked-inc-int cnt)))) 
             )
           out)))))
 

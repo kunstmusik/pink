@@ -4,25 +4,47 @@
            (java.util Arrays)
            (javax.sound.sampled AudioFormat AudioSystem SourceDataLine)))
 
+(defn- tagit 
+  [a t]
+  (with-meta a {:tag t}))
 
-(defn map-d 
-  "Maps function f across double[] buffers and writes output to final passed in buffer" 
-  ([f ^doubles a ^doubles b]
-    (when (and a b)
-      (let [l (alength a)]
-        (loop [cnt 0]
-          (when (< cnt l)
-            (aset b cnt ^double (f (aget a cnt)))
-            (recur (unchecked-inc cnt))))
-        b)))
-  ([f ^doubles a ^doubles b ^doubles c]
-    (when (and a b c)
-      (let [l (alength a)]
-        (loop [cnt 0]
-          (when (< cnt l)
-            (aset c cnt ^double (f (aget a cnt) (aget b cnt)))
-            (recur (unchecked-inc cnt))))
-        c))))
+(defn- tag-double
+  [a]
+  (tagit a "double"))
+
+(defmacro map-d-impl
+  [out f & buffers]  
+  (let [cnt (gensym 'count)
+        get-bufs (map (fn [a] (list 'aget a cnt)) buffers )
+        apply-line `(~f ~@get-bufs)
+        ] 
+    `(when (and ~@buffers)
+     (let [l# (alength ~out)]
+       (loop [~cnt (unchecked-int 0)]
+         (when (< ~cnt l#)
+           (aset ~out ~cnt
+                  ~(tag-double apply-line)) 
+           (recur (unchecked-inc-int ~cnt))
+           ))
+       ~out
+       )    
+     )))
+
+(defn- map-d 
+  "Maps function f across double[] buffers and writes output to out buffer" 
+  ([^doubles out f ^doubles x]
+    (map-d-impl out f x)   
+   )
+  ([^doubles out f ^doubles x ^doubles y ]
+    (map-d-impl out f x y)   
+   )
+  ([^doubles out f ^doubles x ^doubles y  ^doubles z]
+    (map-d-impl out f x y z)   
+   )
+  )
+ 
+
+
 
 (def af (AudioFormat. 44100 16 1 true true))
 
@@ -87,7 +109,7 @@
       (let [b (x)]
         (if b
           (do 
-            (map-d + buffer b buffer)
+            (map-d buffer + b buffer)
             (recur xs (conj ret x)))
           (recur xs ret)))
      ret))) 
@@ -129,7 +151,8 @@
     (loop [frame-count 0]
       (if (= @(engine :status) :running)
         (let [f-count (rem (inc frame-count) frames)
-              afs  (binding [*current-buffer-num* (swap! bufnum unchecked-inc)]
+              afs  (binding [*current-buffer-num* 
+                             (swap! bufnum unchecked-inc-int)]
                 (process-buffer @audio-funcs outbuf buf))]  
           (dosync
             (if @clear-flag

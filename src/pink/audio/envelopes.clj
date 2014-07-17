@@ -41,7 +41,7 @@
 ;;    (println "Slope: " (env-get-inc linedata (getl counter)))
     (when (<= (getl counter) line-samples)
       (fill out cur-val 
-        #(if-let [x (env-get-inc linedata (swapl! counter inc))]
+        #(if-let [x ^double (env-get-inc linedata (swapl! counter inc))]
           (+ ^double % x)
           0.0))))))
 

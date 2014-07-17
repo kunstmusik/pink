@@ -137,27 +137,6 @@
     (let [len (min (alength ^doubles d) (alength ^doubles empty-d))]
     (System/arraycopy empty-d 0 d 0 len))))
 
-;(defmacro map-d2
-;  "Maps function f across double[] buffers and writes output to out buffer" 
-;  [out f & buffers]
-;  (let [count-sym (gensym 'count) 
-;        get-bufs (map #('(aget ~% ~count-sym)) buffers)]
-;   `(if (not-any? nil? [~@buffers])
-;    (let [l# (alength out)]
-;      (loop [~cnt (unchecked-long 0)]
-;        (when (< ~cnt l#)
-;          (aset ~out ~cnt
-;            (~f ~@get-bufs)) 
-;          (recur (unchecked-inc ~cnt))
-;          ))
-;      ~out
-;      )
-;     nil
-;    ))
-;  )
-
-;(macroexpand-1 '(map-d2 (create-buffer) #(inc %) 3))
-
 (defmacro map-d-impl
   [out f & buffers]  
   (let [cnt (gensym 'count)
@@ -166,17 +145,16 @@
         ] 
     `(when (and ~@buffers)
      (let [l# (alength ~out)]
-       (loop [~cnt (unchecked-long 0)]
+       (loop [~cnt (unchecked-int 0)]
          (when (< ~cnt l#)
            (aset ~out ~cnt
                   ~(tag-double apply-line)) 
-           (recur (unchecked-inc ~cnt))
+           (recur (unchecked-inc-int ~cnt))
            ))
        ~out
        )    
      )))
 
-;(macroexpand-1 '(map-d-impl out func a b c))
 (defn map-d 
   "Maps function f across double[] buffers and writes output to out buffer" 
   ([^doubles out f ^doubles x]
@@ -190,22 +168,19 @@
    )
   )
         
-(defn fill 
+(defmacro fill 
   "Fills double[] buf with values. Initial value is set to value from double[1] start, 
   then f called like iterate with the value.  Last value is stored back into the start.
   Returns buf at end."
-  [^doubles out ^doubles start f]
-  (when (and out start f)
-    (let [len (alength out)]
-      (loop [cnt (unchecked-long 0)
-             cur-val (getd start)]
-        (if (< cnt len)
-          (do 
-            (let [^double v(f cur-val)] 
-              (aset out cnt  v)
-              (recur (unchecked-inc cnt) v)))
-          (aset start 0 cur-val)))
-      out)))  
+  [out start f]
+  (let [cnt (gensym 'count)]
+    `(when (and ~out ~start ~f)
+       (let [len# (alength ~(tag-doubles out))]
+         (loop [~cnt (unchecked-int 0)]
+           (when (< ~cnt len#)
+             (aset ~(tag-doubles out) ~cnt (swapd! ~start ~f))
+             (recur (unchecked-inc-int ~cnt))))
+         ~(tag-doubles out)))))  
 
 (defn- gen-buffer [x] (x))
 
@@ -241,3 +216,16 @@
       (nth args 0))))
 
 
+;; Informal benchmarking tool
+
+(defn time-gen 
+  [gen]
+  (let [t (. System nanoTime)
+      ]
+      (loop [cnt (unchecked-int 0)]
+        (if (nil? (gen))
+          (println (format "TIME: %g FRAMES: %d" 
+                           (double (/ (- (. System nanoTime) t) 1000000000))
+                           cnt))
+          (recur (unchecked-inc-int cnt)))))
+  )
