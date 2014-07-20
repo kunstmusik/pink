@@ -3,7 +3,10 @@
   (:require [pink.audio.engine :refer [*sr*]]
             [pink.audio.util :refer [create-buffer fill swapl! getl]]))
 
-(defn- make-env-data [pts]
+(defn- make-env-data 
+  "converts time tagged pairs (start val) into 3-tuples
+  of (start-value, slope, num-samples)"
+  [pts]
   {:pre (even? (count pts))}
   (let [[x & xs] (partition 2 pts)]
     (second (reduce (fn [[[a b] lst] [c d :as p]] 
@@ -12,14 +15,34 @@
              [p (conj lst [run rise])] ))
                          [x []] xs))))
 
-(defn- env-get-inc [data counter]
-  (loop [cnt 0.0 [x & xs] data]
-    (when x
-      (let [[a b] x
-            c (+ cnt a)]
-        (if (< counter c)
-          b
-          (recur c xs))))))
+;(defn- make-env-data 
+;  "converts time tagged pairs (start val) into 3-tuples
+;  of (start-value, slope, num-samples)"
+;  [pts]
+;  {:pre (even? (count pts))
+;        (zero? (first pts)) }
+;  (let [tpts (partition 2 pts)]
+;    (loop [start-pt (first tpts)
+;           [end-pt & xs] (rest tpts)
+;           retval []]
+;      (if (nil? end-pt)
+;        retval
+;        (let [[x1 y1] start-pt
+;              [x2 y2] end-pt
+;              samps (* (- x2 x1) *sr*)
+;              incr (/ (- y2 y1) samps)]
+;         (recur end-pt xs 
+;               (conj retval [y1 incr samps])))))))
+
+(defmacro env-get-inc [data counter]
+  `(loop [cnt# 0.0 
+          [x# & xs#] ~data]
+    (when x#
+      (let [[a# b#] x#
+            c# (+ cnt# a#)]
+        (if (< ~counter c#)
+          b#
+          (recur c# xs#))))))
 
 ;;(defn- env-complete? [counter linedata] 
 ;;  (> counter (first (last (linedata)))))
@@ -35,8 +58,6 @@
         cur-val (double-array 1 (nth pts 1))
         counter (long-array 1 -1)
         out (create-buffer)]
- ;; (clojure.pprint/pprint linedata)
-  ;;(println "Samples: " line-samples)
   (fn ^doubles[]
 ;;    (println "Slope: " (env-get-inc linedata (getl counter)))
     (when (<= (getl counter) line-samples)

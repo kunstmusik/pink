@@ -58,12 +58,12 @@
 (def frames (quot write-buffer-size *ksmps*))
 
 
-(defn ^short limit [^double num]
-  (if (> num Short/MAX_VALUE)
+(defmacro limit [num]
+  `(if (> ~num Short/MAX_VALUE)
     Short/MAX_VALUE 
-    (if (< num Short/MIN_VALUE)
+    (if (< ~num Short/MIN_VALUE)
       Short/MIN_VALUE 
-      (short num))))
+      (short ~num))))
 
 ;;;; Engine
 
@@ -96,37 +96,38 @@
     (.open audio-format)
     (.start))))
 
-(defn map-over-d [f ^doubles buf]
-  (let [len (alength buf)]
-    (loop [y 0]
-      (when (< y len)
-        (f (aget buf y))
-        (recur (unchecked-inc y))))))
+(defmacro map-over-d [f buf]
+  `(let [len# (alength ~buf)]
+    (loop [y# 0]
+      (when (< y# len#)
+        (~f (aget ~buf y#))
+        (recur (unchecked-inc y#))))))
 
-(defn run-audio-funcs [afs ^doubles buffer]
-  (loop [[x & xs] afs ret []]
-    (if x 
-      (let [b (x)]
-        (if b
+(defmacro run-audio-funcs [afs buffer]
+  `(loop [[x# & xs#] ~afs 
+          ret# []]
+    (if x# 
+      (let [b# (x#)]
+        (if b#
           (do 
-            (map-d buffer + b buffer)
-            (recur xs (conj ret x)))
-          (recur xs ret)))
-     ret))) 
+            (map-d ~buffer + b# ~buffer)
+            (recur xs# (conj ret# x#)))
+          (recur xs# ret#)))
+     ret#))) 
 
-(defn process-frame 
-  [afuncs ^doubles outbuffer ^SourceDataLine line ^ByteBuffer buffer frames]
-  (loop [x 0 afs afuncs]
-    (if (< x frames)
-      (do
-        (Arrays/fill ^doubles outbuffer 0.0)
-        (let [newfs (run-audio-funcs afs outbuffer)]
-          (map-over-d #(.putShort buffer (limit (* Short/MAX_VALUE %))) outbuffer)
-          (recur (inc x) newfs)))
-      (do
-        (.write line (.array buffer) 0 buffer-size)
-        (.clear buffer)
-        afs))))
+;(defn process-frame 
+;  [afuncs ^doubles outbuffer ^SourceDataLine line ^ByteBuffer buffer frames]
+;  (loop [x 0 afs afuncs]
+;    (if (< x frames)
+;      (do
+;        (Arrays/fill ^doubles outbuffer 0.0)
+;        (let [newfs (run-audio-funcs afs outbuffer)]
+;          (map-over-d #(.putShort buffer (limit (* Short/MAX_VALUE %))) outbuffer)
+;          (recur (inc x) newfs)))
+;      (do
+;        (.write line (.array buffer) 0 buffer-size)
+;        (.clear buffer)
+;        afs))))
 
 (defn process-buffer
   [afs ^doubles outbuffer ^ByteBuffer buffer]
