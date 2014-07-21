@@ -59,9 +59,9 @@
 
 
 (defmacro limit [num]
-  `(if (> ~num Short/MAX_VALUE)
+  `(if (> ~(tag-double num) Short/MAX_VALUE)
     Short/MAX_VALUE 
-    (if (< ~num Short/MIN_VALUE)
+    (if (< ~(tag-double num) Short/MIN_VALUE)
       Short/MIN_VALUE 
       (short ~num))))
 
