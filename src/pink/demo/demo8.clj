@@ -3,12 +3,12 @@
 (ns pink.demo.demo8
   (:require [pink.audio.engine :as eng]
             [pink.audio.envelopes :refer [env exp-env adsr xadsr xar]]
-            [pink.audio.oscillators :refer [oscil oscili oscil3]]
+            [pink.audio.oscillators :refer [sine oscil oscili oscil3]]
             [pink.audio.gen :refer [gen-sine]]
-            [pink.audio.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]
+            [pink.audio.util :refer :all]
              [pink.event :refer :all] ))
 
-(def sine256 (gen-sine 256))
+(def sine256 (gen-sine 128))
 
 (defn table-synth [freq]
   (println "Truncating...")
@@ -20,6 +20,7 @@
   (println "Interpolating...")
   (mul
      (oscili 0.05 freq sine256)
+     ;(sine 0.05 freq)
      (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])))
 
 (defn table-synth-cubic [freq]
@@ -28,23 +29,41 @@
      (oscil3 0.05 freq sine256)
      (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])))
 
+;(time-gen (table-synth-interp 440.0))
+
 (comment
 
+  (def e (eng/engine-create))
+  (eng/engine-start e)
+
+  (let [eng-events (engine-events e
+                       (map #(event table-synth-interp 0.25 (* 110 %)) (range 1 36)))]
+
+      (eng/engine-add-afunc e (eng-events-runner eng-events))
+    
+    ) 
   (let [e (eng/engine-create)
         eng-events 
         (engine-events e
                        (event table-synth 0.0 440.0) 
                        (event table-synth 0.0 550.0) 
+                       ;(map #(event table-synth-interp 0.25 (* 110 %)) (range 1 36)) 
+
                        (event table-synth-interp 1.0 440.0) 
                        (event table-synth-interp 1.0 550.0)
-                       
+
+                       (event table-synth-cubic 2.0 440.0) 
+                       (event table-synth-cubic 2.0 550.0)
+
+                       ;(event table-synth-interp 1.0 440.0) 
+                       ;(event table-synth-interp 1.0 550.0)
                        )
         ]
     
       (eng/engine-start e)
       (eng/engine-add-afunc e (eng-events-runner eng-events))
 
-      (Thread/sleep 2200)
+      (Thread/sleep 3000)
       (eng/engine-stop e)
       (eng/engine-clear e))
 
