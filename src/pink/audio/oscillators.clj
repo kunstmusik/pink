@@ -110,7 +110,7 @@
 
 
 (defn oscil3
-  "Cubic-interpolating oscillator with table (defaults to sine wave table) (not yet implemented!)"
+  "Cubic-interpolating oscillator with table (defaults to sine wave table) (based on Csound's oscil3)"
   ([amp freq]
    (oscil3 amp freq sine-table 0))
   ([amp freq table]
@@ -120,4 +120,26 @@
          out (create-buffer)
          tbl-len (alength table)]
       (fn ^doubles []
-        (map-d out #(* amp (aget table (int (* % tbl-len)))) (phsr))))))
+        (map-d out 
+               #(let [phs (* % tbl-len)
+                      pt1 (int phs)
+                      pt0 (if (zero? pt1) (- tbl-len 1) (- pt1 1))  
+                      pt2 (mod (inc pt1) tbl-len)  
+                      pt3 (mod (inc pt2) tbl-len)  
+                      x (if (zero? pt1) 
+                             phs
+                             (rem phs pt1))
+                      x2 (* x x)
+                      x3 (* x x2)
+                      p0  (aget table pt0)
+                      p1  (aget table pt1)
+                      p2  (aget table pt2)
+                      p3  (aget table pt3)
+                      a (/ (+ p3 (* -3 p2) (* 3 p1) (* -1 p0)) 6)                      
+                      b (/ (+ p2 (* -2 p1) p0) 2)
+                      c (+ (* p3 (double -1/6)) p2 (* p1 (double -1/2)) (* p0 (double -1/3)))
+                      d p1 ]
+                 (* amp 
+                   (+ (* a x3) (* b x2) (* c x) d))) 
+               (phsr))))))
+
