@@ -1,70 +1,91 @@
 (ns pink.audio.envelopes
   "Envelope Generator Functions"
   (:require [pink.audio.engine :refer [*sr*]]
-            [pink.audio.util :refer [create-buffer fill swapl! getl]]))
+            [pink.audio.util :refer [create-buffer fill swapl! getl setl! getd setd!]]))
 
 (defn- make-env-data 
-  "converts time tagged pairs (start val) into 3-tuples
-  of (start-value, slope, num-samples)"
+  "takes in a list of time tagged pairs (time value) and creates a list with
+  initial value, followed by a list of pairs of (num-samples, slope)"
   [pts]
   {:pre (even? (count pts))}
-  (let [[x & xs] (partition 2 pts)]
-    (second (reduce (fn [[[a b] lst] [c d :as p]] 
-              (let [run (double (* c *sr*))
-                   rise (double (/ (- d b) run))] 
-             [p (conj lst [run rise])] ))
-                         [x []] xs))))
+  (let [pairs (partition 2 pts)
+        [x & xs] (if (not= (double (ffirst pairs)) 0.0)
+                   (cons [0.0 (second (first pairs))] pairs)
+                   pairs)]
+     
+    (cons (second x) (second (reduce 
+              (fn [[[a b] lst] [c d :as p]] 
+                (let [run (double (* c *sr*))
+                      rise (double (/ (- d b) run))
+                      last-pt (last lst) 
+                      total-run (if (nil? last-pt) 0.0 (first last-pt))
+                      ] 
+                      [p (conj lst [(+ total-run run) rise])] ))
+                         [x []] xs)))))
 
-;(defn- make-env-data 
-;  "converts time tagged pairs (start val) into 3-tuples
-;  of (start-value, slope, num-samples)"
-;  [pts]
-;  {:pre (even? (count pts))
-;        (zero? (first pts)) }
-;  (let [tpts (partition 2 pts)]
-;    (loop [start-pt (first tpts)
-;           [end-pt & xs] (rest tpts)
-;           retval []]
-;      (if (nil? end-pt)
-;        retval
-;        (let [[x1 y1] start-pt
-;              [x2 y2] end-pt
-;              samps (* (- x2 x1) *sr*)
-;              incr (/ (- y2 y1) samps)]
-;         (recur end-pt xs 
-;               (conj retval [y1 incr samps])))))))
+(comment
+  (make-env-data [0 1.0, 1.0 0.2, 2.0 1.0, 3.0 0.0])
+  (make-env-data [0.5 1.0, 1.0 0.2, 2.0 1.0, 3.0 0.0])
+  )
 
-(defmacro env-get-inc [data counter]
+(defmacro env-get-pt [data counter]
   `(loop [cnt# 0.0 
           [x# & xs#] ~data]
     (when x#
-      (let [[a# b#] x#
+      (let [[a# b# :as pt#] x#
             c# (+ cnt# a#)]
         (if (< ~counter c#)
-          b#
+          pt#
           (recur c# xs#))))))
+
+
 
 ;;(defn- env-complete? [counter linedata] 
 ;;  (> counter (first (last (linedata)))))
 
 ;;(defn- not-env-complete
 
+(defn get-line-pt 
+  [sample linedata]
+  (loop [[x & xs] linedata]
+    (when x
+      (if (< sample (first x))
+        x
+        (recur xs)))))
+
 (defn env
   "Generates an envelop given time-tagged pairs of values (t0, v0, t1, v1 ...)"
- [pts] 
- {:pre (even? (count pts))}
-  (let [linedata (make-env-data pts)
+  [pts] 
+  {:pre (even? (count pts))}
+  (let [[start & linedata] (make-env-data pts)
         line-samples (reduce + (map first linedata))
-        cur-val (double-array 1 (nth pts 1))
+        cur-val (double-array 1 start)
         counter (long-array 1 -1)
-        out (create-buffer)]
-  (fn ^doubles[]
-;;    (println "Slope: " (env-get-inc linedata (getl counter)))
-    (when (<= (getl counter) line-samples)
-      (fill out cur-val 
-        #(if-let [x ^double (env-get-inc linedata (swapl! counter inc))]
-          (+ ^double % x)
-          0.0))))))
+        ^doubles out (create-buffer)
+        len (alength out)]
+    (fn ^doubles[]
+      ;;    (println "Slope: " (env-get-inc linedata (getl counter)))
+      (let [cnt (getl counter)
+            [last-sam increment] (get-line-pt cnt linedata)]
+        (if (and last-sam increment) 
+          (loop [end last-sam
+                 incr increment 
+                 v (getd cur-val)
+                 c cnt
+                 i 0]
+            (if (< i len)
+               
+              (if (< i end)
+                (let [new-v (+ v incr)]
+                  (aset out i new-v)
+                  (recur end incr new-v (unchecked-inc c) (unchecked-inc-int i)))
+                (let [[new-end new-incr] (get-line-pt cnt linedata)]
+                  (recur new-end new-incr v c i))) 
+              (do
+                (aset cur-val 0 v)
+                (aset counter 0 c)
+                out)))
+          nil)))))
 
 
 ;; EXPONENTIAL ENVELOPE

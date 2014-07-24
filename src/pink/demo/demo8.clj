@@ -21,7 +21,7 @@
   (mul
      (oscili 0.05 freq sine256)
      ;(sine 0.05 freq)
-     (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])))
+     (env [0.0 0.0 0.05 1 0.02 0.8 55.2 0.8 0.2 0])))
 
 (defn table-synth-cubic [freq]
   (println "Cubic...")
@@ -42,6 +42,10 @@
       (eng/engine-add-afunc e (eng-events-runner eng-events))
     
     ) 
+
+  (eng/engine-stop e)
+  (eng/engine-clear e)
+
   (let [e (eng/engine-create)
         eng-events 
         (engine-events e
