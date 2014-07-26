@@ -4,11 +4,14 @@
   (:require [pink.audio.engine :as eng]
             [pink.audio.envelopes :refer [env exp-env adsr xadsr xar]]
             [pink.audio.oscillators :refer [sine oscil oscili oscil3]]
-            [pink.audio.gen :refer [gen-sine]]
+            [pink.audio.gen :refer [gen-sine gen10]]
             [pink.audio.util :refer :all]
              [pink.event :refer :all] ))
 
 (def sine256 (gen-sine 128))
+
+(def table0 (gen10 65536 1 1 2 0.5 3 0.25 4 0.125 5 0.06125 ))
+;(def table0 (gen10 65536 1 1))
 
 (defn table-synth [freq]
   (println "Truncating...")
@@ -19,9 +22,10 @@
 (defn table-synth-interp [freq]
   (println "Interpolating...")
   (mul
-     (oscili 0.05 freq sine256)
+     ;(oscili 0.05 freq sine256)
+     (oscili 0.05 freq table0)
      ;(sine 0.05 freq)
-     (env [0.0 0.0 0.05 1 0.02 0.8 55.2 0.8 0.2 0])))
+     (env [0.0 0.0 0.05 1 0.02 0.8 5.2 0.8 0.2 0])))
 
 (defn table-synth-cubic [freq]
   (println "Cubic...")
@@ -54,7 +58,7 @@
                        ;(map #(event table-synth-interp 0.25 (* 110 %)) (range 1 36)) 
 
                        (event table-synth-interp 1.0 440.0) 
-                       (event table-synth-interp 1.0 550.0)
+                       ;(event table-synth-interp 1.0 550.0)
 
                        (event table-synth-cubic 2.0 440.0) 
                        (event table-synth-cubic 2.0 550.0)
