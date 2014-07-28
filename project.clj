@@ -20,10 +20,10 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.6.0"]]
-  :profiles {
-             :dev {
-                   :warn-on-reflection true
-                   :dependencies [[criterium "0.4.2"]]}}
+
+  :profiles  { :dev  {
+           :global-vars  {*warn-on-reflection* true}
+           :dependencies [[criterium "0.4.2"]] } }
 
   :plugins [[codox "0.8.8"]]
   ;:main 

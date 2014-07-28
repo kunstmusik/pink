@@ -2,7 +2,9 @@
   (:require 
     [pink.audio.engine :refer :all]
     [pink.audio.protocols :refer :all]
-    [pink.audio.util :refer [create-buffer]] ))
+    [pink.audio.util :refer [create-buffer]] )
+  (:import [java.util List])
+  )
 
 (deftype Event [event-func ^Double start event-args ]
   Object
@@ -40,7 +42,7 @@
 (defn event-list-add 
   "Add an event to an event list"
   [evtlst ^Event evt] 
-  (when (< (.indexOf @(:events evtlst) evt) 0)
+  (when (< (.indexOf ^List @(:events evtlst) evt) 0)
     (dosync
       (alter (:events evtlst) 
              (fn [a] (sort-by #(.start ^Event %) (conj a evt))))))
