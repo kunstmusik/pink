@@ -41,7 +41,7 @@
   (eng/engine-start e)
 
   (let [eng-events (engine-events e
-                       (map #(event table-synth-interp 0.25 (* 110 %)) (range 1 36)))]
+                       (map #(event table-synth-interp 0.25 (* 110 %)) (range 1 10)))]
 
       (eng/engine-add-afunc e (eng-events-runner eng-events))
     
