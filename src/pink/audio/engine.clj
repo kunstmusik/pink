@@ -42,16 +42,14 @@
     (map-d-impl out f x y z)   
    )
   )
- 
 
-
-
-(def af (AudioFormat. 44100 16 1 true true))
 
 (def ^:dynamic *sr* 44100)
 (def ^:dynamic *ksmps* 64)
 (def ^:dynamic *nchnls* 1)
 (def ^:dynamic *current-buffer-num* 0)
+
+(def af (AudioFormat. 44100 16 *nchnls* true true))
 
 (def buffer-size 256)
 (def write-buffer-size (/ buffer-size 2))
@@ -233,3 +231,21 @@
           (recur 0))))
     (.flush line)
     (.close line)))
+
+
+;; javasound stuff
+
+(defn print-java-sound-info
+  []
+  (let [mixers (AudioSystem/getMixerInfo)
+        cnt (alength mixers)]
+   
+    (println "Mixers Found: " cnt)
+    (loop [indx 0]
+      (when (< indx cnt)
+        (let [mixer ^Mixer$Info (aget mixers indx)] 
+          (println "Mixer " indx " :" mixer)
+          (recur (unchecked-inc-int indx))
+          )))))
+
+;(print-java-sound-info)
