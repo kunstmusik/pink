@@ -21,10 +21,15 @@
 
   :dependencies [[org.clojure/clojure "1.6.0"]]
 
-  :profiles  { :dev  {
-           :global-vars  {*warn-on-reflection* true}
-           :dependencies [[criterium "0.4.2"]] } }
+  :profiles  { 
+              :dev  {
+                     :global-vars  {*warn-on-reflection* true}
+                     :dependencies [[criterium "0.4.2"]] 
+                     :plugins [[codox "0.8.8"]] } 
 
-  :plugins [[codox "0.8.8"]]
+              :profiling {
+                     :plugins [[lein-nodisassemble "0.1.3"]] }      
+              }
+
   ;:main 
   )
