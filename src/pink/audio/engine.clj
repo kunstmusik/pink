@@ -49,7 +49,6 @@
 (def ^:dynamic *nchnls* 1)
 (def ^:dynamic *current-buffer-num* 0)
 
-(def af (AudioFormat. 44100 16 *nchnls* true true))
 
 (def buffer-size 256)
 (def write-buffer-size (/ buffer-size 2))
@@ -69,15 +68,18 @@
 
 (defn engine-create 
   "Creates an audio engine"
-  [] 
+  [& {:keys [sample-rate nchnls block-size] 
+      :or {sample-rate 44100 nchnls 1 block-size 64}}] 
   (let  [e {:status (ref :stopped)
             :clear (ref false)
             :audio-funcs (ref [])
             :pending-funcs (ref [])
+            :sample-rate sample-rate
+            :nchnls nchnls
+            :ksmps block-size 
             }]
     (dosync (alter engines conj e))
     e))
-
 
 ;; should do initialization of f on separate thread?
 (defn engine-add-afunc [engine f]
@@ -94,11 +96,13 @@
     (.open audio-format)
     (.start))))
 
-(defmacro map-over-d [f buf]
-  `(let [len# (alength ~buf)]
+(defmacro doubles->byte-buffer 
+  "Write output from doubles array into ByteBuffer"
+  [dbls buf]
+  `(let [len# (alength ~dbls)]
     (loop [y# 0]
       (when (< y# len#)
-        (~f (aget ~buf y#))
+        (.putShort ~buf (limit (* Short/MAX_VALUE (aget ~dbls y#))))  
         (recur (unchecked-inc y#))))))
 
 (defmacro run-audio-funcs [afs buffer]
@@ -113,25 +117,12 @@
           (recur xs# ret#)))
      ret#))) 
 
-;(defn process-frame 
-;  [afuncs ^doubles outbuffer ^SourceDataLine line ^ByteBuffer buffer frames]
-;  (loop [x 0 afs afuncs]
-;    (if (< x frames)
-;      (do
-;        (Arrays/fill ^doubles outbuffer 0.0)
-;        (let [newfs (run-audio-funcs afs outbuffer)]
-;          (map-over-d #(.putShort buffer (limit (* Short/MAX_VALUE %))) outbuffer)
-;          (recur (inc x) newfs)))
-;      (do
-;        (.write line (.array buffer) 0 buffer-size)
-;        (.clear buffer)
-;        afs))))
 
 (defn process-buffer
   [afs ^doubles outbuffer ^ByteBuffer buffer]
   (Arrays/fill ^doubles outbuffer 0.0)
   (let [newfs (run-audio-funcs afs outbuffer)]
-    (map-over-d #(.putShort buffer (limit (* Short/MAX_VALUE %))) outbuffer)
+    (doubles->byte-buffer outbuffer buffer)
     newfs))
 
 (defn buf->line [^ByteBuffer buffer ^SourceDataLine line]
@@ -139,7 +130,8 @@
   (.clear buffer))
 
 (defn engine-run2 [engine]
-  (let [#^SourceDataLine line (open-line af)        
+  (let [af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
+        #^SourceDataLine line (open-line af)        
         outbuf (double-array *ksmps*)
         buf (ByteBuffer/allocate buffer-size)
         audio-funcs (engine :audio-funcs)
@@ -211,8 +203,11 @@
   (engine-kill-all)
   (dosync (ref-set engines [])))
 
-(defn run-audio-block [a-block]
-  (let [#^SourceDataLine line (open-line af) 
+(defn run-audio-block 
+  [a-block & {:keys [sample-rate nchnls block-size] 
+              :or {sample-rate 44100 nchnls 1 block-size 64}}]
+  (let [af (AudioFormat. sample-rate 16 nchnls true true)
+        #^SourceDataLine line (open-line af) 
         buffer (ByteBuffer/allocate buffer-size)
         write-buffer-size (/ buffer-size 2)
         frames (quot write-buffer-size *ksmps*)]
@@ -220,7 +215,7 @@
       (if (< x frames)
         (if-let [buf ^doubles (a-block)]
           (do
-            (map-over-d #(.putShort buffer (limit (* Short/MAX_VALUE %))) buf)
+            (doubles->byte-buffer buf buffer)
             (recur (unchecked-inc x)))
           (do
             (.write line (.array buffer) 0 buffer-size)

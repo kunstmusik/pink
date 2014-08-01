@@ -49,6 +49,7 @@
 
   (eng/engine-stop e)
   (eng/engine-clear e)
+  (eng/engine-kill-all)
 
   (let [e (eng/engine-create)
         eng-events 
