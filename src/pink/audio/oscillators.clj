@@ -79,9 +79,10 @@
   ([amp freq ^doubles table phase]
    (let [phsr (vphasor (arg freq) (arg phase))
          out (create-buffer)
-         tbl-len (alength table)]
+         tbl-len (alength table)
+         ampfn (arg amp)]
       (fn ^doubles []
-        (map-d out #(* amp (aget table (int (* % tbl-len)))) (phsr))))))
+        (map-d out #(* %2 (aget table (int (* % tbl-len)))) (phsr) (ampfn))))))
 
 
 (defn oscili
@@ -93,7 +94,8 @@
   ([amp freq ^doubles table phase]
    (let [phsr (vphasor (arg freq) (arg phase))
          out (create-buffer)
-         tbl-len (alength table)]
+         tbl-len (alength table)
+         ampfn (arg amp)]
       (fn ^doubles []
         (map-d out 
                #(let [phs (* % tbl-len)
@@ -104,9 +106,9 @@
                              (rem phs pt0))
                       v0  (aget table pt0)
                       v1  (aget table pt1)]
-                 (* amp 
+                 (* %2 
                    (+ v0 (* frac (- v1 v0))))) 
-               (phsr))))))
+               (phsr) (ampfn))))))
 
 
 (defn oscil3
@@ -118,7 +120,8 @@
   ([amp freq ^doubles table phase]
    (let [phsr (vphasor (arg freq) (arg phase))
          out (create-buffer)
-         tbl-len (alength table)]
+         tbl-len (alength table)
+         ampfn (arg amp)]
       (fn ^doubles []
         (map-d out 
                #(let [phs (* % tbl-len)
@@ -139,7 +142,7 @@
                       b (/ (+ p2 (* -2 p1) p0) 2)
                       c (+ (* p3 (double -1/6)) p2 (* p1 (double -1/2)) (* p0 (double -1/3)))
                       d p1 ]
-                 (* amp 
+                 (* %2 
                    (+ (* a x3) (* b x2) (* c x) d))) 
-               (phsr))))))
+               (phsr) (ampfn))))))
 
