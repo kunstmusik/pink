@@ -1,39 +1,10 @@
 ;; Test of Events 
 
-(ns pink.demo.demo8
+(ns pink.demo.demo9
   (:require [pink.audio.engine :as eng]
-            [pink.audio.envelopes :refer [env exp-env adsr xadsr xar]]
-            [pink.audio.oscillators :refer [sine oscil oscili oscil3]]
-            [pink.audio.gen :refer [gen-sine gen10]]
-            [pink.audio.util :refer :all]
-             [pink.event :refer :all] ))
-
-(def sine256 (gen-sine 128))
-
-(def table0 (gen10 65536 1 0.5 0.25 0.125 0.06125 ))
-;(def table0 (gen10 65536 1 1))
-
-(defn table-synth [freq]
-  (println "Truncating...")
-  (mul
-     (oscil 0.05 freq sine256)
-     (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])))
-
-(defn table-synth-interp [freq]
-  (println "Interpolating...")
-  (mul
-     ;(oscili 0.05 freq sine256)
-     (oscili 0.05 freq table0)
-     ;(sine 0.05 freq)
-     (env [0.0 0.0 0.05 1 0.02 0.8 5.2 0.8 0.2 0])))
-
-(defn table-synth-cubic [freq]
-  (println "Cubic...")
-  (mul
-     (oscil3 0.05 freq sine256)
-     (env [0.0 0.0 0.05 2 0.02 1.5 0.2 1.5 0.2 0])))
-
-;(time-gen (table-synth-interp 440.0))
+             [pink.event :refer :all] 
+             [pink.instruments.horn :refer :all]
+             ))
 
 (comment
 
@@ -41,7 +12,8 @@
   (eng/engine-start e)
 
   (let [eng-events (engine-events e
-                       (map #(event table-synth-interp 0.25 (* 110 %)) (range 1 10)))]
+                       (map #(event horn (* % 0.5)  (/ 0.5 %) (* 220 %)) 
+                            (range 1 6)))]
 
       (eng/engine-add-afunc e (eng-events-runner eng-events))
     

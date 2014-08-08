@@ -1,6 +1,6 @@
 (ns pink.audio.util
   "Audio utility code for working with buffers (double[])"
-  (:require [pink.audio.engine :refer [*ksmps* *current-buffer-num*]]))
+  (:require [pink.audio.engine :refer [*ksmps* *current-buffer-num* *sr*]]))
 
 ;(defn getd ^double [^doubles a] (aget a 0))
 ;(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
@@ -166,6 +166,16 @@
   ([^doubles out f ^doubles x ^doubles y  ^doubles z]
     (map-d-impl out f x y z)   
    )
+  ([^doubles out f ^doubles x ^doubles y  ^doubles z ^doubles a]
+    (map-d-impl out f x y z a)   
+   )
+  ([^doubles out f ^doubles x ^doubles y  ^doubles z ^doubles a ^doubles b]
+    (map-d-impl out f x y z a b)   
+   )
+  ([^doubles out f ^doubles x ^doubles y  ^doubles z ^doubles a ^doubles b 
+    ^doubles c]
+    (map-d-impl out f x y z a b c)   
+   )
   )
         
 (defmacro fill 
@@ -199,6 +209,9 @@
 (defn mul [& a]
   (operator * a))
 
+(defn div [& a]
+  (operator / a))
+
 (defn sum 
   [& a]
   (operator + a))
@@ -215,6 +228,20 @@
            (map-d out * adjust (apply map-d tmp + buffers)))))
       (nth args 0))))
 
+
+(defn with-duration 
+  [dur afn]
+  (let [end (long (/ (* dur *sr* *ksmps*))) 
+        cur-buffer (long-array 1 0)]
+    (fn []
+      (let [v (aget cur-buffer 0)] 
+        (if (< v end)
+          (do 
+            (aset cur-buffer 0 (inc v))
+            (afn)) 
+        )) 
+
+    )))
 
 ;; Informal benchmarking tool
 
