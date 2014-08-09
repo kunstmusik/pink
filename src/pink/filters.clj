@@ -1,6 +1,6 @@
-(ns pink.audio.filters
-  (:require [pink.audio.engine :refer [*sr* *ksmps*]]
-            [pink.audio.util :refer :all])
+(ns pink.filters
+  (:require [pink.config :refer [*sr* *ksmps*]]
+            [pink.util :refer :all])
   )
 
 (defn tone 

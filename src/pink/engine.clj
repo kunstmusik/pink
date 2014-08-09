@@ -1,59 +1,15 @@
-(ns pink.audio.engine
+(ns pink.engine
   "Audio Engine Code"
+  (:require [pink.config :refer :all]
+            [pink.util :refer :all])
   (:import (java.nio ByteBuffer)
            (java.util Arrays)
            (javax.sound.sampled AudioFormat AudioSystem SourceDataLine)))
-
-(defn- tagit 
-  [a t]
-  (with-meta a {:tag t}))
-
-(defn- tag-double
-  [a]
-  (tagit a "double"))
-
-(defmacro map-d-impl
-  [out f & buffers]  
-  (let [cnt (gensym 'count)
-        get-bufs (map (fn [a] (list 'aget a cnt)) buffers )
-        apply-line `(~f ~@get-bufs)
-        ] 
-    `(when (and ~@buffers)
-     (let [l# (alength ~out)]
-       (loop [~cnt (unchecked-int 0)]
-         (when (< ~cnt l#)
-           (aset ~out ~cnt
-                  ~(tag-double apply-line)) 
-           (recur (unchecked-inc-int ~cnt))
-           ))
-       ~out
-       )    
-     )))
-
-(defn- map-d 
-  "Maps function f across double[] buffers and writes output to out buffer" 
-  ([^doubles out f ^doubles x]
-    (map-d-impl out f x)   
-   )
-  ([^doubles out f ^doubles x ^doubles y ]
-    (map-d-impl out f x y)   
-   )
-  ([^doubles out f ^doubles x ^doubles y  ^doubles z]
-    (map-d-impl out f x y z)   
-   )
-  )
-
-
-(def ^:dynamic *sr* 44100)
-(def ^:dynamic *ksmps* 64)
-(def ^:dynamic *nchnls* 1)
-(def ^:dynamic *current-buffer-num* 0)
 
 
 (def buffer-size 256)
 (def write-buffer-size (/ buffer-size 2))
 (def frames (quot write-buffer-size *ksmps*))
-
 
 (defmacro limit [num]
   `(if (> ~(tag-double num) Short/MAX_VALUE)

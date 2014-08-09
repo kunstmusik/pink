@@ -1,5 +1,5 @@
-(ns pink.audio.engine-test
-  (:use [pink.audio.engine])
+(ns pink.engine-test
+  (:use [pink.engine])
   (:use clojure.test))
 
 (deftest test-engine-kill-all

@@ -1,6 +1,6 @@
-(ns pink.audio.util-test
-  (:require [pink.audio.util :as util]
-            [pink.audio.engine :as eng]
+(ns pink.util-test
+  (:require [pink.util :as util]
+            [pink.engine :as eng]
             )
   (:use clojure.test))
 
@@ -27,7 +27,7 @@
 (deftest test-reader
   (let [a (atom 1)
         rdr (util/reader a)]
-    (is 1 (aget (rdr) 0)) 
+    (is 1 (aget ^doubles (rdr) 0)) 
     (reset! a 3.25) 
-    (is 3.25 (aget (rdr) 0)) 
+    (is 3.25 (aget ^doubles (rdr) 0)) 
     ))

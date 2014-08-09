@@ -1,5 +1,5 @@
-(ns pink.audio.envelopes-test
-  (:use [pink.audio.envelopes])
+(ns pink.envelopes-test
+  (:use [pink.envelopes])
   (:use clojure.test))
 
 
@@ -15,7 +15,7 @@
 ;(def pts-data2 (make-env-data pts))
 
 (deftest test-make-env-data
-  (with-private-fns [pink.audio.envelopes [make-env-data]]
+  (with-private-fns [pink.envelopes [make-env-data]]
     (let [a (make-env-data pts)]
       (is (= 2205.0 (first (first a))))
       (is (= 2 (count a))) 

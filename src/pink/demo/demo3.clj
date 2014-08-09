@@ -1,10 +1,11 @@
 ;; Test of FM synthesis
 
 (ns pink.demo.demo3
-  (:require [pink.audio.engine :as eng]
-            [pink.audio.envelopes :refer [env]]
-            [pink.audio.oscillators :refer [sine sine2]]
-            [pink.audio.util :refer [mix mul sum const create-buffer getd setd! arg shared let-s]]))
+  (:require [pink.engine :as eng]
+            [pink.config :refer :all]
+            [pink.envelopes :refer [env]]
+            [pink.oscillators :refer [sine sine2]]
+            [pink.util :refer [mix mul sum const create-buffer getd setd! arg shared let-s]]))
 
 
 (defn fm-synth [freq]
@@ -34,7 +35,7 @@
   (let [melody (ref (take (* 4 8) (cycle [220 330 440 330])))
         dur 0.4
         cur-time (double-array 1 0.0)
-        time-incr (/ eng/*ksmps* 44100.0)
+        time-incr (/ *ksmps* 44100.0)
         afs (e :pending-funcs)
         out (create-buffer)]
     (dosync (alter afs conj (fm-synth 440)))

@@ -1,11 +1,11 @@
 ;; Test of Events 
 
 (ns pink.demo.demo7
-  (:require [pink.audio.engine :as eng]
-            [pink.audio.envelopes :refer [env exp-env adsr xadsr xar]]
-            [pink.audio.oscillators :refer [oscil sine2]]
-            [pink.audio.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]
-             [pink.event :refer :all] ))
+  (:require [pink.engine :as eng]
+            [pink.envelopes :refer [env exp-env adsr xadsr xar]]
+            [pink.oscillators :refer [oscil sine2]]
+            [pink.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]
+            [pink.event :refer :all] ))
 
 
 (defn table-synth [freq]

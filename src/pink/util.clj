@@ -1,27 +1,27 @@
-(ns pink.audio.util
+(ns pink.util
   "Audio utility code for working with buffers (double[])"
-  (:require [pink.audio.engine :refer [*ksmps* *current-buffer-num* *sr*]]))
+  (:require [pink.config :refer [*ksmps* *current-buffer-num* *sr*]]))
 
 ;(defn getd ^double [^doubles a] (aget a 0))
 ;(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
 
-(defn- tagit 
+(defn tagit 
   [a t]
   (with-meta a {:tag t}))
 
-(defn- tag-doubles 
+(defn tag-doubles 
   [a]
   (tagit a "doubles"))
 
-(defn- tag-double
+(defn tag-double
   [a]
   (tagit a "double"))
 
-(defn- tag-longs
+(defn tag-longs
   [a]
   (tagit a "longs"))
 
-(defn- tag-long
+(defn tag-long
   [a]
   (tagit a "long")
   )
@@ -47,14 +47,8 @@
 (defmacro swapd! [d f] 
   `(setd! ~d (~f (getd ~d))))
 
-;(definline swapd! [d f] 
-;  `(aset ~d 0 (~f (aget ~d 0))))
-
 (defmacro swapl! [l f]
   `(setl! ~l (~f (getl ~l))))
-
-;(definline swapl! [l f]
-;  `(setl! ~l (~f (getl ~l))))
 
 (defn create-buffer 
   ([] (double-array *ksmps*))

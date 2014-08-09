@@ -1,12 +1,12 @@
 ;; Test of Events 
 
 (ns pink.demo.demo8
-  (:require [pink.audio.engine :as eng]
-            [pink.audio.envelopes :refer [env exp-env adsr xadsr xar]]
-            [pink.audio.oscillators :refer [sine oscil oscili oscil3]]
-            [pink.audio.gen :refer [gen-sine gen10]]
-            [pink.audio.util :refer :all]
-             [pink.event :refer :all] ))
+  (:require [pink.engine :as eng]
+            [pink.envelopes :refer [env exp-env adsr xadsr xar]]
+            [pink.oscillators :refer [sine oscil oscili oscil3]]
+            [pink.gen :refer [gen-sine gen10]]
+            [pink.util :refer :all]
+            [pink.event :refer :all] ))
 
 (def sine256 (gen-sine 128))
 

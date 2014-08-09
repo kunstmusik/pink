@@ -1,9 +1,9 @@
-(ns pink.audio.oscillators
+(ns pink.oscillators
   "Oscillator Functions"
-  (:require [pink.audio.engine :refer [*sr*]]
-            [pink.audio.util :refer [create-buffer fill map-d 
+  (:require [pink.config :refer [*sr*]]
+            [pink.util :refer [create-buffer fill map-d 
                                      swapd! setd! getd arg]]
-            [pink.audio.gen :refer [gen-sine]] 
+            [pink.gen :refer [gen-sine]] 
             ))
 
 (def ^:const PI Math/PI)

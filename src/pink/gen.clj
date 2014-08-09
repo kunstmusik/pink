@@ -1,4 +1,4 @@
-(ns pink.audio.gen
+(ns pink.gen
   "Table generator Functions"
   (:import [java.util Arrays])
   )

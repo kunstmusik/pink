@@ -1,10 +1,8 @@
 (ns pink.event
-  (:require 
-    [pink.audio.engine :refer :all]
-    [pink.audio.protocols :refer :all]
-    [pink.audio.util :refer [create-buffer]] )
-  (:import [java.util List])
-  )
+  (:require [pink.engine :refer :all]
+            [pink.util :refer [create-buffer]]
+            [pink.config :refer [*ksmps* *sr*]]  )
+  (:import [java.util List]))
 
 (deftype Event [event-func ^Double start event-args ]
   Object

@@ -1,8 +1,9 @@
 (ns pink.demo.demo1
-  (:require [pink.audio.engine :as eng]
-            [pink.audio.envelopes :refer [env]]
-            [pink.audio.oscillators :refer [sine]]
-            [pink.audio.util :refer [mix mul const create-buffer getd setd!]]))
+  (:require [pink.engine :as eng]
+            [pink.config :refer :all]
+            [pink.envelopes :refer [env]]
+            [pink.oscillators :refer [sine]]
+            [pink.util :refer [mix mul const create-buffer getd setd!]]))
 
 
 (defn simple-synth [freq]
@@ -32,7 +33,7 @@
   (let [melody (ref (take (* 4 8) (cycle [220 330 440 330])))
         dur 0.25 
         cur-time (double-array 1 0.0)
-        time-incr (/ eng/*ksmps* 44100.0)
+        time-incr (/ *ksmps* 44100.0)
         afs (e :pending-funcs)
         out (create-buffer)]
     (dosync (alter afs conj (simple-synth 440)))

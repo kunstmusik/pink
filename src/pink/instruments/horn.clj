@@ -2,13 +2,13 @@
  "Implementation of Andrew Horner and Lydia Ayer's French Horn models using
  banded wavetable synthesis. Based on the Csound code implementaiton."
  
-(:require [pink.audio.util :refer :all]
-          [pink.audio.util :refer :all]
-          [pink.audio.engine :refer [*ksmps* *current-buffer-num* *sr*]]
-          [pink.audio.envelopes :refer :all]
-          [pink.audio.gen :refer [gen9 gen17 rescale]]
-          [pink.audio.oscillators :refer :all]
-          [pink.audio.filters :refer [tone]]
+(:require [pink.util :refer :all]
+          [pink.util :refer :all]
+          [pink.config :refer [*ksmps* *current-buffer-num* *sr*]]
+          [pink.envelopes :refer :all]
+          [pink.gen :refer [gen9 gen17 rescale]]
+          [pink.oscillators :refer :all]
+          [pink.filters :refer [tone]]
           ))
 
 

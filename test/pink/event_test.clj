@@ -1,4 +1,4 @@
-(ns pink.audio.event-test
+(ns pink.event-test
   (:require [pink.event :refer :all]
             [clojure.test :refer :all]
             )

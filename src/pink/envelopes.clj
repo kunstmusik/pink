@@ -1,9 +1,8 @@
-(ns pink.audio.envelopes
+(ns pink.envelopes
   "Envelope Generator Functions"
-  (:require 
-    [clojure.pprint :refer [pprint]]
-    [pink.audio.engine :refer [*sr*]]
-            [pink.audio.util :refer [create-buffer fill swapl! getl setl! getd setd!]]))
+  (:require [clojure.pprint :refer [pprint]]
+            [pink.config :refer [*sr*]]
+            [pink.util :refer [create-buffer fill swapl! getl setl! getd setd!]]))
 
 (defn- make-env-data 
   "Takes in a list of time tagged pairs (time value) and function for
