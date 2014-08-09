@@ -10,6 +10,7 @@
           [pink.oscillators :refer :all]
           [pink.filters :refer [tone]]
           [pink.space :refer [pan]]
+          [pink.dynamics :refer [balance]]
           ))
 
 
@@ -149,14 +150,9 @@
         [adjust & tbls :as t] (horn-lookup freq horn-wave-tables) 
         tbl-fns (map oscil3 envs (repeat freq) tbls (repeat phase))
         portamento (sum 1.0 (oscil3 0.02 0.5 sine-table))] 
-    (mul portamento 
-     (tone 
-      (div (apply sum tbl-fns) adjust)
-      horn-cutoff))
-    
-    ;(div (apply sum tbl-fns) adjust)
-    
-    ))
+    (let-s [asig (div (apply sum tbl-fns) adjust)]
+      (mul portamento 
+           (balance (tone asig horn-cutoff) asig)))))
 
 (defn horn
   "Creates mono horn unless panning given"
@@ -166,8 +162,4 @@
      (horn-open amp freq)
      (pan (horn-open amp freq) loc))))
 
-(comment
-  (def a (horn 0.5 220))
-(a)
 
-)
