@@ -8,12 +8,13 @@
 
 (comment
 
-  (def e (eng/engine-create))
+  (def e (eng/engine-create :nchnls 2))
   (eng/engine-start e)
 
+  (def num-notes 5)
   (let [eng-events (engine-events e
-                       (map #(event horn (* % 0.5)  (/ 0.75 %) (* 220 %)) 
-                            (range 1 6)))]
+                       (map #(event horn (* % 0.5)  (/ 0.75 (+ 1 %)) (* 220 (+ 1 %)) (- (* 2 (/ % (- num-notes 1)))  1)) 
+                            (range num-notes)))]
 
       (eng/engine-add-afunc e (eng-events-runner eng-events))
     

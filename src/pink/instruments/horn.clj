@@ -9,6 +9,7 @@
           [pink.gen :refer [gen9 gen17 rescale]]
           [pink.oscillators :refer :all]
           [pink.filters :refer [tone]]
+          [pink.space :refer [pan]]
           ))
 
 
@@ -133,7 +134,7 @@
 
 ; audio generator functions
 
-(defn horn
+(defn horn-open
   [amp freq]
   (let [env0 (shared 
                (if (number? amp)
@@ -156,6 +157,14 @@
     ;(div (apply sum tbl-fns) adjust)
     
     ))
+
+(defn horn
+  "Creates mono horn unless panning given"
+  ([amp freq] (horn amp freq nil))
+  ([amp freq loc]
+   (if (nil? loc)
+     (horn-open amp freq)
+     (pan (horn-open amp freq) loc))))
 
 (comment
   (def a (horn 0.5 220))

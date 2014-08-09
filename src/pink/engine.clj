@@ -7,10 +7,6 @@
            (javax.sound.sampled AudioFormat AudioSystem SourceDataLine)))
 
 
-(def buffer-size 256)
-(def write-buffer-size (/ buffer-size 2))
-(def frames (quot write-buffer-size *ksmps*))
-
 (defmacro limit [num]
   `(if (> ~(tag-double num) Short/MAX_VALUE)
     Short/MAX_VALUE 
@@ -21,6 +17,8 @@
 ;;;; Engine
 
 (def engines (ref []))
+
+(def BYTE-SIZE (/ Short/SIZE Byte/SIZE)) ; 2 bytes for 16-bit audio
 
 (defn engine-create 
   "Creates an audio engine"
@@ -33,6 +31,8 @@
             :sample-rate sample-rate
             :nchnls nchnls
             :ksmps block-size 
+            :buffer-size (* block-size nchnls)
+            :byte-buffer-size (* BYTE-SIZE block-size nchnls)
             }]
     (dosync (alter engines conj e))
     e))
@@ -53,7 +53,9 @@
     (.start))))
 
 (defmacro doubles->byte-buffer 
-  "Write output from doubles array into ByteBuffer"
+  "Write output from doubles array into ByteBuffer. 
+  Maps -1.0,1.0 to Short/MIN_VALUE,Short/MAX_VALUE, truncating
+  values outside of -1.0,1.0."
   [dbls buf]
   `(let [len# (alength ~dbls)]
     (loop [y# 0]
@@ -61,46 +63,82 @@
         (.putShort ~buf (limit (* Short/MAX_VALUE (aget ~dbls y#))))  
         (recur (unchecked-inc y#))))))
 
+
+(defn write-asig
+  [^doubles out-buffer ^doubles asig chan-num]
+  (if (= *nchnls* 1)
+    (when (= 0 chan-num)
+      (map-d out-buffer + out-buffer asig))
+    (loop [i 0]
+      (when (< i *ksmps*)
+        (let [out-index (+ chan-num (* i *nchnls*))] 
+          (aset out-buffer out-index
+            (+ (aget out-buffer out-index) (aget asig i))))
+        (recur (unchecked-inc-int i))))))
+
+(def DOUBLE-ARRAY-CLASS
+  (type (double-array 1)))
+
+(defmacro multi-channel?
+  [buffer]
+  `(not= DOUBLE-ARRAY-CLASS (type ~buffer)))
+
 (defmacro run-audio-funcs [afs buffer]
-  `(loop [[x# & xs#] ~afs 
+  (let [x (gensym)
+        b (gensym)
+        ]
+   `(loop [[~x & xs#] ~afs 
           ret# []]
-    (if x# 
-      (let [b# (x#)]
-        (if b#
+    (if ~x 
+      (let [~b (~x)]
+        (if ~b
           (do 
-            (map-d ~buffer + b# ~buffer)
-            (recur xs# (conj ret# x#)))
+            (if (multi-channel? ~b)
+              (loop [i# 0 len# (count ~b)]
+                (when (< i# len#)
+                  (write-asig ~buffer 
+                              (aget ~(with-meta b {:tag "[[D"}) i#) i#)
+                  (recur (unchecked-inc-int i#) len#))) 
+              (write-asig ~buffer ~b 0))
+            ;(map-d ~buffer + b# ~buffer)
+            (recur xs# (conj ret# ~x)))
           (recur xs# ret#)))
-     ret#))) 
+     ret#)))) 
 
 
 (defn process-buffer
-  [afs ^doubles outbuffer ^ByteBuffer buffer]
-  (Arrays/fill ^doubles outbuffer 0.0)
-  (let [newfs (run-audio-funcs afs outbuffer)]
-    (doubles->byte-buffer outbuffer buffer)
+  [afs ^doubles out-buffer ^ByteBuffer buffer]
+  (Arrays/fill ^doubles out-buffer 0.0)
+  (let [newfs (run-audio-funcs afs out-buffer)]
+    (doubles->byte-buffer out-buffer buffer)
     newfs))
 
-(defn buf->line [^ByteBuffer buffer ^SourceDataLine line]
+(defn buf->line [^ByteBuffer buffer ^SourceDataLine line
+                 ^long buffer-size]
   (.write line (.array buffer) 0 buffer-size)
   (.clear buffer))
+
+(def frames 1)
 
 (defn engine-run [engine]
   (let [af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
         #^SourceDataLine line (open-line af)        
-        outbuf (double-array *ksmps*)
-        buf (ByteBuffer/allocate buffer-size)
-        audio-funcs (engine :audio-funcs)
-        pending-funcs (engine :pending-funcs)
-        clear-flag (engine :clear)
+        out-buffer (double-array (:buffer-size engine))
+        buf (ByteBuffer/allocate (:byte-buffer-size engine))
+        audio-funcs (:audio-funcs engine)
+        pending-funcs (:pending-funcs engine)
+        clear-flag (:clear engine)
         bufnum (atom -1)
         ]
     (loop [frame-count 0]
       (if (= @(engine :status) :running)
         (let [f-count (rem (inc frame-count) frames)
               afs  (binding [*current-buffer-num* 
-                             (swap! bufnum unchecked-inc-int)]
-                (process-buffer @audio-funcs outbuf buf))]  
+                               (swap! bufnum unchecked-inc-int)
+                             *sr* (:sample-rate engine)
+                             *ksmps* (:ksmps engine)
+                             *nchnls* (:nchnls engine)]
+                (process-buffer @audio-funcs out-buffer buf))]  
           (dosync
             (if @clear-flag
               (do
@@ -113,7 +151,7 @@
                   (ref-set audio-funcs (concat afs @pending-funcs))
                   (ref-set pending-funcs [])))))
           (when (zero? f-count)
-            (buf->line buf line))
+            (buf->line buf line (:byte-buffer-size engine)))
           (recur (long f-count)))
         (do
           (println "stopping...")
@@ -163,26 +201,28 @@
   "TODO: Fix this function and document..."
   [a-block & {:keys [sample-rate nchnls block-size] 
               :or {sample-rate 44100 nchnls 1 block-size 64}}]
-  (let [af (AudioFormat. sample-rate 16 nchnls true true)
-        #^SourceDataLine line (open-line af) 
-        buffer (ByteBuffer/allocate buffer-size)
-        write-buffer-size (/ buffer-size 2)
-        frames (quot write-buffer-size *ksmps*)]
-    (loop [x 0]
-      (if (< x frames)
-        (if-let [buf ^doubles (a-block)]
-          (do
-            (doubles->byte-buffer buf buffer)
-            (recur (unchecked-inc x)))
-          (do
-            (.write line (.array buffer) 0 buffer-size)
-            (.clear buffer)))
-        (do
-          (.write line (.array buffer) 0 buffer-size)
-          (.clear buffer)
-          (recur 0))))
-    (.flush line)
-    (.close line)))
+  ;(let [af (AudioFormat. sample-rate 16 nchnls true true)
+  ;      #^SourceDataLine line (open-line af) 
+  ;      buffer (ByteBuffer/allocate buffer-size)
+  ;      write-buffer-size (/ buffer-size 2)
+  ;      frames (quot write-buffer-size *ksmps*)]
+  ;  (loop [x 0]
+  ;    (if (< x frames)
+  ;      (if-let [buf ^doubles (a-block)]
+  ;        (do
+  ;          (doubles->byte-buffer buf buffer)
+  ;          (recur (unchecked-inc x)))
+  ;        (do
+  ;          (.write line (.array buffer) 0 buffer-size)
+  ;          (.clear buffer)))
+  ;      (do
+  ;        (.write line (.array buffer) 0 buffer-size)
+  ;        (.clear buffer)
+  ;        (recur 0))))
+  ;  (.flush line)
+  ;  (.close line))
+  
+  )
 
 
 ;; javasound stuff
