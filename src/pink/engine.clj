@@ -85,7 +85,7 @@
   (.write line (.array buffer) 0 buffer-size)
   (.clear buffer))
 
-(defn engine-run2 [engine]
+(defn engine-run [engine]
   (let [af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
         #^SourceDataLine line (open-line af)        
         outbuf (double-array *ksmps*)
@@ -124,7 +124,7 @@
 (defn engine-start [engine]
   (when (= @(engine :status) :stopped)
     (dosync (ref-set (engine :status) :running))
-    (.start (Thread. ^Runnable (partial engine-run2 engine)))))
+    (.start (Thread. ^Runnable (partial engine-run engine)))))
 
 (defn engine-stop [engine]
   (when (= @(engine :status) :running)
@@ -160,6 +160,7 @@
   (dosync (ref-set engines [])))
 
 (defn run-audio-block 
+  "TODO: Fix this function and document..."
   [a-block & {:keys [sample-rate nchnls block-size] 
               :or {sample-rate 44100 nchnls 1 block-size 64}}]
   (let [af (AudioFormat. sample-rate 16 nchnls true true)
