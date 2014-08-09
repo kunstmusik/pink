@@ -1,6 +1,7 @@
 (ns pink.util
   "Audio utility code for working with buffers (double[])"
-  (:require [pink.config :refer [*ksmps* *current-buffer-num* *sr*]]))
+  (:require [pink.config :refer [*ksmps* *current-buffer-num* *sr*]])
+  (:import [java.util Arrays]))
 
 ;(defn getd ^double [^doubles a] (aget a 0))
 ;(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
@@ -236,6 +237,45 @@
         )) 
 
     )))
+
+(defmacro with-ksmps
+  "Run code with given ksmps. Uses binding to bind *ksmps* during 
+  initialization-time as well as performance-time. Returns an audio function
+  that will appropriately fill a buffer of *ksmps* size with repeated calls 
+  to the code of ksmps size."
+  [ksmps & bindings] 
+  (let [buf-sym (gensym)
+        out-buf-sym (gensym)
+        ]
+    `(if (zero? (rem *ksmps* ~ksmps))
+       (let [frames# (/ *ksmps* ~ksmps)
+             ~out-buf-sym (create-buffer)
+             done# (atom false)]
+         (binding [*ksmps* ~ksmps] 
+
+           (let [afn# (binding [*ksmps* ~ksmps]
+                        ~@bindings)]
+             (fn [] 
+               (if @done#
+                 nil
+                 (loop [i# 0] 
+                   (if (< i# frames#)
+                     (let [~buf-sym (afn#)] 
+                       (if ~buf-sym 
+                         (do 
+                           (System/arraycopy ~buf-sym 0 
+                                             ~out-buf-sym (* i# ~ksmps) 
+                                             ~ksmps)
+                           (recur (unchecked-inc-int i#)))
+                         (do
+                           (reset! done# true)
+                           (when (not (zero? i#))
+                             (Arrays/fill ~(tag-doubles out-buf-sym) 
+                                          (* i# ~ksmps) (* frames# ~ksmps) 0.0) 
+                             ~out-buf-sym))))
+                     ~out-buf-sym)))))))
+       (throw (Exception. (str "Invalid ksmps: " ~ksmps))))) )
+
 
 ;; Informal benchmarking tool
 
