@@ -1,10 +1,11 @@
 (ns pink.filters
   (:require [pink.config :refer [*sr* *ksmps*]]
-            [pink.util :refer :all])
-  )
+            [pink.util :refer :all]))
 
 (defn tone 
-  "A first-order recursive low-pass filter with variable frequency response. (based on Csound's tone opcode)"
+  "A first-order recursive low-pass filter with variable frequency response. (based on Csound's tone opcode). 
+  
+  For further information, see: http://csound.github.io/docs/manual/tone.html"
   [afn cutoff]
   (let [TPIDSR (/ (* 2 Math/PI) *sr*)
         cutoff-fn (arg cutoff)
