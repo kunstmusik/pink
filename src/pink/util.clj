@@ -136,8 +136,7 @@
   [out f & buffers]  
   (let [cnt (gensym 'count)
         get-bufs (map (fn [a] (list 'aget a cnt)) buffers )
-        apply-line `(~f ~@get-bufs)
-        ] 
+        apply-line `(~f ~@get-bufs) ] 
     `(when (and ~@buffers)
      (let [l# (alength ~out)]
        (loop [~cnt (unchecked-int 0)]

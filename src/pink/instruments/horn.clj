@@ -3,7 +3,6 @@
  banded wavetable synthesis. Based on the Csound code implementaiton."
  
 (:require [pink.util :refer :all]
-          [pink.util :refer :all]
           [pink.config :refer [*ksmps* *current-buffer-num* *sr*]]
           [pink.envelopes :refer :all]
           [pink.gen :refer [gen9 gen17 rescale]]
@@ -92,7 +91,13 @@
    3.172
    sine-table
    (gen9 hwt-size [2 0.961] [3 0.052])
-   (gen9 hwt-size [4 0.79] [5 0.137] [6 0.185] [7 0.109]) ]
+   (gen9 hwt-size [4 0.079] [5 0.137] [6 0.185] [7 0.109]) 
+   (gen9 hwt-size [8 0.226] [9 0.107] [10 0.155] [11 0.140] [12 0.428] 
+         [13 0.180] [15 0.070] [16 0.335] [17 0.183] [18 0.073] [19 0.172] 
+         [20 0.117] [21 0.089] [22 0.193] [23 0.119] [24 0.080] [25 0.36] 
+         [26 0.143] [27 0.036] [28 0.044] [29 0.040] [30 0.052] [31 0.086]
+         [32 0.067] [33 0.097] [34 0.046] [36 0.030] [37 0.025] [38 0.048]
+         [39 0.021] [40 0.025])]
 
   [363
    1.947
@@ -102,7 +107,7 @@
    (gen9 hwt-size [8 0.156] [9 0.381] [10 0.191] [11 0.126] [12 0.162] 
          [13 0.073] [15 0.157] [16 0.074] [17 0.087] [18 0.151] [19 0.093] 
          [20 0.031] [21 0.030] [22 0.051] [23 0.058] [24 0.051] [25 0.077] 
-         [25 0.033] [27 0.021] [28 0.039])]
+         [26 0.033] [27 0.021] [28 0.039])]
 
   [484
    2.221
@@ -123,6 +128,7 @@
  
   ])
 
+
 (defn horn-lookup
   "Returns the wavetable set for a given frequency and bank of wavetable sets"
   [freq tbls] 
@@ -135,8 +141,8 @@
 
 ; audio generator functions
 
-(defn horn-open
-  [amp freq]
+(defn horn-play
+  [amp freq wave-tables]
   (let [env0 (shared 
                (if (number? amp)
                  (env [0 0 0.02 amp 0.03 (* 0.9 amp) 0.5 (* 0.9 amp) 0.2 0.0] )
@@ -146,20 +152,36 @@
         env3 (shared (mul env2 env0))
         envs [env0 env1 env2 env3]
         freqf (shared (arg freq))
-        phase 0.0
-        [adjust & tbls :as t] (horn-lookup freq horn-wave-tables) 
-        tbl-fns (map oscil3 envs (repeat freq) tbls (repeat phase))
+        phase 0.5
+        [adjust & tbls] (horn-lookup freq wave-tables) 
+        tbl-fns (map oscil3 envs (repeat freqf) tbls (repeat phase))
         portamento (sum 1.0 (oscil3 0.02 0.5 sine-table))] 
-    (let-s [asig (div (apply sum tbl-fns) adjust)]
+    (let-s [asig (div (apply sum tbl-fns) (arg adjust))]
       (mul portamento 
-           (balance (tone asig horn-cutoff) asig)))))
+           (balance (tone asig horn-cutoff) asig)))
+    ))
 
 (defn horn
   "Creates mono horn unless panning given"
   ([amp freq] (horn amp freq nil))
   ([amp freq loc]
    (if (nil? loc)
-     (horn-open amp freq)
-     (pan (horn-open amp freq) loc))))
+     (horn-play amp freq horn-wave-tables)
+     (pan (horn-play amp freq horn-wave-tables) loc))))
+
+(defn horn-stopped
+  "Creates mono stopped horn unless panning given"
+  ([amp freq] (horn-stopped amp freq nil))
+  ([amp freq loc]
+   (if (nil? loc)
+     (horn-play amp freq horn-stopped-wave-tables)
+     (pan (horn-play amp freq horn-stopped-wave-tables) loc))))
 
 
+(defn horn-muted
+  "Creates mono muted horn unless panning given"
+  ([amp freq] (horn-muted amp freq nil))
+  ([amp freq loc]
+   (if (nil? loc)
+     (horn-play amp freq horn-wave-tables)
+     (pan (horn-play amp freq horn-wave-tables) loc))))

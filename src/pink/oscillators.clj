@@ -33,36 +33,36 @@
 
 
 (defmacro phs-incr
-  [cur incr phs-adj]
-  `(dec-if (+ ~cur ~incr ~phs-adj)))
+  [cur incr]
+  `(dec-if (+ ~cur ~incr)))
 
-(defn vphasor [freq phase]
-  "Phasor with variable frequency and phase (where freq and phase are generator
-  functions"
+(defn vphasor 
+  [freq phase]
+  {:pre (number? phase)}
+  "Phasor with variable frequency and fixed starting phase."
   (let [out ^doubles (create-buffer)
-        cur-phase (double-array 1 0)
+        cur-phase (double-array 1 phase)
         len (alength ^doubles out)
-        lastindx (dec len)]
+        lastindx (dec len)
+        ffn (arg freq)]
     (fn ^doubles [] 
-      (let [f (freq)
-            p (phase)]
-        (when (and f p)
-          (loop [cnt (unchecked-int 0)]
-            (when (< cnt len)
-              (let [incr ^double (/ (aget ^doubles f cnt) *sr*)
-                    phs-adj (aget ^doubles p cnt)] 
-                (aset out cnt (setd! cur-phase (phs-incr (getd cur-phase) incr phs-adj)))
-                (recur (unchecked-inc-int cnt)))) 
+      (let [f (ffn) ]
+        (when f 
+          (loop [i (unchecked-int 0)]
+            (when (< i len)
+              (let [incr ^double (/ (aget ^doubles f i) *sr*)] 
+                (aset out i 
+                      (setd! cur-phase (phs-incr (getd cur-phase) incr)))
+                (recur (unchecked-inc-int i)))) 
             )
           out)))))
 
 (defn sine2 
-  "Sine generator with variable frequency and phase (where freq and phase are
-  generator functions"
+  "Sine generator with variable frequency and fixed starting phase."
   ([f]
    (sine2 f 0))
   ([f p]
-   (let [phsr (vphasor (arg f) (arg p))
+   (let [phsr (vphasor (arg f) p)
          out (create-buffer)]
      (fn ^doubles []
        (map-d out #(Math/sin (* 2.0 PI ^double %)) (phsr))))))
@@ -77,7 +77,7 @@
   ([amp freq table]
    (oscil amp freq table 0))
   ([amp freq ^doubles table phase]
-   (let [phsr (vphasor (arg freq) (arg phase))
+   (let [phsr (vphasor (arg freq) phase)
          out (create-buffer)
          tbl-len (alength table)
          ampfn (arg amp)]
@@ -92,7 +92,7 @@
   ([amp freq table]
    (oscili amp freq table 0))
   ([amp freq ^doubles table phase]
-   (let [phsr (vphasor (arg freq) (arg phase))
+   (let [phsr (vphasor (arg freq) phase)
          out (create-buffer)
          tbl-len (alength table)
          ampfn (arg amp)]
@@ -118,7 +118,7 @@
   ([amp freq table]
    (oscil3 amp freq table 0))
   ([amp freq ^doubles table phase]
-   (let [phsr (vphasor (arg freq) (arg phase))
+   (let [phsr (vphasor (arg freq) phase)
          out (create-buffer)
          tbl-len (alength table)
          ampfn (arg amp)]
