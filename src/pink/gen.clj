@@ -16,14 +16,33 @@
    (let [buffer (double-array n)]
      (loop [indx 0]
        (when (< indx n)
-         (aset buffer indx (get-sine-value (/ indx n)))
+         (aset buffer indx (get-sine-value (/ indx (double n))))
          (recur (inc indx))))
      buffer)))
+
+
+(defn min-max 
+  "Returns the min and max values of the given table."
+  [^doubles tbl]
+  (let [len (alength tbl)] 
+    (loop [i 0
+         mn Double/MAX_VALUE
+         mx Double/MIN_VALUE]
+      (if (< i len) 
+        (let [v (aget tbl i) 
+            new-mn (if (< v mn) v mn)
+            new-mx (if (> v mx) v mx)]
+           (recur (unchecked-inc-int i) new-mn new-mx) 
+            )
+        [mn mx]
+        ))))
 
 (defn rescale
   [tbl]
   tbl
   )
+
+; GEN routines
 
 (defn gen9
   "Generates a set of sine waves, given a list of lists of values 
@@ -40,7 +59,6 @@
         (let [phs-adj (if (nil? phs) 
                         0.0
                         (rem (/ phs 360.0) 1.0))] 
-          ;(println "Harmonic: " harmonic "Strength: " strength "Phase: " phs-adj)
           (loop [indx 0]
             (when (< indx tbl-size) 
               (aset out indx 
@@ -75,7 +93,6 @@
 (defn gen17
   "Generates a step-wise function from x/y pairs"
   [tbl-size & pts]
-  ;(println pts)
   (let [pairs (partition 2 pts)
         out (double-array tbl-size)]
     (loop [[[^int x1 ^double y1] & xs] pairs]
