@@ -1,5 +1,3 @@
-;; Test of Events 
-
 (ns pink.demo.demo9
   (:require [pink.engine :as eng]
              [pink.event :refer :all] 

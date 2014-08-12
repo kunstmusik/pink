@@ -1,9 +1,7 @@
 (ns pink.dynamics
   "Functions for dealing with dynamics/amplitude of audio"
   (:require [pink.util :refer [create-buffer getd]]
-            [pink.config :refer [*ksmps* *sr*]]
-            )
-  )
+            [pink.config :refer [*ksmps* *sr*]]))
 
 (def ^:const LOG10D20
     (/  (Math/log 10) 20))

@@ -7,7 +7,7 @@
           [pink.envelopes :refer :all]
           [pink.gen :refer [gen9 gen17 rescale]]
           [pink.oscillators :refer :all]
-          [pink.filters :refer [tone]]
+          [pink.filters :refer [tone atone]]
           [pink.space :refer [pan]]
           [pink.dynamics :refer [balance]]
           ))
@@ -177,11 +177,18 @@
      (horn-play amp freq horn-stopped-wave-tables)
      (pan (horn-play amp freq horn-stopped-wave-tables) loc))))
 
+(defn- horn-straight-mute
+  [asig]
+  (let-s [sig asig]
+    (balance (atone sig 1200) sig)) )
 
 (defn horn-muted
   "Creates mono muted horn unless panning given"
   ([amp freq] (horn-muted amp freq nil))
   ([amp freq loc]
    (if (nil? loc)
-     (horn-play amp freq horn-wave-tables)
-     (pan (horn-play amp freq horn-wave-tables) loc))))
+     (horn-straight-mute 
+       (horn-play amp freq horn-wave-tables)) 
+     (pan 
+       (horn-straight-mute 
+         (horn-play amp freq horn-wave-tables)) loc))))
