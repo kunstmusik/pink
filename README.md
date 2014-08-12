@@ -1,6 +1,6 @@
 # Pink
 
-A music system written in Clojure.
+A library for music systems development, written in Clojure.
 
 ## Premise for Design
 
