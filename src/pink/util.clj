@@ -247,9 +247,11 @@
         out-buf-sym (gensym)
         ]
     `(if (zero? (rem *ksmps* ~ksmps))
-       (let [frames# (/ *ksmps* ~ksmps)
+       (let [frames# (int (/ *ksmps* ~ksmps))
              ~out-buf-sym (create-buffer)
-             done# (atom false)]
+             done# (atom false)
+             current-buf-num# (long-array 1 0)
+             ]
          (binding [*ksmps* ~ksmps] 
 
            (let [afn# (binding [*ksmps* ~ksmps]
@@ -257,23 +259,30 @@
              (fn [] 
                (if @done#
                  nil
-                 (loop [i# 0] 
+                 (loop [i# 0 
+                        buf-num# (aget current-buf-num# 0)] 
                    (if (< i# frames#)
-                     (let [~buf-sym (afn#)] 
+                     (let [~buf-sym (binding [*current-buffer-num* buf-num#] 
+                                      (afn#))] 
                        (if ~buf-sym 
                          (do 
                            (System/arraycopy ~buf-sym 0 
                                              ~out-buf-sym (* i# ~ksmps) 
                                              ~ksmps)
-                           (recur (unchecked-inc-int i#)))
+                           (recur (unchecked-inc-int i#)
+                                  (unchecked-inc-int buf-num#)))
                          (do
                            (reset! done# true)
+                           (aset current-buf-num# 0 
+                                 (+ (aget current-buf-num# 0) frames#))
                            (when (not (zero? i#))
                              (Arrays/fill ~(tag-doubles out-buf-sym) 
                                           (* i# ~ksmps) (* frames# ~ksmps) 0.0) 
                              ~out-buf-sym))))
-                     ~out-buf-sym)))))))
-       (throw (Exception. (str "Invalid ksmps: " ~ksmps))))) )
+                     (do
+                       (aset current-buf-num# 0 buf-num#)
+                       ~out-buf-sym))))))))
+       (throw (Exception. (str "Invalid ksmps: " ~ksmps))))))
 
 
 ;; Informal benchmarking tool

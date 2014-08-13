@@ -42,6 +42,18 @@
       (afn)
       (is (= 4 @counter))))
 
+
+  (testing "with-ksmps runs sub-code 8 times with shared afn"
+    (let [counter (atom 0)
+          afn (with-ksmps 16
+                (shared 
+                  (fn [] 
+                  (swap! counter inc)
+                  (double-array *ksmps*))))]
+      (afn)
+      (afn)
+      (is (= 8 @counter))))
+
   (testing "with-ksmps returns nil if afn returns nil in first buffer"
     (let [counter (atom 0)
           afn (with-ksmps 16
@@ -72,7 +84,6 @@
       (is (= 0.0 (aget out 32)))
       (is (nil? out2))
       ))
-
 
   (testing "with-ksmps throws exception with invalid ksmps"
     (let [counter (atom 0)] 
