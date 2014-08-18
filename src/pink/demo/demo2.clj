@@ -33,7 +33,7 @@
   (let [melody (ref (take (* 4 8) (cycle [220 330 440 330])))
         dur 0.25 
         cur-time (double-array 1 0.0)
-        time-incr (/ *ksmps* 44100.0)
+        time-incr (/ *buffer-size* 44100.0)
         afs (e :pending-funcs)
         out (create-buffer)]
     (dosync (alter afs conj (fm-synth 440)))

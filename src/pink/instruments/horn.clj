@@ -3,7 +3,7 @@
  banded wavetable synthesis. Based on the Csound code implementaiton."
  
 (:require [pink.util :refer :all]
-          [pink.config :refer [*ksmps* *current-buffer-num* *sr*]]
+          [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]]
           [pink.envelopes :refer :all]
           [pink.gen :refer [gen9 gen17 rescale]]
           [pink.oscillators :refer :all]

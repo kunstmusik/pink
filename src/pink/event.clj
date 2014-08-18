@@ -1,7 +1,7 @@
 (ns pink.event
   (:require [pink.engine :refer :all]
             [pink.util :refer [create-buffer]]
-            [pink.config :refer [*ksmps* *sr*]]  )
+            [pink.config :refer [*buffer-size* *sr*]]  )
   (:import [java.util List]))
 
 (deftype Event [event-func ^Double start event-args ]
@@ -70,7 +70,7 @@
 
 (defn event-list-tick [evtlst] 
   (let [cur-buffer (:cur-buffer evtlst)
-        cur-time (/ (* @cur-buffer *ksmps*) *sr*)
+        cur-time (/ (* @cur-buffer *buffer-size*) *sr*)
         ready-events (get-events! evtlst cur-time)]
     (loop [[a & b] ready-events]
       (when a
@@ -113,7 +113,7 @@
 (comment
 
   (defn test-event-list [evtlst]
-    (let [wait (* 1000 (/ *ksmps* *sr*))]
+    (let [wait (* 1000 (/ *buffer-size* *sr*))]
       (loop []
         (event-list-tick evtlst)
 

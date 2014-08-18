@@ -1,7 +1,7 @@
 (ns pink.dynamics
   "Functions for dealing with dynamics/amplitude of audio"
   (:require [pink.util :refer [create-buffer getd]]
-            [pink.config :refer [*ksmps* *sr*]]))
+            [pink.config :refer [*buffer-size* *sr*]]))
 
 (def ^:const LOG10D20
     (/  (Math/log 10) 20))
@@ -33,7 +33,7 @@
          (loop [i 0
                 q (getd prvq)
                 r (getd prvr)]
-           (if (< i *ksmps*)
+           (if (< i *buffer-size*)
              (let [av (aget abuf i)
                    cv (aget cbuf i)]
                (recur 
@@ -53,12 +53,12 @@
                ]
            (if (zero? diff)
              (loop [i 0] 
-               (when (< i *ksmps*)
+               (when (< i *buffer-size*)
                  (aset out i (* a (aget abuf i)))
                  (recur (unchecked-inc-int i))))
-             (let [incr (/ diff *ksmps*)]
+             (let [incr (/ diff *buffer-size*)]
                (loop [i 0 m pa]
-                 (if (< i *ksmps*)
+                 (if (< i *buffer-size*)
                    (do 
                      (aset out i (* m (aget abuf i)))
                      (recur (unchecked-inc-int i) (+ m incr)))  

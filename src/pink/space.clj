@@ -23,7 +23,7 @@
       (when-let [ain ^doubles (afn)] 
         (let [locs ^doubles (locfn)] 
           (loop [i 0]
-            (when (< i *ksmps*)
+            (when (< i *buffer-size*)
               (let [v (aget ain i)
                     cur-loc (+ 0.5 (* 0.5 (aget locs i)))
                     l (db->amp (* 20 (Math/log (Math/cos (* PI2 cur-loc )))))

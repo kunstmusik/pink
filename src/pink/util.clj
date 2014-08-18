@@ -1,6 +1,6 @@
 (ns pink.util
   "Audio utility code for working with buffers (double[])"
-  (:require [pink.config :refer [*ksmps* *current-buffer-num* *sr*]])
+  (:require [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]])
   (:import [java.util Arrays]))
 
 ;(defn getd ^double [^doubles a] (aget a 0))
@@ -52,12 +52,12 @@
   `(setl! ~l (~f (getl ~l))))
 
 (defn create-buffer 
-  ([] (double-array *ksmps*))
-  ([i] (double-array *ksmps* i)))
+  ([] (double-array *buffer-size*))
+  ([i] (double-array *buffer-size* i)))
 
 
 (defn const 
-  "Initializes a *ksmps*-sized buffer with the given value,
+  "Initializes a *buffer-size*-sized buffer with the given value,
   returns a function that will return that buffer on each call"
   [^double a] 
   (let [out (create-buffer a)]
@@ -74,7 +74,7 @@
 
 
 (defn shared 
-  "Wraps an audio function so that it only generates values once per ksmps block; uses 
+  "Wraps an audio function so that it only generates values once per buffer-size block; uses 
   *curent-buffer-num* dynamic variable to track if update is required" 
   [afn] 
   (let [my-buf-num (long-array 1 -1)
@@ -225,7 +225,7 @@
 
 (defn with-duration 
   [dur afn]
-  (let [end (long (/ (* dur *sr* *ksmps*))) 
+  (let [end (long (/ (* dur *sr* *buffer-size*))) 
         cur-buffer (long-array 1 0)]
     (fn []
       (let [v (aget cur-buffer 0)] 
@@ -237,24 +237,24 @@
 
     )))
 
-(defmacro with-ksmps
-  "Run code with given ksmps. Uses binding to bind *ksmps* during 
+(defmacro with-buffer-size
+  "Run code with given buffer-size. Uses binding to bind *buffer-size* during 
   initialization-time as well as performance-time. Returns an audio function
-  that will appropriately fill a buffer of *ksmps* size with repeated calls 
-  to the code of ksmps size."
-  [ksmps & bindings] 
+  that will appropriately fill a buffer of *buffer-size* size with repeated calls 
+  to the code of buffer-size size."
+  [buffer-size & bindings] 
   (let [buf-sym (gensym)
         out-buf-sym (gensym)
         ]
-    `(if (zero? (rem *ksmps* ~ksmps))
-       (let [frames# (int (/ *ksmps* ~ksmps))
+    `(if (zero? (rem *buffer-size* ~buffer-size))
+       (let [frames# (int (/ *buffer-size* ~buffer-size))
              ~out-buf-sym (create-buffer)
              done# (atom false)
              current-buf-num# (long-array 1 0)
              ]
-         (binding [*ksmps* ~ksmps] 
+         (binding [*buffer-size* ~buffer-size] 
 
-           (let [afn# (binding [*ksmps* ~ksmps]
+           (let [afn# (binding [*buffer-size* ~buffer-size]
                         ~@bindings)]
              (fn [] 
                (if @done#
@@ -267,8 +267,8 @@
                        (if ~buf-sym 
                          (do 
                            (System/arraycopy ~buf-sym 0 
-                                             ~out-buf-sym (* i# ~ksmps) 
-                                             ~ksmps)
+                                             ~out-buf-sym (* i# ~buffer-size) 
+                                             ~buffer-size)
                            (recur (unchecked-inc-int i#)
                                   (unchecked-inc-int buf-num#)))
                          (do
@@ -277,12 +277,12 @@
                                  (+ (aget current-buf-num# 0) frames#))
                            (when (not (zero? i#))
                              (Arrays/fill ~(tag-doubles out-buf-sym) 
-                                          (* i# ~ksmps) (* frames# ~ksmps) 0.0) 
+                                          (* i# ~buffer-size) (* frames# ~buffer-size) 0.0) 
                              ~out-buf-sym))))
                      (do
                        (aset current-buf-num# 0 buf-num#)
                        ~out-buf-sym))))))))
-       (throw (Exception. (str "Invalid ksmps: " ~ksmps))))))
+       (throw (Exception. (str "Invalid buffer-size: " ~buffer-size))))))
 
 
 ;; Informal benchmarking tool

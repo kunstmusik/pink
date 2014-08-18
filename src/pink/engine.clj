@@ -22,17 +22,17 @@
 
 (defn engine-create 
   "Creates an audio engine"
-  [& {:keys [sample-rate nchnls block-size] 
-      :or {sample-rate 44100 nchnls 1 block-size 64}}] 
+  [& {:keys [sample-rate nchnls buffer-size] 
+      :or {sample-rate 44100 nchnls 1 buffer-size 64}}] 
   (let  [e {:status (ref :stopped)
             :clear (ref false)
             :audio-funcs (ref [])
             :pending-funcs (ref [])
             :sample-rate sample-rate
             :nchnls nchnls
-            :ksmps block-size 
-            :buffer-size (* block-size nchnls)
-            :byte-buffer-size (* BYTE-SIZE block-size nchnls)
+            :buffer-size buffer-size 
+            :out-buffer-size (* buffer-size nchnls)
+            :byte-buffer-size (* BYTE-SIZE buffer-size nchnls)
             }]
     (dosync (alter engines conj e))
     e))
@@ -70,7 +70,7 @@
     (when (= 0 chan-num)
       (map-d out-buffer + out-buffer asig))
     (loop [i 0]
-      (when (< i *ksmps*)
+      (when (< i *buffer-size*)
         (let [out-index (+ chan-num (* i *nchnls*))] 
           (aset out-buffer out-index
             (+ (aget out-buffer out-index) (aget asig i))))
@@ -114,8 +114,8 @@
     newfs))
 
 (defn buf->line [^ByteBuffer buffer ^SourceDataLine line
-                 ^long buffer-size]
-  (.write line (.array buffer) 0 buffer-size)
+                 ^long out-buffer-size]
+  (.write line (.array buffer) 0 out-buffer-size)
   (.clear buffer))
 
 (def frames 1)
@@ -123,7 +123,7 @@
 (defn engine-run [engine]
   (let [af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
         #^SourceDataLine line (open-line af)        
-        out-buffer (double-array (:buffer-size engine))
+        out-buffer (double-array (:out-buffer-size engine))
         buf (ByteBuffer/allocate (:byte-buffer-size engine))
         audio-funcs (:audio-funcs engine)
         pending-funcs (:pending-funcs engine)
@@ -136,7 +136,7 @@
               afs  (binding [*current-buffer-num* 
                                (swap! bufnum unchecked-inc-int)
                              *sr* (:sample-rate engine)
-                             *ksmps* (:ksmps engine)
+                             *buffer-size* (:buffer-size engine)
                              *nchnls* (:nchnls engine)]
                 (process-buffer @audio-funcs out-buffer buf))]  
           (dosync
@@ -205,7 +205,7 @@
   ;      #^SourceDataLine line (open-line af) 
   ;      buffer (ByteBuffer/allocate buffer-size)
   ;      write-buffer-size (/ buffer-size 2)
-  ;      frames (quot write-buffer-size *ksmps*)]
+  ;      frames (quot write-buffer-size *buffer-size*)]
   ;  (loop [x 0]
   ;    (if (< x frames)
   ;      (if-let [buf ^doubles (a-block)]

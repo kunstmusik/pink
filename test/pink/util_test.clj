@@ -32,31 +32,31 @@
     (is 3.25 (aget ^doubles (rdr) 0)) 
     ))
 
-(deftest test-with-ksmps
-  (testing "with-ksmps runs sub-code 4 times"
+(deftest test-with-buffer-size
+  (testing "with-buffer-size runs sub-code 4 times"
     (let [counter (atom 0)
-          afn (with-ksmps 16
+          afn (with-buffer-size 16
                 (fn [] 
                   (swap! counter inc)
-                  (double-array *ksmps*)))]
+                  (double-array *buffer-size*)))]
       (afn)
       (is (= 4 @counter))))
 
 
-  (testing "with-ksmps runs sub-code 8 times with shared afn"
+  (testing "with-buffer-size runs sub-code 8 times with shared afn"
     (let [counter (atom 0)
-          afn (with-ksmps 16
+          afn (with-buffer-size 16
                 (shared 
                   (fn [] 
                   (swap! counter inc)
-                  (double-array *ksmps*))))]
+                  (double-array *buffer-size*))))]
       (afn)
       (afn)
       (is (= 8 @counter))))
 
-  (testing "with-ksmps returns nil if afn returns nil in first buffer"
+  (testing "with-buffer-size returns nil if afn returns nil in first buffer"
     (let [counter (atom 0)
-          afn (with-ksmps 16
+          afn (with-buffer-size 16
                 (fn [] 
                   (swap! counter inc)
                   nil))
@@ -66,15 +66,15 @@
       (is (nil? out))
       ))
 
-  (testing "with-ksmps returns partial buffer when nil is not first buffer,
+  (testing "with-buffer-size returns partial buffer when nil is not first buffer,
            then returns nil"
     (let [counter (atom 0)
-          afn (with-ksmps 16
+          afn (with-buffer-size 16
                 (fn [] 
                   (swap! counter inc)
                   (if (>= @counter 3) 
                     nil
-                    (double-array *ksmps* 80))))
+                    (double-array *buffer-size* 80))))
           out ^doubles (afn)
           out2 (afn)]
 
@@ -85,15 +85,15 @@
       (is (nil? out2))
       ))
 
-  (testing "with-ksmps throws exception with invalid ksmps"
+  (testing "with-buffer-size throws exception with invalid buffer-size"
     (let [counter (atom 0)] 
-      (is (thrown-with-msg? Exception #"Invalid ksmps: 33"
-                            (with-ksmps 33
+      (is (thrown-with-msg? Exception #"Invalid buffer-size: 33"
+                            (with-buffer-size 33
                               (fn [] 
                                 (swap! counter inc)
                                 (if (>= @counter 3) 
                                   nil
-                                  (double-array *ksmps* 80)))))) 
+                                  (double-array *buffer-size* 80)))))) 
       ))
 
   )

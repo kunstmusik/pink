@@ -1,5 +1,5 @@
 (ns pink.filters
-  (:require [pink.config :refer [*sr* *ksmps*]]
+  (:require [pink.config :refer [*sr* *buffer-size*]]
             [pink.util :refer :all]))
 
 (defn tone 
@@ -16,7 +16,7 @@
             hps ^doubles (cutoff-fn)] 
         (when (and in hps)
           (loop [i 0 last-value (getd last-val)]
-            (if (< i *ksmps*)
+            (if (< i *buffer-size*)
               (let [hp (aget hps i)
                     b (- 2.0 (Math/cos (* hp TPIDSR)))
                     c2 (- b (Math/sqrt (- (* b b) 1.0)))
@@ -42,7 +42,7 @@
             hps ^doubles (cutoff-fn)] 
         (when (and in hps)
           (loop [i 0 last-value (getd last-val)]
-            (if (< i *ksmps*)
+            (if (< i *buffer-size*)
               (let [hp (aget hps i)
                     b (- 2.0 (Math/cos (* hp TPIDSR)))
                     c2 (- b (Math/sqrt (- (* b b) 1.0)))
