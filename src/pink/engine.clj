@@ -2,9 +2,11 @@
   "Audio Engine Code"
   (:require [pink.config :refer :all]
             [pink.util :refer :all])
-  (:import (java.nio ByteBuffer)
+  (:import (java.io ByteArrayInputStream ByteArrayOutputStream File) 
+           (java.nio ByteBuffer)
            (java.util Arrays)
-           (javax.sound.sampled AudioFormat AudioSystem SourceDataLine)))
+           (javax.sound.sampled AudioFormat AudioSystem SourceDataLine
+                                AudioFileFormat$Type AudioInputStream)))
 
 
 (defmacro limit [num]
@@ -120,7 +122,10 @@
 
 (def frames 1)
 
-(defn engine-run [engine]
+(defn engine-run 
+  "Main realtime engine running function. Called within a thread from
+  engine-start."
+  [engine]
   (let [af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
         #^SourceDataLine line (open-line af)        
         out-buffer (double-array (:out-buffer-size engine))
@@ -128,8 +133,10 @@
         audio-funcs (:audio-funcs engine)
         pending-funcs (:pending-funcs engine)
         clear-flag (:clear engine)
-        bufnum (atom -1)
-        ]
+        bufnum (atom -1)]
+    (dosync
+      (ref-set audio-funcs @pending-funcs)
+      (ref-set pending-funcs []))
     (loop [frame-count 0]
       (if (= @(engine :status) :running)
         (let [f-count (rem (inc frame-count) frames)
@@ -167,6 +174,54 @@
 (defn engine-stop [engine]
   (when (= @(engine :status) :running)
     (dosync (ref-set (engine :status) :stopped))))
+
+(defn engine->disk 
+  "Runs engine and writes output to disk.  This will run the engine until all
+  audio functions added to it are complete.  
+
+  Warning: Be careful not to render with an engine setup with infinite
+  duration!"
+  [engine ^String filename]
+  (let [baos (ByteArrayOutputStream.)
+        buf (ByteBuffer/allocate (:byte-buffer-size engine))
+        out-buffer (double-array (:out-buffer-size engine))
+        audio-funcs (:audio-funcs engine)
+        pending-funcs (:pending-funcs engine)
+        bufnum (atom -1)
+        start-time (System/currentTimeMillis)]
+    (dosync
+      (ref-set audio-funcs @pending-funcs)
+      (ref-set pending-funcs []))
+    (loop [buffer-count 0]
+      (let [afs  (binding [*current-buffer-num* 
+                           (swap! bufnum unchecked-inc-int)
+                           *sr* (:sample-rate engine)
+                           *buffer-size* (:buffer-size engine)
+                           *nchnls* (:nchnls engine)]
+                   (process-buffer @audio-funcs out-buffer buf))]  
+        (if (not-empty afs)  
+          (do 
+            (.write baos (.array buf))
+            (.clear buf)
+            (if (empty? @pending-funcs)
+              (dosync
+                (ref-set audio-funcs afs))
+              (dosync
+                (ref-set audio-funcs (concat afs @pending-funcs))
+                (ref-set pending-funcs [])))
+            (recur (unchecked-inc buffer-count)))
+          (let [data (.toByteArray baos)
+                bais (ByteArrayInputStream. data)
+                af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
+                aftype AudioFileFormat$Type/WAVE 
+                ais (AudioInputStream. bais af (alength data))
+                f (File. filename)]
+              (println "Writing output to " (.getAbsolutePath f))
+              (AudioSystem/write ais aftype f)
+              (println "Elapsed time: " 
+                       (/ (- (System/currentTimeMillis) start-time) 1000.0)))
+           )))))
+
 
 (defn engine-clear [engine]
   (if (= @(engine :status) :running)
