@@ -28,7 +28,6 @@
       :or {sample-rate 44100 nchnls 1 buffer-size 64}}] 
   (let  [e {:status (ref :stopped)
             :clear (ref false)
-            :audio-funcs (ref [])
             :pending-funcs (ref [])
             :sample-rate sample-rate
             :nchnls nchnls
@@ -87,8 +86,7 @@
 
 (defmacro run-audio-funcs [afs buffer]
   (let [x (gensym)
-        b (gensym)
-        ]
+        b (gensym)]
    `(loop [[~x & xs#] ~afs 
           ret# []]
     (if ~x 
@@ -130,36 +128,35 @@
         #^SourceDataLine line (open-line af)        
         out-buffer (double-array (:out-buffer-size engine))
         buf (ByteBuffer/allocate (:byte-buffer-size engine))
-        audio-funcs (:audio-funcs engine)
         pending-funcs (:pending-funcs engine)
+        start-funcs @pending-funcs
         clear-flag (:clear engine)
-        bufnum (atom -1)]
+        sr (:sample-rate engine)
+        buffer-size (:buffer-size engine)
+        nchnls (:nchnls engine)
+        ]
     (dosync
-      (ref-set audio-funcs @pending-funcs)
       (ref-set pending-funcs []))
-    (loop [frame-count 0]
+    (loop [cur-funcs start-funcs 
+           buffer-count 0]
       (if (= @(engine :status) :running)
-        (let [f-count (rem (inc frame-count) frames)
-              afs  (binding [*current-buffer-num* 
-                               (swap! bufnum unchecked-inc-int)
-                             *sr* (:sample-rate engine)
-                             *buffer-size* (:buffer-size engine)
-                             *nchnls* (:nchnls engine)]
-                (process-buffer @audio-funcs out-buffer buf))]  
-          (dosync
-            (if @clear-flag
-              (do
-                (ref-set audio-funcs [])
+        (let [afs  (binding [*current-buffer-num* buffer-count 
+                             *sr* sr 
+                             *buffer-size* buffer-size 
+                             *nchnls* nchnls]
+                     (process-buffer cur-funcs out-buffer buf))]  
+           (buf->line buf line (:byte-buffer-size engine))
+           (if @clear-flag
+            (do 
+              (dosync
                 (ref-set pending-funcs [])
                 (ref-set clear-flag false))
-              (if (empty? @pending-funcs)
-                (ref-set audio-funcs afs)
-                (do
-                  (ref-set audio-funcs (concat afs @pending-funcs))
-                  (ref-set pending-funcs [])))))
-          (when (zero? f-count)
-            (buf->line buf line (:byte-buffer-size engine)))
-          (recur (long f-count)))
+              (recur [] (unchecked-inc buffer-count)))
+            (if (empty? @pending-funcs)
+              (recur afs (unchecked-inc buffer-count))
+              (let [new-funcs (concat afs @pending-funcs)]
+                (dosync (ref-set pending-funcs []))
+                (recur new-funcs (unchecked-inc buffer-count))))))
         (do
           (println "stopping...")
           (doto line
@@ -185,42 +182,43 @@
   (let [baos (ByteArrayOutputStream.)
         buf (ByteBuffer/allocate (:byte-buffer-size engine))
         out-buffer (double-array (:out-buffer-size engine))
-        audio-funcs (:audio-funcs engine)
         pending-funcs (:pending-funcs engine)
+        start-funcs @pending-funcs
         bufnum (atom -1)
-        start-time (System/currentTimeMillis)]
+        start-time (System/currentTimeMillis)
+        sr (:sample-rate engine)
+        buffer-size (:buffer-size engine)
+        nchnls (:nchnls engine)
+        ]
     (dosync
-      (ref-set audio-funcs @pending-funcs)
       (ref-set pending-funcs []))
-    (loop [buffer-count 0]
-      (let [afs  (binding [*current-buffer-num* 
-                           (swap! bufnum unchecked-inc-int)
-                           *sr* (:sample-rate engine)
-                           *buffer-size* (:buffer-size engine)
-                           *nchnls* (:nchnls engine)]
-                   (process-buffer @audio-funcs out-buffer buf))]  
+    (loop [cur-funcs start-funcs
+           buffer-count 0]
+      (let [afs  (binding [*current-buffer-num* buffer-count 
+                           *sr* sr 
+                           *buffer-size* buffer-size 
+                           *nchnls* nchnls]
+                   (process-buffer cur-funcs out-buffer buf))]  
         (if (not-empty afs)  
           (do 
             (.write baos (.array buf))
             (.clear buf)
             (if (empty? @pending-funcs)
-              (dosync
-                (ref-set audio-funcs afs))
-              (dosync
-                (ref-set audio-funcs (concat afs @pending-funcs))
-                (ref-set pending-funcs [])))
-            (recur (unchecked-inc buffer-count)))
+              (recur afs (unchecked-inc buffer-count))
+              (let [new-funcs (concat afs @pending-funcs)]
+                (dosync (ref-set pending-funcs []))
+                (recur new-funcs (unchecked-inc buffer-count)))))
           (let [data (.toByteArray baos)
                 bais (ByteArrayInputStream. data)
                 af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
                 aftype AudioFileFormat$Type/WAVE 
                 ais (AudioInputStream. bais af (alength data))
                 f (File. filename)]
-              (println "Writing output to " (.getAbsolutePath f))
-              (AudioSystem/write ais aftype f)
-              (println "Elapsed time: " 
-                       (/ (- (System/currentTimeMillis) start-time) 1000.0)))
-           )))))
+            (println "Writing output to " (.getAbsolutePath f))
+            (AudioSystem/write ais aftype f)
+            (println "Elapsed time: " 
+                     (/ (- (System/currentTimeMillis) start-time) 1000.0)))
+          )))))
 
 
 (defn engine-clear [engine]
