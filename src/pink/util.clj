@@ -27,6 +27,9 @@
   (tagit a "long")
   )
 
+;; Functions used with single-item double and long arrays
+;; (Single item arrays are used to carry state between audio-function calls)
+
 (defmacro getd
   ([a]
   `(aget ~(tag-doubles a) 0)))
@@ -51,10 +54,59 @@
 (defmacro swapl! [l f]
   `(setl! ~l (~f (getl ~l))))
 
+
+;; Functions related to audio buffers
+
 (defn create-buffer 
+  "Creates a single-channel audio buffer with optional default value"
   ([] (double-array *buffer-size*))
   ([i] (double-array *buffer-size* i)))
 
+(defn create-buffers
+  "Creates a single-channel or multi-channel buffer"
+  [nchnls]
+  (if (= 1 nchnls)
+    (create-buffer)
+    (into-array (take nchnls (repeatedly create-buffer)))))
+
+(def EMPTY-BUFFER (create-buffer 0)) 
+
+(def MULTI-CHANNEL-TYPE 
+  (type (into-array [(double-array 1) (double-array 1)])))
+
+(defmacro multi-channel?
+  "Returns if buffer is multi-channel"
+  [buffer]
+  `(= MULTI-CHANNEL-TYPE (type ~buffer)))
+
+(defmacro buffer-channel-count
+  "Get the channel count for a buffer"
+  [buffer]
+  `(if (multi-channel? ~buffer) (count ~buffer) 1 ))
+
+(defn mix-buffers
+  "Mix src audio buffer into dest audio buffer, taking into account 
+  differences in channel counts"
+  [src dest]
+  (let [src-count (buffer-channel-count src)
+        dest-count (buffer-channel-count dest)]
+    (if (= src-count dest-count 1)
+      (map-d dest + dest src)
+      (cond 
+        (= src-count 1) (let [out (aget ^"[[D" dest 0)] (map-d out + out src)) 
+
+        (= dest-count 1) (map-d dest + dest (aget ^"[[D" src 0)) 
+
+        :else
+        (loop [i 0 end (min src-count dest-count)]
+          (when (< i end)
+            (let [out (aget ^"[[D" dest i)]
+              (map-d out + out (aget ^"[[D" src i))
+              (recur (unchecked-inc i) end)))))))
+  dest)
+
+
+;; Utility audio-functions
 
 (defn const 
   "Initializes a *buffer-size*-sized buffer with the given value,
@@ -125,12 +177,11 @@
       @buffer)))
 
 
-(def empty-d (create-buffer 0)) 
 
 (defn clear-d [^doubles d]
   (when d
-    (let [len (min (alength ^doubles d) (alength ^doubles empty-d))]
-    (System/arraycopy empty-d 0 d 0 len))))
+    (let [len (min (alength ^doubles d) (alength ^doubles EMPTY-BUFFER))]
+    (System/arraycopy EMPTY-BUFFER 0 d 0 len))))
 
 (defmacro map-d-impl
   [out f & buffers]  
@@ -200,27 +251,17 @@
               (apply map-d out f buffers)))))
       (nth args 0))))
 
-(defn mul [& a]
+(defn mul 
+  [& a]
   (operator * a))
 
-(defn div [& a]
+(defn div 
+  [& a]
   (operator / a))
 
 (defn sum 
   [& a]
   (operator + a))
-
-(defn mix
-  [& xs]
-  (let [args (map arg xs)]
-    (if (> (count args) 1)
-      (let [tmp (create-buffer)
-            out (create-buffer)
-            adjust (create-buffer (/ 1.0 (count args)))]
-        (fn ^doubles []
-          (let [buffers (map (fn [a] (a)) args)]
-           (map-d out * adjust (apply map-d tmp + buffers)))))
-      (nth args 0))))
 
 
 (defn with-duration 

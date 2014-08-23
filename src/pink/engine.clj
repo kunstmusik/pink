@@ -66,6 +66,7 @@
 
 
 (defn write-asig
+  "Writes asig as a channel into an interleaved out-buffer"
   [^doubles out-buffer ^doubles asig chan-num]
   (if (= *nchnls* 1)
     (when (= 0 chan-num)
