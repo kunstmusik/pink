@@ -6,7 +6,7 @@ A library for music systems development, written in Clojure.
 
 This library provides the basis for developing music systems.  It is also designed so to scale to user needs, whether they are exploring and designing low-level signal processing algorithms, developing pre-written compositions, or creating interactive real-time systems. It offers a slim core engine designed to be highly customizable.   
 
-For more informaiton, please see the [Documentation](doc/intro.md).
+For more information, please see the [Documentation](doc/intro.md).
 
 
 ## License
