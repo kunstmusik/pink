@@ -78,13 +78,6 @@
             (+ (aget out-buffer out-index) (aget asig i))))
         (recur (unchecked-inc-int i))))))
 
-(def DOUBLE-ARRAY-CLASS
-  (type (double-array 1)))
-
-(defmacro multi-channel?
-  [buffer]
-  `(not= DOUBLE-ARRAY-CLASS (type ~buffer)))
-
 (defmacro run-audio-funcs [afs buffer]
   (let [x (gensym)
         b (gensym)]
@@ -118,8 +111,6 @@
                  ^long out-buffer-size]
   (.write line (.array buffer) 0 out-buffer-size)
   (.clear buffer))
-
-(def frames 1)
 
 (defn engine-run 
   "Main realtime engine running function. Called within a thread from

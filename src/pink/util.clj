@@ -105,6 +105,15 @@
               (recur (unchecked-inc i) end)))))))
   dest)
 
+(defn clear-buffer 
+  [b]
+  (if (multi-channel? b)
+    (loop [i 0 cnt (count b)]
+      (when (< i cnt)
+        (Arrays/fill ^doubles (aget ^"[[D" b i) 0.0)
+        (recur (unchecked-inc i) cnt)))
+    (Arrays/fill ^doubles b 0.0)))
+
 
 ;; Utility audio-functions
 
@@ -177,11 +186,6 @@
       @buffer)))
 
 
-
-(defn clear-d [^doubles d]
-  (when d
-    (let [len (min (alength ^doubles d) (alength ^doubles EMPTY-BUFFER))]
-    (System/arraycopy EMPTY-BUFFER 0 d 0 len))))
 
 (defmacro map-d-impl
   [out f & buffers]  

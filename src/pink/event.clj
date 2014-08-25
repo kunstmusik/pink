@@ -1,5 +1,6 @@
 (ns pink.event
   (:require [pink.engine :refer :all]
+            [pink.node :refer [node-add-afunc]]
             [pink.util :refer [create-buffer]]
             [pink.config :refer [*buffer-size* *sr*]]  )
   (:import [java.util List]))
@@ -109,6 +110,29 @@
       (if (empty? @(:events evtlst))
         nil
         buf))))
+
+;; Event functiosn dealing with nodes
+
+
+(defn fire-node-event 
+  "create an instance of an audio function and adds to the engine" 
+  [node f & args]  
+  (node-add-afunc node (apply f args)))
+
+(defn wrap-node-event [eng ^Event evt]
+  (event fire-node-event 
+         (.start evt)
+         (list* eng (.event-func evt) (.event-args evt))))
+
+(defn node-events 
+  "Takes a node and series of events, wrapping the events as node-events.
+  If single arg given, assumes it is a list of events."
+  ([node args]
+   (if (sequential? args)
+     (event-list (map #(wrap-node-event node %) args))    
+     (event-list (map #(wrap-node-event node %) [args]))))
+  ([node x & args]
+   (node-events node (list* x args))))
 
 (comment
 

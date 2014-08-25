@@ -1,13 +1,12 @@
 (ns pink.node
-  "Nodes are audio-rate functions that aggregate audio from other audio-rate functions. Nodes can contain other nodes. Each Node is wrapped in pink.util.shared so that the output of Node may be used by multiple other audio-functions within the same time period.
+  "Nodes aggregate audio from other audio-rate functions. Nodes can contain other nodes. Each Node is wrapped in pink.util.shared so that the output of Node may be used by multiple other audio-functions within the same time period.
   
   In general, users will first call create-node to create a node map. node-processor will be used as the audio-rate function to add to an Engine, Node, or other audio-function.  
   "
   (:require [pink.config :refer [*nchnls* *buffer-size*]]
             [pink.util :refer [create-buffer create-buffers
                                fill map-d swapd! setd! getd 
-                               arg mix-buffers]]))
-
+                               arg mix-buffers clear-buffer]]))
 
 (defmacro run-node-audio-funcs 
   [afs buffer]
@@ -46,6 +45,7 @@
  (let [out-buffer (create-buffers (:channels node))
        node-afuncs (:audio-funcs node)]
   (fn []
+    (clear-buffer out-buffer)
     (let [afs (run-node-audio-funcs @node-afuncs out-buffer)]
       (reset! node-afuncs afs) 
       out-buffer))))
@@ -60,6 +60,3 @@
   [node afn]
   )
 
-(defn node-add-message
-  [afn msg]
-  )
