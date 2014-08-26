@@ -3,8 +3,12 @@
   (:require [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]])
   (:import [java.util Arrays]))
 
+
+
 ;(defn getd ^double [^doubles a] (aget a 0))
 ;(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
+
+;; utility functions for tagging vars (useful for macros)
 
 (defn tagit 
   [a t]
@@ -26,6 +30,48 @@
   [a]
   (tagit a "long")
   )
+
+;; map-d 
+
+(defmacro map-d-impl
+  [out f & buffers]  
+  (let [cnt (gensym 'count)
+        get-bufs (map (fn [a] (list 'aget a cnt)) buffers )
+        apply-line `(~f ~@get-bufs) ] 
+    `(when (and ~@buffers)
+     (let [l# (alength ~out)]
+       (loop [~cnt (unchecked-int 0)]
+         (when (< ~cnt l#)
+           (aset ~out ~cnt
+                  ~(tag-double apply-line)) 
+           (recur (unchecked-inc-int ~cnt))
+           ))
+       ~out
+       )    
+     )))
+
+(defn map-d 
+  "Maps function f across double[] buffers and writes output to out buffer" 
+  ([^doubles out f ^doubles x]
+    (map-d-impl out f x)   
+   )
+  ([^doubles out f ^doubles x ^doubles y ]
+    (map-d-impl out f x y)   
+   )
+  ([^doubles out f ^doubles x ^doubles y  ^doubles z]
+    (map-d-impl out f x y z)   
+   )
+  ([^doubles out f ^doubles x ^doubles y  ^doubles z ^doubles a]
+    (map-d-impl out f x y z a)   
+   )
+  ([^doubles out f ^doubles x ^doubles y  ^doubles z ^doubles a ^doubles b]
+    (map-d-impl out f x y z a b)   
+   )
+  ([^doubles out f ^doubles x ^doubles y  ^doubles z ^doubles a ^doubles b 
+    ^doubles c]
+    (map-d-impl out f x y z a b c)   
+   )
+  ) 
 
 ;; Functions used with single-item double and long arrays
 ;; (Single item arrays are used to carry state between audio-function calls)
@@ -163,17 +209,6 @@
   `(let ~(decorate-shared bindings)
      ~@body))
 
-(comment
-
-"This code here needs to be moved to a unit test..."
-
-(decorate-shared '[e #(+ 1 2)])
-(macroexpand-1 
-  '(let-s [e #(+ 1 2)] 
-     (println "test3")))
-  
-  )
-
 (defn reader 
   "Returns function that reads from atom and returns a buffer. Useful for mutable data derived from external source such as MIDI or OSC"
   [atm] 
@@ -186,46 +221,6 @@
       @buffer)))
 
 
-
-(defmacro map-d-impl
-  [out f & buffers]  
-  (let [cnt (gensym 'count)
-        get-bufs (map (fn [a] (list 'aget a cnt)) buffers )
-        apply-line `(~f ~@get-bufs) ] 
-    `(when (and ~@buffers)
-     (let [l# (alength ~out)]
-       (loop [~cnt (unchecked-int 0)]
-         (when (< ~cnt l#)
-           (aset ~out ~cnt
-                  ~(tag-double apply-line)) 
-           (recur (unchecked-inc-int ~cnt))
-           ))
-       ~out
-       )    
-     )))
-
-(defn map-d 
-  "Maps function f across double[] buffers and writes output to out buffer" 
-  ([^doubles out f ^doubles x]
-    (map-d-impl out f x)   
-   )
-  ([^doubles out f ^doubles x ^doubles y ]
-    (map-d-impl out f x y)   
-   )
-  ([^doubles out f ^doubles x ^doubles y  ^doubles z]
-    (map-d-impl out f x y z)   
-   )
-  ([^doubles out f ^doubles x ^doubles y  ^doubles z ^doubles a]
-    (map-d-impl out f x y z a)   
-   )
-  ([^doubles out f ^doubles x ^doubles y  ^doubles z ^doubles a ^doubles b]
-    (map-d-impl out f x y z a b)   
-   )
-  ([^doubles out f ^doubles x ^doubles y  ^doubles z ^doubles a ^doubles b 
-    ^doubles c]
-    (map-d-impl out f x y z a b c)   
-   )
-  )
         
 (defmacro fill 
   "Fills double[] buf with values. Initial value is set to value from double[1] start, 
