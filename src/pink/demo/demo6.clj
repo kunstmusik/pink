@@ -44,7 +44,7 @@
         ]
     
       (eng/engine-start e)
-      (eng/engine-add-afunc e (eng-events-runner eng-events))
+      (eng/engine-add-afunc e (event-list-processor eng-events))
 
       (Thread/sleep 2200)
       (eng/engine-stop e)

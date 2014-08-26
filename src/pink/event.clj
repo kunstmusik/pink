@@ -103,7 +103,7 @@
    (engine-events eng (list* x args))))
 
 
-(defn eng-events-runner [evtlst]
+(defn event-list-processor [evtlst]
   (let [buf (create-buffer)]
     (fn ^doubles []
       (event-list-tick evtlst)

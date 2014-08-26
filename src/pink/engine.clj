@@ -28,7 +28,7 @@
       :or {sample-rate 44100 nchnls 1 buffer-size 64}}] 
   (let  [e {:status (ref :stopped)
             :clear (ref false)
-            :pending-funcs (ref [])
+            :pending-afuncs (ref [])
             :sample-rate sample-rate
             :nchnls nchnls
             :buffer-size buffer-size 
@@ -40,10 +40,11 @@
 
 ;; should do initialization of f on separate thread?
 (defn engine-add-afunc [engine f]
-  (dosync (alter (engine :pending-funcs) conj f)))
+  (dosync (alter (engine :pending-afuncs) conj f)))
 
 (defn engine-remove-afunc [engine f]
-  (println "removing audio function")) 
+  (throw (Exception. "Not yet implemented"))) 
+
 
 ;;;; JAVASOUND CODE
 
@@ -120,15 +121,15 @@
         #^SourceDataLine line (open-line af)        
         out-buffer (double-array (:out-buffer-size engine))
         buf (ByteBuffer/allocate (:byte-buffer-size engine))
-        pending-funcs (:pending-funcs engine)
-        start-funcs @pending-funcs
+        pending-afuncs (:pending-afuncs engine)
+        start-funcs @pending-afuncs
         clear-flag (:clear engine)
         sr (:sample-rate engine)
         buffer-size (:buffer-size engine)
         nchnls (:nchnls engine)
         ]
     (dosync
-      (ref-set pending-funcs []))
+      (ref-set pending-afuncs []))
     (loop [cur-funcs start-funcs 
            buffer-count 0]
       (if (= @(engine :status) :running)
@@ -141,13 +142,13 @@
            (if @clear-flag
             (do 
               (dosync
-                (ref-set pending-funcs [])
+                (ref-set pending-afuncs [])
                 (ref-set clear-flag false))
               (recur [] (unchecked-inc buffer-count)))
-            (if (empty? @pending-funcs)
+            (if (empty? @pending-afuncs)
               (recur afs (unchecked-inc buffer-count))
-              (let [new-funcs (concat afs @pending-funcs)]
-                (dosync (ref-set pending-funcs []))
+              (let [new-funcs (concat afs @pending-afuncs)]
+                (dosync (ref-set pending-afuncs []))
                 (recur new-funcs (unchecked-inc buffer-count))))))
         (do
           (println "stopping...")
@@ -174,8 +175,8 @@
   (let [baos (ByteArrayOutputStream.)
         buf (ByteBuffer/allocate (:byte-buffer-size engine))
         out-buffer (double-array (:out-buffer-size engine))
-        pending-funcs (:pending-funcs engine)
-        start-funcs @pending-funcs
+        pending-afuncs (:pending-afuncs engine)
+        start-funcs @pending-afuncs
         bufnum (atom -1)
         start-time (System/currentTimeMillis)
         sr (:sample-rate engine)
@@ -183,7 +184,7 @@
         nchnls (:nchnls engine)
         ]
     (dosync
-      (ref-set pending-funcs []))
+      (ref-set pending-afuncs []))
     (loop [cur-funcs start-funcs
            buffer-count 0]
       (let [afs  (binding [*current-buffer-num* buffer-count 
@@ -195,10 +196,10 @@
           (do 
             (.write baos (.array buf))
             (.clear buf)
-            (if (empty? @pending-funcs)
+            (if (empty? @pending-afuncs)
               (recur afs (unchecked-inc buffer-count))
-              (let [new-funcs (concat afs @pending-funcs)]
-                (dosync (ref-set pending-funcs []))
+              (let [new-funcs (concat afs @pending-afuncs)]
+                (dosync (ref-set pending-afuncs []))
                 (recur new-funcs (unchecked-inc buffer-count)))))
           (let [data (.toByteArray baos)
                 bais (ByteArrayInputStream. data)
@@ -219,7 +220,7 @@
       (ref-set (engine :clear) true))
     (dosync 
       (ref-set (engine :audio-funcs) [])
-      (ref-set (engine :pending-funcs) []))))
+      (ref-set (engine :pending-afuncs) []))))
     
                             
 (defn engine-status [engine]

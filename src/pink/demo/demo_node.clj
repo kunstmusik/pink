@@ -27,7 +27,7 @@
                                     (* 220 (+ 1 %)) 
                                     (- (* 2 (/ % (- num-notes 1)))  1)) 
                             (range num-notes)))]
-      (eng/engine-add-afunc e (eng-events-runner n-events))) 
+      (eng/engine-add-afunc e (event-list-processor n-events))) 
 
 
   (eng/engine-stop e)
