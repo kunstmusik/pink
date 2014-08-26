@@ -7,8 +7,9 @@
 
 (deftype Event [event-func ^Double start event-args ]
   Object
-  (toString [e]  (format "\t%s\t%s\t%s\n" event-func start event-args )) 
-  )
+  (toString [this]  (format "\t%s\t%s\t%s\n" event-func start event-args )) 
+  Comparable
+  (compareTo [this a] (- (.start this) (.start ^Event a))))
 
 (defn event 
   "Create an Event object. Can either pass args as list or variadic args."
