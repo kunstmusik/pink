@@ -21,44 +21,32 @@
   (def e (eng/engine-create :nchnls 2))
 
   (def num-notes 5)
-  (let [eng-events 
-        (engine-events e
-                       (map #(event horn (* % 0.5)  
-                                    (/ 0.75 (+ 1 %)) 
-                                    (* 220 (+ 1 %)) 
-                                    (- (* 2 (/ % (- num-notes 1)))  1)) 
-                            (range num-notes)))]
-      (eng/engine-add-afunc e (event-list-processor eng-events))) 
+  (defn schedule 
+    [events]
+    (eng/engine-add-post-cfunc e (event-list-processor (engine-events e events))))
 
-  (let [eng-events 
-        (engine-events e
-                       (map #(event horn-stopped (+ 5 (* % 0.5))  
-                                    ;(/ 0.5 (+ 1 %)) 
-                                    0.5
-                                    (* 220 (+ 1 %)) 
-                                    (- (* 2 (/ % (- num-notes 1)))  1)) 
-                            (range num-notes)))]
-      (eng/engine-add-afunc e (event-list-processor eng-events)))
+  (schedule (map #(event horn (* % 0.5)  
+                         (/ 0.75 (+ 1 %)) 
+                         (* 220 (+ 1 %)) 
+                         (- (* 2 (/ % (- num-notes 1)))  1)) 
+                 (range num-notes)))
 
-(let [eng-events 
-        (engine-events e
-                       (map #(event horn-muted (+ 10 (* % 0.5))  
-                                    ;(/ 0.5 (+ 1 %)) 
-                                    0.5
-                                    (* 220 (+ 1 %)) 
-                                    (- (* 2 (/ % (- num-notes 1)))  1)) 
-                            (range num-notes)))]
-      (eng/engine-add-afunc e (event-list-processor eng-events)))
+  (schedule 
+    (map #(event horn-stopped (+ 5 (* % 0.5))  
+               0.5
+               (* 220 (+ 1 %)) 
+               (- (* 2 (/ % (- num-notes 1))) 1)) 
+       (range num-notes)))
 
+  (schedule (map #(event horn-muted (+ 10 (* % 0.5))  
+                ;(/ 0.5 (+ 1 %)) 
+                0.5
+                (* 220 (+ 1 %)) 
+                (- (* 2 (/ % (- num-notes 1)))  1)) 
+        (range num-notes)))
 
-  (let [eng-events (engine-events e
-                       (map #(event table-synth-cubic (+ 15 (* % 0.5)) 
-                                    (* 220 (+ 1%))) (range num-notes)))]
-
-      (eng/engine-add-afunc e (event-list-processor eng-events))
-    
-    )
-
+  (schedule (map #(event table-synth-cubic (+ 15 (* % 0.5)) 
+               (* 220 (+ 1%))) (range num-notes)))
 
   (eng/engine->disk e (str (System/getProperty "user.home") 
                            File/separator "test.wav"))

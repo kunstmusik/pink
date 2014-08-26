@@ -81,6 +81,13 @@
           (recur b))))
     (swap! cur-buffer inc)))
 
+(defn event-list-processor 
+  "Returns a control-function that ticks through an event list"
+  [evtlst]
+  (fn ^doubles []
+    (event-list-tick evtlst)
+    (not-empty @(:events evtlst))))
+ 
 ;; Events functions dealing with audio engines
 
 (defn fire-engine-event 
@@ -104,13 +111,6 @@
    (engine-events eng (list* x args))))
 
 
-(defn event-list-processor [evtlst]
-  (let [buf (create-buffer)]
-    (fn ^doubles []
-      (event-list-tick evtlst)
-      (if (empty? @(:events evtlst))
-        nil
-        buf))))
 
 ;; Event functiosn dealing with nodes
 

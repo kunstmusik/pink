@@ -43,7 +43,7 @@
   (let [eng-events (engine-events e
                        (map #(event table-synth-interp 0.25 (* 110 %)) (range 1 10)))]
 
-      (eng/engine-add-afunc e (event-list-processor eng-events))
+      (eng/engine-add-post-cfunc e (event-list-processor eng-events))
     
     ) 
 
@@ -70,7 +70,7 @@
         ]
     
       (eng/engine-start e)
-      (eng/engine-add-afunc e (event-list-processor eng-events))
+      (eng/engine-add-post-cfunc e (event-list-processor eng-events))
 
       (Thread/sleep 3000)
       (eng/engine-stop e)

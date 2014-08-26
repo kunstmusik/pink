@@ -29,6 +29,8 @@
   (let  [e {:status (ref :stopped)
             :clear (ref false)
             :pending-afuncs (ref [])
+            :pending-pre-cfuncs (ref [])
+            :pending-post-cfuncs (ref [])
             :sample-rate sample-rate
             :nchnls nchnls
             :buffer-size buffer-size 
@@ -45,6 +47,17 @@
 (defn engine-remove-afunc [engine f]
   (throw (Exception. "Not yet implemented"))) 
 
+(defn engine-add-pre-cfunc [engine f]
+  (dosync (alter (engine :pending-pre-cfuncs) conj f)))
+
+(defn engine-remove-pre-cfunc [engine f]
+  (throw (Exception. "Not yet implemented"))) 
+
+(defn engine-add-post-cfunc [engine f]
+  (dosync (alter (engine :pending-post-cfuncs) conj f)))
+
+(defn engine-remove-post-cfunc [engine f]
+  (throw (Exception. "Not yet implemented"))) 
 
 ;;;; JAVASOUND CODE
 
@@ -100,7 +113,6 @@
           (recur xs# ret#)))
      ret#)))) 
 
-
 (defn process-buffer
   [afs ^doubles out-buffer ^ByteBuffer buffer]
   (Arrays/fill ^doubles out-buffer 0.0)
@@ -108,10 +120,28 @@
     (doubles->byte-buffer out-buffer buffer)
     newfs))
 
+(defn process-cfuncs
+  [cfuncs]
+  (loop [[x & xs] cfuncs
+         ret []]
+    (if x
+      (if (x)
+        (recur xs (conj ret x))
+        (recur xs ret))
+      ret)))
+
 (defn buf->line [^ByteBuffer buffer ^SourceDataLine line
                  ^long out-buffer-size]
   (.write line (.array buffer) 0 out-buffer-size)
   (.clear buffer))
+
+(defmacro drain-ref!
+  [r]
+  `(dosync (let [t# @~r] (ref-set ~r []) t#)))
+
+(defmacro concat-drain!
+  [v r]
+  `(if (empty? @~r) ~v (concat ~v (drain-ref! ~r))))
 
 (defn engine-run 
   "Main realtime engine running function. Called within a thread from
@@ -122,34 +152,46 @@
         out-buffer (double-array (:out-buffer-size engine))
         buf (ByteBuffer/allocate (:byte-buffer-size engine))
         pending-afuncs (:pending-afuncs engine)
-        start-funcs @pending-afuncs
+        pending-pre-cfuncs (:pending-pre-cfuncs engine)
+        pending-post-cfuncs (:pending-post-cfuncs engine)
         clear-flag (:clear engine)
         sr (:sample-rate engine)
         buffer-size (:buffer-size engine)
-        nchnls (:nchnls engine)
-        ]
-    (dosync
-      (ref-set pending-afuncs []))
-    (loop [cur-funcs start-funcs 
+        nchnls (:nchnls engine) ]
+    (loop [pre-cfuncs (drain-ref! pending-pre-cfuncs)
+           cur-funcs (drain-ref! pending-afuncs) 
+           post-cfuncs (drain-ref! pending-post-cfuncs)
            buffer-count 0]
       (if (= @(engine :status) :running)
-        (let [afs  (binding [*current-buffer-num* buffer-count 
+        (let [pre (binding [*current-buffer-num* buffer-count 
+                            *sr* sr 
+                            *buffer-size* buffer-size 
+                            *nchnls* nchnls] 
+                    (process-cfuncs pre-cfuncs))
+              afs (binding [*current-buffer-num* buffer-count 
+                            *sr* sr 
+                            *buffer-size* buffer-size 
+                            *nchnls* nchnls]
+                    (process-buffer cur-funcs out-buffer buf))
+              post (binding [*current-buffer-num* buffer-count 
                              *sr* sr 
                              *buffer-size* buffer-size 
                              *nchnls* nchnls]
-                     (process-buffer cur-funcs out-buffer buf))]  
-           (buf->line buf line (:byte-buffer-size engine))
-           (if @clear-flag
+                     (process-cfuncs post-cfuncs))]  
+          (buf->line buf line (:byte-buffer-size engine))
+          (if @clear-flag
             (do 
               (dosync
+                (ref-set pending-pre-cfuncs [])
                 (ref-set pending-afuncs [])
+                (ref-set pending-post-cfuncs [])
                 (ref-set clear-flag false))
-              (recur [] (unchecked-inc buffer-count)))
-            (if (empty? @pending-afuncs)
-              (recur afs (unchecked-inc buffer-count))
-              (let [new-funcs (concat afs @pending-afuncs)]
-                (dosync (ref-set pending-afuncs []))
-                (recur new-funcs (unchecked-inc buffer-count))))))
+              (recur [] [] [] (unchecked-inc buffer-count)))
+            (recur 
+              (concat-drain! pre pending-pre-cfuncs)
+              (concat-drain! afs pending-afuncs)
+              (concat-drain! post pending-post-cfuncs)
+              (unchecked-inc buffer-count))))
         (do
           (println "stopping...")
           (doto line
@@ -176,31 +218,40 @@
         buf (ByteBuffer/allocate (:byte-buffer-size engine))
         out-buffer (double-array (:out-buffer-size engine))
         pending-afuncs (:pending-afuncs engine)
-        start-funcs @pending-afuncs
+        pending-pre-cfuncs (:pending-pre-cfuncs engine)
+        pending-post-cfuncs (:pending-post-cfuncs engine)
         bufnum (atom -1)
         start-time (System/currentTimeMillis)
         sr (:sample-rate engine)
         buffer-size (:buffer-size engine)
-        nchnls (:nchnls engine)
-        ]
-    (dosync
-      (ref-set pending-afuncs []))
-    (loop [cur-funcs start-funcs
+        nchnls (:nchnls engine)]
+    (loop [pre-cfuncs (drain-ref! pending-pre-cfuncs)
+           cur-funcs (drain-ref! pending-afuncs) 
+           post-cfuncs (drain-ref! pending-post-cfuncs)
            buffer-count 0]
-      (let [afs  (binding [*current-buffer-num* buffer-count 
-                           *sr* sr 
-                           *buffer-size* buffer-size 
-                           *nchnls* nchnls]
-                   (process-buffer cur-funcs out-buffer buf))]  
-        (if (not-empty afs)  
+      (let [pre (binding [*current-buffer-num* buffer-count 
+                            *sr* sr 
+                            *buffer-size* buffer-size 
+                            *nchnls* nchnls] 
+                    (process-cfuncs pre-cfuncs))
+              afs (binding [*current-buffer-num* buffer-count 
+                            *sr* sr 
+                            *buffer-size* buffer-size 
+                            *nchnls* nchnls]
+                    (process-buffer cur-funcs out-buffer buf))
+              post (binding [*current-buffer-num* buffer-count 
+                             *sr* sr 
+                             *buffer-size* buffer-size 
+                             *nchnls* nchnls]
+                     (process-cfuncs post-cfuncs))
+              new-pre (concat-drain! pre pending-pre-cfuncs) 
+              new-afs (concat-drain! afs pending-afuncs) 
+              new-post (concat-drain! post pending-post-cfuncs)]  
+        (if (or (not-empty new-pre) (not-empty new-afs) (not-empty new-post))  
           (do 
             (.write baos (.array buf))
             (.clear buf)
-            (if (empty? @pending-afuncs)
-              (recur afs (unchecked-inc buffer-count))
-              (let [new-funcs (concat afs @pending-afuncs)]
-                (dosync (ref-set pending-afuncs []))
-                (recur new-funcs (unchecked-inc buffer-count)))))
+            (recur new-pre new-afs new-post (unchecked-inc buffer-count)))
           (let [data (.toByteArray baos)
                 bais (ByteArrayInputStream. data)
                 af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
@@ -219,7 +270,6 @@
     (dosync 
       (ref-set (engine :clear) true))
     (dosync 
-      (ref-set (engine :audio-funcs) [])
       (ref-set (engine :pending-afuncs) []))))
     
                             
@@ -233,6 +283,7 @@
     (loop [[a & b] @engines]
       (when a
         (engine-clear a)
+        (engine-stop a)
         (recur b)
         ))))
 

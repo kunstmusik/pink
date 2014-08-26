@@ -17,8 +17,6 @@
   (def root-node (create-node :channels 2))
   (eng/engine-add-afunc e (node-processor root-node))
  
-
-  
   (def num-notes 5)
   (let [n-events 
         (node-events root-node 
@@ -27,7 +25,7 @@
                                     (* 220 (+ 1 %)) 
                                     (- (* 2 (/ % (- num-notes 1)))  1)) 
                             (range num-notes)))]
-      (eng/engine-add-afunc e (event-list-processor n-events))) 
+      (eng/engine-add-post-cfunc e (event-list-processor n-events))) 
 
 
   (eng/engine-stop e)

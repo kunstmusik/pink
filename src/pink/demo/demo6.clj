@@ -4,7 +4,7 @@
   (:require [pink.engine :as eng]
             [pink.envelopes :refer [env exp-env adsr xadsr xar]]
             [pink.oscillators :refer [sine sine2]]
-            [pink.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]
+            [pink.util :refer [mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]
             [pink.event :refer :all] ))
 
 
@@ -44,7 +44,7 @@
         ]
     
       (eng/engine-start e)
-      (eng/engine-add-afunc e (event-list-processor eng-events))
+      (eng/engine-add-post-cfunc e (event-list-processor eng-events))
 
       (Thread/sleep 2200)
       (eng/engine-stop e)
