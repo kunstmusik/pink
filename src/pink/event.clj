@@ -1,15 +1,23 @@
 (ns pink.event
   (:require [pink.engine :refer :all]
             [pink.node :refer [node-add-afunc]]
-            [pink.util :refer [create-buffer]]
+            [pink.util :refer [create-buffer drain-ref!]]
             [pink.config :refer [*buffer-size* *sr*]]  )
-  (:import [java.util List]))
+  (:import [java.util List PriorityQueue]))
 
-(deftype Event [event-func ^Double start event-args ]
+(deftype Event [event-func ^double start event-args ]
   Object
   (toString [this]  (format "\t%s\t%s\t%s\n" event-func start event-args )) 
+  (hashCode [this] (System/identityHashCode this))
+  (equals [this b] (identical? this b))
+
   Comparable
-  (compareTo [this a] (- (.start this) (.start ^Event a))))
+  (compareTo [this a] 
+    (let [t1 (.start this)
+          t2 (.start ^Event a)] 
+     (cond (> t1 t2) 1
+           (< t1 t2) -1
+           :else 0))))
 
 (defn event 
   "Create an Event object. Can either pass args as list or variadic args."
@@ -34,59 +42,62 @@
   turning off an audio function, and so on."
 
   ([] (event-list []))
-  ([evts] 
-   {:events (ref (sort-by #(.start ^Event %) evts))       
+  ([^List evts] 
+   {:events (PriorityQueue. evts)       
+    :pending-events (ref [])
     :cur-buffer (atom 0)
     }))
 
 (defn event-list-add 
   "Add an event to an event list"
   [evtlst ^Event evt] 
-  (when (< (.indexOf ^List @(:events evtlst) evt) 0)
-    (dosync
-      (alter (:events evtlst) 
-             (fn [a] (sort-by #(.start ^Event %) (conj a evt))))))
+  (dosync
+    (alter (:pending-events evtlst) conj evt))
   evtlst)
 
 (defn event-list-remove 
   "remove an event from the event list"
   [evtlst evt] 
-  (do
-    (dosync
-      (alter (:events evtlst) (fn [a] (remove #(= % evt) a)))) 
-    evtlst))
 
-(defn- get-events! 
-  "alters an event list, returns events that are scheduled to be fired, updates 
-  events in the event list"
-  [evtlst cur-time]
-  (dosync 
-    (let [events (:events evtlst)
-          [ready pending] (split-with #(<=  (.start ^Event %) cur-time) @events)]
-      (ref-set events (if pending pending [])) 
-      ready)))
+  ; this needs to be done using a pending-removals list 
+  ;(do
+  ;  (dosync
+  ;    (alter (:events evtlst) (fn [a] (remove #(= % evt) a)))) 
+  ;  evtlst)
+  
+  )
 
-(defn- fire-event [evt]
+(defn- fire-event 
+  "Evaluates event as delayed function application"
+  [evt]
   (apply (.event-func ^Event evt) 
                  (.event-args ^Event evt)))
 
-(defn event-list-tick [evtlst] 
+(defn- merge-pending!
+  [evtlst]
+  (let [pending (:pending-events evtlst)]
+    (when (not-empty @pending)
+      (let [new-events (drain-ref! pending)] 
+        (.addAll ^PriorityQueue (:events evtlst) new-events)))))
+
+(defn event-list-tick!
+  [evtlst] 
+  (merge-pending! evtlst)
   (let [cur-buffer (:cur-buffer evtlst)
-        cur-time (/ (* @cur-buffer *buffer-size*) *sr*)
-        ready-events (get-events! evtlst cur-time)]
-    (loop [[a & b] ready-events]
-      (when a
-        (do 
-          (fire-event a)
-          (recur b))))
+        cur-time (/ (* @cur-buffer *buffer-size*) (double *sr*))
+        events ^PriorityQueue (:events evtlst)]
+    (loop [evt ^Event (.peek events)]
+      (when (and evt (<= (.start evt) cur-time)) 
+          (fire-event (.poll events))
+          (recur (.peek events))))
     (swap! cur-buffer inc)))
 
 (defn event-list-processor 
   "Returns a control-function that ticks through an event list"
   [evtlst]
   (fn ^doubles []
-    (event-list-tick evtlst)
-    (not-empty @(:events evtlst))))
+    (event-list-tick! evtlst)
+    (not (.isEmpty ^PriorityQueue (:events evtlst)))))
  
 ;; Events functions dealing with audio engines
 
@@ -112,7 +123,7 @@
 
 
 
-;; Event functiosn dealing with nodes
+;; Event functions dealing with nodes
 
 
 (defn fire-node-event 
@@ -154,11 +165,10 @@
 
   (def test-note (event test-func 0.0 1.0 440.0))
   (def test-note-dupe (event test-func 0.0 1.0 440.0))
-  (def test-note2 (event test-func 0.0 1.0 220.0))
+  (def test-note2 (event test-func 0.5 1.0 220.0))
   (def test-note3 (event test-func 2.0 1.5 110.0))
   (print (.start test-note3))
-
-  (def evtlst (event-list [test-note]))
+  (def evtlst (event-list [test-note test-note-dupe test-note2 test-note3]))
   (event-list-add evtlst test-note3)
 
   (print evtlst)
