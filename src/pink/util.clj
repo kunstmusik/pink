@@ -100,6 +100,15 @@
 (defmacro swapl! [l f]
   `(setl! ~l (~f (getl ~l))))
 
+;; Functions for working with refs
+
+(defmacro drain-ref!
+  [r]
+  `(dosync (let [t# @~r] (ref-set ~r []) t#)))
+
+(defmacro concat-drain!
+  [v r]
+  `(if (empty? @~r) ~v (concat ~v (drain-ref! ~r))))
 
 ;; Functions related to audio buffers
 

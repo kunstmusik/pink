@@ -135,13 +135,6 @@
   (.write line (.array buffer) 0 out-buffer-size)
   (.clear buffer))
 
-(defmacro drain-ref!
-  [r]
-  `(dosync (let [t# @~r] (ref-set ~r []) t#)))
-
-(defmacro concat-drain!
-  [v r]
-  `(if (empty? @~r) ~v (concat ~v (drain-ref! ~r))))
 
 (defn engine-run 
   "Main realtime engine running function. Called within a thread from
