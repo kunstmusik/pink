@@ -1,5 +1,5 @@
 (ns pink.demo.demo-node
- (:require [pink.engine :as eng]
+ (:require [pink.engine :refer :all]
              [pink.event :refer :all] 
              [pink.instruments.horn :refer :all]
              [pink.util :refer [mul]]
@@ -11,26 +11,27 @@
 
 (comment
 
-  (def e (eng/engine-create :nchnls 2))
-  (eng/engine-start e)
+  (def e (engine-create :nchnls 2))
+  (engine-start e)
 
   (def root-node (create-node :channels 2))
-  (eng/engine-add-afunc e (node-processor root-node))
+  (engine-add-afunc e (node-processor root-node))
  
-  (def num-notes 5)
-  (let [n-events 
-        (node-events root-node 
-                       (map #(event horn (* % 0.5)  
-                                    (/ 0.75 (+ 1 %)) 
-                                    (* 220 (+ 1 %)) 
-                                    (- (* 2 (/ % (- num-notes 1)))  1)) 
-                            (range num-notes)))]
-      (eng/engine-add-post-cfunc e (event-list-processor n-events))) 
+  (def my-score 
+    (let [num-notes 5] 
+      (node-events root-node 
+                   (map #(event horn (* % 0.5)  
+                                (/ 0.75 (+ 1 %)) 
+                                (* 220 (+ 1 %)) 
+                                (- (* 2 (/ % (- num-notes 1)))  1)) 
+                        (range num-notes)))))
+
+  (engine-add-events e my-score) 
 
 
-  (eng/engine-stop e)
-  (eng/engine-clear e)
-  (eng/engine-kill-all)
+  (engine-stop e)
+  (engine-clear e)
+  (engine-kill-all)
 
 
   )

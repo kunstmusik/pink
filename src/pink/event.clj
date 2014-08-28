@@ -1,7 +1,5 @@
 (ns pink.event
-  (:require [pink.engine :refer :all]
-            [pink.node :refer [node-add-afunc]]
-            [pink.util :refer [create-buffer drain-ref!]]
+  (:require [pink.util :refer [create-buffer drain-ref!]]
             [pink.config :refer [*buffer-size* *sr*]]  )
   (:import [java.util List PriorityQueue]))
 
@@ -29,30 +27,48 @@
    (Event. f start (list* x args)))
   )
 
+(defn wrap-event 
+  "Wraps an event with other top-level functions."
+  [f pre-args ^Event evt ]
+  (event f (.start evt) (conj pre-args evt)))
+
+(defn alter-event-time
+  "Utility function to create a new Event using the same values as the
+  passed-in event and new start time."
+  [start ^Event evt]
+  (event (.event-func evt) start (.event-args evt)))
+
 (defn events [f & args]
   (map #(apply event f %) args))
-
 
 (defn event-list
   "Creates an EventList. 
 
-  EventList's its own internal time and fires off events whose start times have
-  been met.  Event have no notion of duration. An event may do things like 
-  schedule an audio function to be added to an engine's performance list, force
-  turning off an audio function, and so on."
+  EventLists maintain their own internal time and fire off events whose start
+  times have been met.  Events have no notion of duration. An event may do
+  things like schedule an audio function to be added to an engine's
+  performance list, force turning off an audio function, and so on."
 
   ([] (event-list []))
   ([^List evts] 
    {:events (PriorityQueue. evts)       
-    :pending-events (ref [])
+    :pending-events (atom [])
     :cur-buffer (atom 0)
     }))
 
 (defn event-list-add 
-  "Add an event to an event list"
-  [evtlst ^Event evt] 
-  (dosync
-    (alter (:pending-events evtlst) conj evt))
+  "Add an event or events to an event list"
+  [evtlst evts] 
+  (let [pending (:pending-events evtlst)]
+    (cond 
+      (sequential? evts) 
+        (swap! pending concat evts) 
+      (:events evts)
+        (swap! pending concat (:events evts)) 
+      (instance? Event evts) 
+        (swap! pending conj evts) 
+      :else
+      (throw (Exception. (str "Unexpected event: " evts)))))
   evtlst)
 
 (defn event-list-remove 
@@ -67,18 +83,31 @@
   
   )
 
-(defn- fire-event 
+(defn drain-atom!
+  [a]
+  (loop [v @a]
+    (if (compare-and-set! a v [])
+      v
+      (recur @a))))
+
+(defn fire-event 
   "Evaluates event as delayed function application"
   [evt]
   (apply (.event-func ^Event evt) 
                  (.event-args ^Event evt)))
 
 (defn- merge-pending!
+  "Merges pending-events with the PriorityQueue of known events."
   [evtlst]
   (let [pending (:pending-events evtlst)]
     (when (not-empty @pending)
-      (let [new-events (drain-ref! pending)] 
-        (.addAll ^PriorityQueue (:events evtlst) new-events)))))
+      (let [new-events (drain-atom! pending)
+            cur-buffer (:cur-buffer evtlst)
+            cur-time (/ (* @cur-buffer *buffer-size*) (double *sr*))
+            timed-events 
+              (map (fn [^Event a] (alter-event-time (+ cur-time (.start a)) a)) 
+                   new-events)] 
+        (.addAll ^PriorityQueue (:events evtlst) timed-events)))))
 
 (defn event-list-tick!
   [evtlst] 
@@ -98,53 +127,6 @@
   (fn ^doubles []
     (event-list-tick! evtlst)
     (not (.isEmpty ^PriorityQueue (:events evtlst)))))
- 
-;; Events functions dealing with audio engines
-
-(defn fire-engine-event 
-  "create an instance of an audio function and adds to the engine" 
-  [eng f & args]  
-  (engine-add-afunc eng (apply f args)))
-
-(defn wrap-engine-event [eng ^Event evt]
-  (event fire-engine-event 
-         (.start evt)
-         (list* eng (.event-func evt) (.event-args evt))))
-
-(defn engine-events 
-  "Takes an engine and series of events, wrapping the events as engine-events.
-  If single arg given, assumes it is a list of events."
-  ([eng args]
-   (if (sequential? args)
-     (event-list (map #(wrap-engine-event eng %) args))    
-     (event-list (map #(wrap-engine-event eng %) [args]))))
-  ([eng x & args]
-   (engine-events eng (list* x args))))
-
-
-
-;; Event functions dealing with nodes
-
-
-(defn fire-node-event 
-  "create an instance of an audio function and adds to the engine" 
-  [node f & args]  
-  (node-add-afunc node (apply f args)))
-
-(defn wrap-node-event [eng ^Event evt]
-  (event fire-node-event 
-         (.start evt)
-         (list* eng (.event-func evt) (.event-args evt))))
-
-(defn node-events 
-  "Takes a node and series of events, wrapping the events as node-events.
-  If single arg given, assumes it is a list of events."
-  ([node args]
-   (if (sequential? args)
-     (event-list (map #(wrap-node-event node %) args))    
-     (event-list (map #(wrap-node-event node %) [args]))))
-  ([node x & args]
-   (node-events node (list* x args))))
 
 (comment
 

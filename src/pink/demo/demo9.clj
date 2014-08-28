@@ -22,16 +22,16 @@
 
   (def num-notes 5)
   (let [eng-events 
-        (engine-events e
+        (eng/engine-events e
                        (map #(event horn (* % 0.5)  
                                     (/ 0.75 (+ 1 %)) 
                                     (* 220 (+ 1 %)) 
                                     (- (* 2 (/ % (- num-notes 1)))  1)) 
                             (range num-notes)))]
-      (eng/engine-add-post-cfunc e (event-list-processor eng-events))) 
+      (eng/engine-add-events e eng-events)) 
 
   (let [eng-events 
-        (engine-events e
+        (eng/engine-events e
                        (map #(event horn-stopped (* % 0.5)  
                                     ;(/ 0.5 (+ 1 %)) 
                                     0.5
@@ -41,7 +41,7 @@
       (eng/engine-add-post-cfunc e (event-list-processor eng-events)))
 
   (let [eng-events 
-        (engine-events e
+        (eng/engine-events e
                        (map #(event horn-muted (* % 0.5)  
                                     ;(/ 0.5 (+ 1 %)) 
                                     0.5
@@ -51,7 +51,7 @@
       (eng/engine-add-post-cfunc e (event-list-processor eng-events)))
 
 
-  (let [eng-events (engine-events e
+  (let [eng-events (eng/engine-events e
                        (map #(event table-synth-cubic (* % 0.5) (* 220 (+ 1%))) (range num-notes)))]
 
       (eng/engine-add-post-cfunc e (event-list-processor eng-events))

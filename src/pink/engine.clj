@@ -1,7 +1,8 @@
 (ns pink.engine
   "Audio Engine Code"
   (:require [pink.config :refer :all]
-            [pink.util :refer :all])
+            [pink.util :refer :all]
+            [pink.event :refer :all])
   (:import (java.io ByteArrayInputStream ByteArrayOutputStream File) 
            (java.nio ByteBuffer)
            (java.util Arrays)
@@ -22,42 +23,56 @@
 
 (def BYTE-SIZE (/ Short/SIZE Byte/SIZE)) ; 2 bytes for 16-bit audio
 
+(deftype Engine [status clear pending-afuncs
+                   pending-pre-cfuncs pending-post-cfuncs
+                   sample-rate nchnls buffer-size
+                   out-buffer-size byte-buffer-size
+                   event-list]
+  Object
+  (toString [this] (str "[Engine] ID:" (System/identityHashCode this))))
+
 (defn engine-create 
   "Creates an audio engine"
   [& {:keys [sample-rate nchnls buffer-size] 
       :or {sample-rate 44100 nchnls 1 buffer-size 64}}] 
-  (let  [e {:status (ref :stopped)
-            :clear (ref false)
-            :pending-afuncs (ref [])
-            :pending-pre-cfuncs (ref [])
-            :pending-post-cfuncs (ref [])
-            :sample-rate sample-rate
-            :nchnls nchnls
-            :buffer-size buffer-size 
-            :out-buffer-size (* buffer-size nchnls)
-            :byte-buffer-size (* BYTE-SIZE buffer-size nchnls)
-            }]
+  (let  [e 
+          (Engine. (ref :stopped)
+            (ref false) (ref [])
+            (ref []) (ref [])
+            sample-rate nchnls buffer-size 
+            (* buffer-size nchnls) (* BYTE-SIZE buffer-size nchnls)
+            (event-list))]
     (dosync (alter engines conj e))
     e))
 
 ;; should do initialization of f on separate thread?
-(defn engine-add-afunc [engine f]
-  (dosync (alter (engine :pending-afuncs) conj f)))
+(defn engine-add-afunc 
+  [^Engine engine f]
+  (dosync (alter (.pending-afuncs engine ) conj f)))
 
-(defn engine-remove-afunc [engine f]
+(defn engine-remove-afunc 
+  [^Engine engine f]
   (throw (Exception. "Not yet implemented"))) 
 
-(defn engine-add-pre-cfunc [engine f]
-  (dosync (alter (engine :pending-pre-cfuncs) conj f)))
+(defn engine-add-pre-cfunc 
+  [^Engine engine f]
+  (dosync (alter (.pending-pre-cfuncs engine) conj f)))
 
-(defn engine-remove-pre-cfunc [engine f]
+(defn engine-remove-pre-cfunc 
+  [^Engine engine f]
   (throw (Exception. "Not yet implemented"))) 
 
-(defn engine-add-post-cfunc [engine f]
-  (dosync (alter (engine :pending-post-cfuncs) conj f)))
+(defn engine-add-post-cfunc 
+  [^Engine engine f]
+  (dosync (alter (.pending-post-cfuncs engine) conj f)))
 
-(defn engine-remove-post-cfunc [engine f]
+(defn engine-remove-post-cfunc 
+  [^Engine engine f]
   (throw (Exception. "Not yet implemented"))) 
+
+(defn engine-add-events 
+  [^Engine engine events]
+  (event-list-add (.event-list engine) events))
 
 ;;;; JAVASOUND CODE
 
@@ -135,27 +150,27 @@
   (.write line (.array buffer) 0 out-buffer-size)
   (.clear buffer))
 
-
 (defn engine-run 
   "Main realtime engine running function. Called within a thread from
   engine-start."
-  [engine]
-  (let [af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
+  [^Engine engine]
+  (let [af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)
         #^SourceDataLine line (open-line af)        
-        out-buffer (double-array (:out-buffer-size engine))
-        buf (ByteBuffer/allocate (:byte-buffer-size engine))
-        pending-afuncs (:pending-afuncs engine)
-        pending-pre-cfuncs (:pending-pre-cfuncs engine)
-        pending-post-cfuncs (:pending-post-cfuncs engine)
-        clear-flag (:clear engine)
-        sr (:sample-rate engine)
-        buffer-size (:buffer-size engine)
-        nchnls (:nchnls engine) ]
+        out-buffer (double-array (.out-buffer-size engine))
+        buf (ByteBuffer/allocate (.byte-buffer-size engine))
+        pending-afuncs (.pending-afuncs engine)
+        pending-pre-cfuncs (.pending-pre-cfuncs engine)
+        pending-post-cfuncs (.pending-post-cfuncs engine)
+        clear-flag (.clear engine)
+        sr (.sample-rate engine)
+        buffer-size (.buffer-size engine)
+        nchnls (.nchnls engine) 
+        run-engine-events (event-list-processor (.event-list engine))]
     (loop [pre-cfuncs (drain-ref! pending-pre-cfuncs)
            cur-funcs (drain-ref! pending-afuncs) 
            post-cfuncs (drain-ref! pending-post-cfuncs)
            buffer-count 0]
-      (if (= @(engine :status) :running)
+      (if (= @(.status engine) :running)
         (let [pre (binding [*current-buffer-num* buffer-count 
                             *sr* sr 
                             *buffer-size* buffer-size 
@@ -171,7 +186,8 @@
                              *buffer-size* buffer-size 
                              *nchnls* nchnls]
                      (process-cfuncs post-cfuncs))]  
-          (buf->line buf line (:byte-buffer-size engine))
+          (buf->line buf line (.byte-buffer-size engine))
+          (run-engine-events)
           (if @clear-flag
             (do 
               (dosync
@@ -191,14 +207,50 @@
             (.flush)
             (.close)))))))
 
-(defn engine-start [engine]
-  (when (= @(engine :status) :stopped)
-    (dosync (ref-set (engine :status) :running))
+(defn engine-start [^Engine engine]
+  (when (= @(.status engine) :stopped)
+    (dosync (ref-set (.status engine) :running))
     (.start (Thread. ^Runnable (partial engine-run engine)))))
 
-(defn engine-stop [engine]
-  (when (= @(engine :status) :running)
-    (dosync (ref-set (engine :status) :stopped))))
+(defn engine-stop [^Engine engine]
+  (when (= @(.status engine) :running)
+    (dosync (ref-set (.status engine) :stopped))))
+
+
+
+(defn engine-clear 
+  [^Engine engine]
+  (if (= @(.status engine) :running)
+    (dosync 
+      (ref-set (.clear engine) true))
+    (dosync 
+      (ref-set (.pending-afuncs engine) []))))
+    
+                            
+(defn engine-status 
+  [^Engine engine]
+  @(.status engine))
+
+(defn engine-kill-all
+  "Kills all engines and clears them"
+  []
+  (dosync
+    (loop [[a & b] @engines]
+      (when a
+        (engine-clear a)
+        (engine-stop a)
+        (recur b)
+        ))))
+
+(defn engines-clear
+  "Kills all engines and clears global engines list. Useful for development in REPL, but user must be 
+  careful after clearing not to use existing engines."
+  []
+  (engine-kill-all)
+  (dosync (ref-set engines [])))
+
+
+;; Non-Realtime Engine functions
 
 (defn engine->disk 
   "Runs engine and writes output to disk.  This will run the engine until all
@@ -206,18 +258,19 @@
 
   Warning: Be careful not to render with an engine setup with infinite
   duration!"
-  [engine ^String filename]
+  [^Engine engine ^String filename]
   (let [baos (ByteArrayOutputStream.)
-        buf (ByteBuffer/allocate (:byte-buffer-size engine))
-        out-buffer (double-array (:out-buffer-size engine))
-        pending-afuncs (:pending-afuncs engine)
-        pending-pre-cfuncs (:pending-pre-cfuncs engine)
-        pending-post-cfuncs (:pending-post-cfuncs engine)
+        buf (ByteBuffer/allocate (.byte-buffer-size engine))
+        out-buffer (double-array (.out-buffer-size engine))
+        pending-afuncs (.pending-afuncs engine)
+        pending-pre-cfuncs (.pending-pre-cfuncs engine)
+        pending-post-cfuncs (.pending-post-cfuncs engine)
         bufnum (atom -1)
         start-time (System/currentTimeMillis)
-        sr (:sample-rate engine)
-        buffer-size (:buffer-size engine)
-        nchnls (:nchnls engine)]
+        sr (.sample-rate engine)
+        buffer-size (.buffer-size engine)
+        nchnls (.nchnls engine)
+        run-engine-events (event-list-processor (.event-list engine))]
     (loop [pre-cfuncs (drain-ref! pending-pre-cfuncs)
            cur-funcs (drain-ref! pending-afuncs) 
            post-cfuncs (drain-ref! pending-post-cfuncs)
@@ -239,15 +292,17 @@
                      (process-cfuncs post-cfuncs))
               new-pre (concat-drain! pre pending-pre-cfuncs) 
               new-afs (concat-drain! afs pending-afuncs) 
-              new-post (concat-drain! post pending-post-cfuncs)]  
-        (if (or (not-empty new-pre) (not-empty new-afs) (not-empty new-post))  
+              new-post (concat-drain! post pending-post-cfuncs)
+              more-engine-events (run-engine-events)
+              ]  
+        (if (or (not-empty new-pre) (not-empty new-afs) (not-empty new-post) more-engine-events)  
           (do 
             (.write baos (.array buf))
             (.clear buf)
             (recur new-pre new-afs new-post (unchecked-inc buffer-count)))
           (let [data (.toByteArray baos)
                 bais (ByteArrayInputStream. data)
-                af (AudioFormat. (:sample-rate engine) 16 (:nchnls engine) true true)
+                af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)
                 aftype AudioFileFormat$Type/WAVE 
                 ais (AudioInputStream. bais af (alength data))
                 f (File. filename)]
@@ -256,36 +311,29 @@
             (println "Elapsed time: " 
                      (/ (- (System/currentTimeMillis) start-time) 1000.0)))
           )))))
+ 
+;; Event functions dealing with audio engines
 
+(defn fire-engine-event 
+  "create an instance of an audio function and adds to the engine" 
+  [eng evt]  
+  (engine-add-afunc eng (fire-event evt)))
 
-(defn engine-clear [engine]
-  (if (= @(engine :status) :running)
-    (dosync 
-      (ref-set (engine :clear) true))
-    (dosync 
-      (ref-set (engine :pending-afuncs) []))))
-    
-                            
-(defn engine-status [engine]
-  @(:status engine))
+(defn wrap-engine-event 
+  [eng ^pink.event.Event evt]
+  (wrap-event fire-engine-event [eng] evt))
 
-(defn engine-kill-all
-  "Kills all engines and clears them"
-  []
-  (dosync
-    (loop [[a & b] @engines]
-      (when a
-        (engine-clear a)
-        (engine-stop a)
-        (recur b)
-        ))))
+(defn engine-events 
+  "Takes an engine and series of events, wrapping the events as engine-events.
+  If single arg given, assumes it is a list of events."
+  ([eng args]
+   (if (sequential? args)
+     (event-list (map #(wrap-engine-event eng %) args))    
+     (event-list (map #(wrap-engine-event eng %) [args]))))
+  ([eng x & args]
+   (engine-events eng (list* x args))))
 
-(defn engines-clear
-  "Kills all engines and clears global engines list. Useful for development in REPL, but user must be 
-  careful after clearing not to use existing engines."
-  []
-  (engine-kill-all)
-  (dosync (ref-set engines [])))
+;; Utility Functions
 
 (defn run-audio-block 
   "TODO: Fix this function and document..."

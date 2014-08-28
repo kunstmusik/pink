@@ -1,5 +1,5 @@
 (ns pink.demo.demo-disk
-  (:require [pink.engine :as eng]
+  (:require [pink.engine :refer :all]
              [pink.event :refer :all] 
              [pink.instruments.horn :refer :all]
              [pink.util :refer [mul]]
@@ -18,12 +18,12 @@
 
 (comment
 
-  (def e (eng/engine-create :nchnls 2))
+  (def e (engine-create :nchnls 2))
 
   (def num-notes 5)
   (defn schedule 
     [events]
-    (eng/engine-add-post-cfunc e (event-list-processor (engine-events e events))))
+    (engine-add-events e (engine-events e events)))
 
   (schedule (map #(event horn (* % 0.5)  
                          (/ 0.75 (+ 1 %)) 
@@ -48,11 +48,11 @@
   (schedule (map #(event table-synth-cubic (+ 15 (* % 0.5)) 
                (* 220 (+ 1%))) (range num-notes)))
 
-  (eng/engine->disk e (str (System/getProperty "user.home") 
+  (engine->disk e (str (System/getProperty "user.home") 
                            File/separator "test.wav"))
 
-  (eng/engine-clear e)
-  (eng/engine-kill-all)
+  (engine-clear e)
+  (engine-kill-all)
 
 
   )
