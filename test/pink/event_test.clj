@@ -12,7 +12,7 @@
 (defn test-audio-func [])
 
 (deftest event-test
-  (let [evt (event test-audio-func 0.5 1.0 4.0 :test)]
+  (let [evt ^pink.event.Event (event test-audio-func 0.5 1.0 4.0 :test)]
    (is (= 0.5 (.start evt))) 
    (is (= [1.0 4.0 :test] (.event-args evt))) 
    (is (= test-audio-func (.event-func evt))) 
