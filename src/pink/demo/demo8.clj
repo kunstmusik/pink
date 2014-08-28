@@ -1,7 +1,7 @@
 ;; Test of Events 
 
 (ns pink.demo.demo8
-  (:require [pink.engine :as eng]
+  (:require [pink.engine :refer :all]
             [pink.envelopes :refer [env exp-env adsr xadsr xar]]
             [pink.oscillators :refer [sine oscil oscili oscil3]]
             [pink.gen :refer [gen-sine gen10]]
@@ -37,21 +37,21 @@
 
 (comment
 
-  (def e (eng/engine-create))
-  (eng/engine-start e)
+  (def e (engine-create))
+  (engine-start e)
 
   (let [eng-events (engine-events e
                        (map #(event table-synth-interp 0.25 (* 110 %)) (range 1 10)))]
 
-      (eng/engine-add-post-cfunc e (event-list-processor eng-events))
+      (engine-add-post-cfunc e (event-list-processor eng-events))
     
     ) 
 
-  (eng/engine-stop e)
-  (eng/engine-clear e)
-  (eng/engine-kill-all)
+  (engine-stop e)
+  (engine-clear e)
+  (engine-kill-all)
 
-  (let [e (eng/engine-create)
+  (let [e (engine-create)
         eng-events 
         (engine-events e
                        (event table-synth 0.0 440.0) 
@@ -69,12 +69,12 @@
                        )
         ]
     
-      (eng/engine-start e)
-      (eng/engine-add-post-cfunc e (event-list-processor eng-events))
+      (engine-start e)
+      (engine-add-events e eng-events)
 
       (Thread/sleep 3000)
-      (eng/engine-stop e)
-      (eng/engine-clear e))
+      (engine-stop e)
+      (engine-clear e))
 
 
   )

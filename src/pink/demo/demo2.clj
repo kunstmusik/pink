@@ -1,9 +1,9 @@
 (ns pink.demo.demo2
-  (:require [pink.engine :as eng]
+  (:require [pink.engine :refer :all]
             [pink.config :refer :all]
             [pink.envelopes :refer [env]]
             [pink.oscillators :refer [sine sine2]]
-            [pink.util :refer [mix mul const create-buffer getd setd!]]))
+            [pink.util :refer [mul const create-buffer getd setd!]]))
 
 
 (defn fm-synth [freq]
@@ -23,10 +23,10 @@
         dur 0.25]
     (loop [[x & xs] melody]
       (when x
-        (let [afs (e :pending-funcs)]
-          (dosync
-            (alter afs conj (fm-synth x) (fm-synth (* 2 x))))
-          (recur xs))))))
+        (engine-add-afunc e (fm-synth x))
+        (engine-add-afunc e (fm-synth (* 2 x)))
+        (recur xs)))))
+
 
 
 (defn demo-afunc [e]
@@ -34,13 +34,12 @@
         dur 0.25 
         cur-time (double-array 1 0.0)
         time-incr (/ *buffer-size* 44100.0)
-        afs (e :pending-funcs)
         out (create-buffer)]
-    (dosync (alter afs conj (fm-synth 440)))
+    (engine-add-afunc e (fm-synth 440))
     (fn ^doubles []
       (let [t (+ (getd cur-time) time-incr)]
-        (when (> t dur)
-          (dosync (alter afs conj (fm-synth 220))))
+        (when (>= t dur)
+          (engine-add-afunc e (fm-synth 440)))
         (setd! cur-time (rem t dur)))
       out
       )))
@@ -50,23 +49,19 @@
 
 (comment
 
-  (defn note-sender[e]
-    (dosync
-      (alter (e :pending-funcs) conj (fm-synth 440) (fm-synth 660))))
 
+  (def e (engine-create))
+  (engine-start e)
+  (engine-add-afunc e (demo-afunc e))
+  (engine-stop e)
 
-  (def e (eng/engine-create))
-  (eng/engine-start e)
-  (eng/engine-add-afunc e (demo-afunc e))
-  (eng/engine-stop e)
-
-  (eng/engine-clear e)
+  (engine-clear e)
   e
 
-  (let [e (eng/engine-create)]
-    (eng/engine-start e)
+  (let [e (engine-create)]
+    (engine-start e)
     (demo e)
     (Thread/sleep 2000)
-    (eng/engine-stop e)))
+    (engine-stop e)))
 
 

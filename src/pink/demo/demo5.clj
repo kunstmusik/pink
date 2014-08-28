@@ -2,11 +2,11 @@
 ;; index is held in an atom, reader reads from atom and returns a buffer
 
 (ns pink.demo.demo5
-  (:require [pink.engine :as eng]
+  (:require [pink.engine :refer :all]
             [pink.config :refer :all]
             [pink.envelopes :refer [env exp-env adsr xadsr xar]]
             [pink.oscillators :refer [sine sine2]]
-            [pink.util :refer [mix mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
+            [pink.util :refer [mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
 
 
 (defn fm-synth [freq]
@@ -23,7 +23,7 @@
 (def t (reader index))
 (reset! index 3.25)
 
-(aget (t) 0) 
+(aget ^doubles (t) 0) 
 
 (defn fm-bell [freq]
   (
@@ -35,44 +35,36 @@
 
 (defn demo-afunc [e]
   (let [melody (ref (take (* 4 8) (cycle [220 330 440 330])))
-        dur 0.4
+        dur 0.25 
         cur-time (double-array 1 0.0)
         time-incr (/ *buffer-size* 44100.0)
-        afs (e :pending-funcs)
         out (create-buffer)]
-    (dosync (alter afs conj (fm-synth 440)))
+    (engine-add-afunc e (fm-synth 440))
     (fn ^doubles []
       (let [t (+ (getd cur-time) time-incr)]
-        (when (> t dur)
-          (dosync (alter afs conj (fm-bell 220))))
+        (when (>= t dur)
+          (engine-add-afunc e (fm-bell 220)))
         (setd! cur-time (rem t dur)))
       out
       )))
+
 
 
 ;;
 
 (comment
 
-  (defn note-sender[e]
-    (dosync
-      (alter (e :pending-funcs) conj (fm-synth 440) (fm-synth 660))))
-
-  (def e (eng/engine-create))
-  (eng/engine-start e)
-  (eng/engine-add-afunc e (demo-afunc e))
-  (eng/engine-stop e)
+  (def e (engine-create))
+  (engine-start e)
+  (engine-add-afunc e (demo-afunc e))
+  (engine-stop e)
  
-  (eng/engine-clear e)
+  (engine-clear e)
 
-  (eng/engines-clear)
+  (engines-clear)
 
   e
 
-  (let [e (eng/engine-create)]
-    (eng/engine-start e)
-    (demo e)
-    (Thread/sleep 500)
-    (eng/engine-stop e)))
+  )
 
 

@@ -1,5 +1,5 @@
 (ns pink.demo.demo9
-  (:require [pink.engine :as eng]
+  (:require [pink.engine :refer :all]
              [pink.event :refer :all] 
              [pink.instruments.horn :refer :all]
              [pink.util :refer [mul]]
@@ -17,49 +17,49 @@
 
 (comment
 
-  (def e (eng/engine-create :nchnls 2))
-  (eng/engine-start e)
+  (def e (engine-create :nchnls 2))
+  (engine-start e)
 
   (def num-notes 5)
   (let [eng-events 
-        (eng/engine-events e
+        (engine-events e
                        (map #(event horn (* % 0.5)  
                                     (/ 0.75 (+ 1 %)) 
                                     (* 220 (+ 1 %)) 
                                     (- (* 2 (/ % (- num-notes 1)))  1)) 
                             (range num-notes)))]
-      (eng/engine-add-events e eng-events)) 
+      (engine-add-events e eng-events)) 
 
   (let [eng-events 
-        (eng/engine-events e
+        (engine-events e
                        (map #(event horn-stopped (* % 0.5)  
                                     ;(/ 0.5 (+ 1 %)) 
                                     0.5
                                     (* 220 (+ 1 %)) 
                                     (- (* 2 (/ % (- num-notes 1)))  1)) 
                             (range num-notes)))]
-      (eng/engine-add-post-cfunc e (event-list-processor eng-events)))
+      (engine-add-post-cfunc e (event-list-processor eng-events)))
 
   (let [eng-events 
-        (eng/engine-events e
+        (engine-events e
                        (map #(event horn-muted (* % 0.5)  
                                     ;(/ 0.5 (+ 1 %)) 
                                     0.5
                                     (* 220 (+ 1 %)) 
                                     (- (* 2 (/ % (- num-notes 1)))  1)) 
                             (range num-notes)))]
-      (eng/engine-add-post-cfunc e (event-list-processor eng-events)))
+      (engine-add-post-cfunc e (event-list-processor eng-events)))
 
 
-  (let [eng-events (eng/engine-events e
+  (let [eng-events (engine-events e
                        (map #(event table-synth-cubic (* % 0.5) (* 220 (+ 1%))) (range num-notes)))]
 
-      (eng/engine-add-post-cfunc e (event-list-processor eng-events))
+      (engine-add-post-cfunc e (event-list-processor eng-events))
     
     )
-  (eng/engine-stop e)
-  (eng/engine-clear e)
-  (eng/engine-kill-all)
+  (engine-stop e)
+  (engine-clear e)
+  (engine-kill-all)
 
 
   )

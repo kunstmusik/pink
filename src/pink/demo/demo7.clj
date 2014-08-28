@@ -1,7 +1,7 @@
 ;; Test of Events 
 
 (ns pink.demo.demo7
-  (:require [pink.engine :as eng]
+  (:require [pink.engine :refer :all]
             [pink.envelopes :refer [env exp-env adsr xadsr xar]]
             [pink.oscillators :refer [oscil sine2]]
             [pink.util :refer [mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]
@@ -15,7 +15,7 @@
 
 (comment
 
-  (let [e (eng/engine-create)
+  (let [e (engine-create)
         eng-events 
         (engine-events e
                        (event table-synth 0.0 440.0) 
@@ -24,12 +24,12 @@
                        (event table-synth 1.5 880.0))
         ]
     
-      (eng/engine-start e)
-      (eng/engine-add-post-cfunc e (event-list-processor eng-events))
+      (engine-start e)
+      (engine-add-events e eng-events)
 
       (Thread/sleep 2200)
-      (eng/engine-stop e)
-      (eng/engine-clear e))
+      (engine-stop e)
+      (engine-clear e))
 
 
   )
