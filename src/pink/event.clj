@@ -1,5 +1,5 @@
 (ns pink.event
-  (:require [pink.util :refer [create-buffer drain-ref!]]
+  (:require [pink.util :refer [create-buffer drain-atom!]]
             [pink.config :refer [*buffer-size* *sr*]]  )
   (:import [java.util List PriorityQueue]))
 
@@ -82,13 +82,6 @@
   ;  evtlst)
   
   )
-
-(defn drain-atom!
-  [a]
-  (loop [v @a]
-    (if (compare-and-set! a v [])
-      v
-      (recur @a))))
 
 (defn fire-event 
   "Evaluates event as delayed function application"

@@ -93,7 +93,6 @@
   [a v] 
   `(aset ~(tag-longs a) 0 ~(tag-long v)))
 
-
 (defmacro swapd! [d f] 
   `(setd! ~d (~f (getd ~d))))
 
@@ -109,6 +108,13 @@
 (defmacro concat-drain!
   [v r]
   `(if (empty? @~r) ~v (concat ~v (drain-ref! ~r))))
+
+(defn drain-atom!
+  [a]
+  (loop [v @a]
+    (if (compare-and-set! a v [])
+      v
+      (recur @a))))
 
 ;; Functions related to audio buffers
 
