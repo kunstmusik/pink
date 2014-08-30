@@ -1,6 +1,6 @@
 (ns pink.envelopes-test
-  (:use [pink.envelopes])
-  (:use clojure.test))
+  (:require [pink.envelopes :refer :all])
+  (:require [clojure.test :refer :all]))
 
 
 (defmacro with-private-fns [[ns fns] & tests]

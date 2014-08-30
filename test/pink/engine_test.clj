@@ -1,6 +1,6 @@
 (ns pink.engine-test
-  (:use [pink.engine])
-  (:use clojure.test))
+  (:require [pink.engine :refer :all])
+  (:require [clojure.test :refer :all]))
 
 (deftest test-engine-kill-all
   (engines-clear)

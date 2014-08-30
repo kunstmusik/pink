@@ -1,8 +1,7 @@
 (ns pink.util-test
   (:require [pink.util :refer :all]
-            [pink.config :refer :all]
-            )
-  (:use clojure.test))
+            [pink.config :refer :all])
+  (:require [clojure.test :refer :all]))
 
 
 (deftest set-get-d  
@@ -27,9 +26,9 @@
 (deftest test-reader
   (let [a (atom 1)
         rdr (reader a)]
-    (is 1 (aget ^doubles (rdr) 0)) 
+    (is (= 1 (aget ^doubles (rdr) 0))) 
     (reset! a 3.25) 
-    (is 3.25 (aget ^doubles (rdr) 0)) 
+    (is (= 3.25 (aget ^doubles (rdr) 0))) 
     ))
 
 (deftest test-with-buffer-size

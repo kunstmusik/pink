@@ -37,9 +37,9 @@
   `(dec-if (+ ~cur ~incr)))
 
 (defn vphasor 
+  "Phasor with variable frequency and fixed starting phase."
   [freq phase]
   {:pre (number? phase)}
-  "Phasor with variable frequency and fixed starting phase."
   (let [out ^doubles (create-buffer)
         cur-phase (double-array 1 phase)
         len (alength ^doubles out)

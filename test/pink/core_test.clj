@@ -1,6 +1,4 @@
-(ns pink.core-test
-  (:use clojure.test
-        pink.core))
+(ns pink.core-test)
 
 ;(deftest a-test
 ;  (testing "FIXME, I fail."
