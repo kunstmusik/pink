@@ -15,8 +15,10 @@
   nil if an exception was caught."
   [f]
   `(try 
-    (~f)
-    (catch Exception e# nil)))
+    ~f
+    (catch Exception e# 
+      (.printStackTrace e#)
+      nil)))
 
 
 ;; utility functions for tagging vars (useful for macros)

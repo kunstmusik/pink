@@ -2,12 +2,10 @@
  (:require [pink.engine :refer :all]
              [pink.event :refer :all] 
              [pink.instruments.horn :refer :all]
-             [pink.util :refer [mul]]
+             [pink.util :refer [mul try-func]]
              [pink.oscillators :refer [oscil3 sine-table]]
              [pink.envelopes :refer [env]]
-             [pink.node :refer :all]
-             ) 
-  )
+             [pink.node :refer :all]))
 
 (comment
 

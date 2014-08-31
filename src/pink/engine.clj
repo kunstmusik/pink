@@ -113,7 +113,7 @@
    `(loop [[~x & xs#] ~afs 
           ret# []]
     (if ~x 
-      (let [~b (try-func ~x)]
+      (let [~b (try-func (~x))]
         (if ~b
           (do 
             (if (multi-channel? ~b)

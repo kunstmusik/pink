@@ -1,5 +1,5 @@
 (ns pink.event
-  (:require [pink.util :refer [create-buffer drain-atom!]]
+  (:require [pink.util :refer [create-buffer drain-atom! try-func]]
             [pink.config :refer [*buffer-size* *sr*]]  )
   (:import [java.util List PriorityQueue]))
 
