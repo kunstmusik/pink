@@ -66,7 +66,8 @@
 (defn fire-node-event 
   "create an instance of an audio function and adds to the engine" 
   [node evt]  
-  (node-add-afunc node (fire-event evt)))
+  (when-let [afunc (fire-event evt)] 
+    (node-add-afunc node afunc)))
 
 (defn wrap-node-event [node ^pink.event.Event evt]
   (wrap-event fire-node-event [node] evt))

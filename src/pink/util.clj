@@ -8,6 +8,17 @@
 ;(defn getd ^double [^doubles a] (aget a 0))
 ;(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
 
+;; utility for running audio-funcs and control-funcs
+
+(defmacro try-func
+  "Trys to call a function, returns the func's return value or
+  nil if an exception was caught."
+  [f]
+  `(try 
+    (~f)
+    (catch Exception e# nil)))
+
+
 ;; utility functions for tagging vars (useful for macros)
 
 (defn tagit 

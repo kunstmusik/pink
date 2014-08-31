@@ -84,10 +84,12 @@
   )
 
 (defn fire-event 
-  "Evaluates event as delayed function application"
+  "Evaluates event as delayed function application. Swallows exceptions and
+  returns nil."
   [evt]
-  (apply (.event-func ^Event evt) 
-                 (.event-args ^Event evt)))
+  (try (apply (.event-func ^Event evt) 
+                 (.event-args ^Event evt))
+    (catch Exception e nil)))
 
 (defn- merge-pending!
   "Merges pending-events with the PriorityQueue of known events."

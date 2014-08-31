@@ -3,11 +3,11 @@
   (:require [pink.config :refer :all]
             [pink.util :refer :all]
             [pink.event :refer :all])
-  (:import (java.io ByteArrayInputStream ByteArrayOutputStream File) 
-           (java.nio ByteBuffer)
-           (java.util Arrays)
-           (javax.sound.sampled AudioFormat AudioSystem SourceDataLine
-                                AudioFileFormat$Type AudioInputStream)))
+  (:import [java.io ByteArrayInputStream ByteArrayOutputStream File] 
+           [java.nio ByteBuffer]
+           [java.util Arrays]
+           [javax.sound.sampled AudioFormat AudioSystem SourceDataLine
+                                AudioFileFormat$Type AudioInputStream]))
 
 
 (defmacro limit [num]
@@ -113,7 +113,7 @@
    `(loop [[~x & xs#] ~afs 
           ret# []]
     (if ~x 
-      (let [~b (~x)]
+      (let [~b (try-func ~x)]
         (if ~b
           (do 
             (if (multi-channel? ~b)
@@ -140,7 +140,7 @@
   (loop [[x & xs] cfuncs
          ret []]
     (if x
-      (if (x)
+      (if (try-func x) 
         (recur xs (conj ret x))
         (recur xs ret))
       ret)))
@@ -317,7 +317,8 @@
 (defn fire-engine-event 
   "create an instance of an audio function and adds to the engine" 
   [eng evt]  
-  (engine-add-afunc eng (fire-event evt)))
+  (when-let [afunc (fire-event evt)] 
+    (engine-add-afunc eng afunc)))
 
 (defn wrap-engine-event 
   [eng ^pink.event.Event evt]
