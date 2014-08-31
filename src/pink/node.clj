@@ -77,7 +77,7 @@
   If single arg given, assumes it is a list of events."
   ([node args]
    (if (sequential? args)
-     (event-list (map #(wrap-node-event node %) args))    
-     (event-list (map #(wrap-node-event node %) [args]))))
+     (map #(wrap-node-event node %) args)    
+     (map #(wrap-node-event node %) [args])))
   ([node x & args]
    (node-events node (list* x args))))

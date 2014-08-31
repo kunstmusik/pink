@@ -329,8 +329,8 @@
   If single arg given, assumes it is a list of events."
   ([eng args]
    (if (sequential? args)
-     (event-list (map #(wrap-engine-event eng %) args))    
-     (event-list (map #(wrap-engine-event eng %) [args]))))
+     (map #(wrap-engine-event eng %) args)    
+     (map #(wrap-engine-event eng %) [args])))
   ([eng x & args]
    (engine-events eng (list* x args))))
 

@@ -17,6 +17,12 @@
            (< t1 t2) -1
            :else 0))))
 
+(deftype EventList [^PriorityQueue events pending-events cur-buffer ]
+  Object
+  (toString [this]  (str events)) 
+  (hashCode [this] (System/identityHashCode this))
+  (equals [this b] (identical? this b)))
+
 (defn event 
   "Create an Event object. Can either pass args as list or variadic args."
   ([f start args]
@@ -51,29 +57,26 @@
 
   ([] (event-list []))
   ([^List evts] 
-   {:events (PriorityQueue. evts)       
-    :pending-events (atom [])
-    :cur-buffer (atom 0)
-    }))
+   (EventList. (PriorityQueue. evts) (atom []) (atom 0))))
 
 (defn event-list-add 
   "Add an event or events to an event list"
-  [evtlst evts] 
-  (let [pending (:pending-events evtlst)]
+  [^EventList evtlst evts] 
+  (let [pending (.pending-events evtlst)]
     (cond 
       (sequential? evts) 
         (swap! pending concat evts) 
       (:events evts)
-        (swap! pending concat (:events evts)) 
+        (swap! pending concat (.events ^EventList evts)) 
       (instance? Event evts) 
         (swap! pending conj evts) 
       :else
       (throw (Exception. (str "Unexpected event: " evts)))))
-  evtlst)
+  nil)
 
 (defn event-list-remove 
   "remove an event from the event list"
-  [evtlst evt] 
+  [^EventList evtlst evt] 
 
   ; this needs to be done using a pending-removals list 
   ;(do
@@ -87,29 +90,28 @@
   "Evaluates event as delayed function application. Swallows exceptions and
   returns nil."
   [evt]
-  (try (apply (.event-func ^Event evt) 
-                 (.event-args ^Event evt))
-    (catch Exception e nil)))
+  (try-func (apply (.event-func ^Event evt) 
+                 (.event-args ^Event evt))))
 
 (defn- merge-pending!
   "Merges pending-events with the PriorityQueue of known events."
-  [evtlst]
-  (let [pending (:pending-events evtlst)]
+  [^EventList evtlst]
+  (let [pending (.pending-events evtlst)]
     (when (not-empty @pending)
       (let [new-events (drain-atom! pending)
-            cur-buffer (:cur-buffer evtlst)
+            cur-buffer (.cur-buffer evtlst)
             cur-time (/ (* @cur-buffer *buffer-size*) (double *sr*))
             timed-events 
               (map (fn [^Event a] (alter-event-time (+ cur-time (.start a)) a)) 
                    new-events)] 
-        (.addAll ^PriorityQueue (:events evtlst) timed-events)))))
+        (.addAll ^PriorityQueue (.events evtlst) timed-events)))))
 
 (defn event-list-tick!
-  [evtlst] 
+  [^EventList evtlst] 
   (merge-pending! evtlst)
-  (let [cur-buffer (:cur-buffer evtlst)
+  (let [cur-buffer (.cur-buffer evtlst)
         cur-time (/ (* @cur-buffer *buffer-size*) (double *sr*))
-        events ^PriorityQueue (:events evtlst)]
+        events ^PriorityQueue (.events evtlst)]
     (loop [evt ^Event (.peek events)]
       (when (and evt (<= (.start evt) cur-time)) 
           (fire-event (.poll events))
@@ -118,10 +120,10 @@
 
 (defn event-list-processor 
   "Returns a control-function that ticks through an event list"
-  [evtlst]
+  [^EventList evtlst]
   (fn ^doubles []
     (event-list-tick! evtlst)
-    (not (.isEmpty ^PriorityQueue (:events evtlst)))))
+    (not (.isEmpty ^PriorityQueue (.events evtlst)))))
 
 (comment
 
@@ -130,7 +132,7 @@
       (loop []
         (event-list-tick evtlst)
 
-        (when (> (count @(:events evtlst)) 0)
+        (when (> (count @(.events evtlst)) 0)
           (Thread/sleep 1) 
           (recur)
           ))))
@@ -163,7 +165,7 @@
                    (event test-func 1.0 1.5 130.0) 
                    (event test-func 2.0 1.5 140.0)))
   (print eng-events)
-  (print (count @(:events eng-events)))
+  (print (count @(.events eng-events)))
   (.start (Thread. ^Runnable (partial test-event-list eng-events))) 
 
   (print eng)
