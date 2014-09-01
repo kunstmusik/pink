@@ -15,8 +15,8 @@
     (is b)
 
     (dosync
-      (ref-set (.status a) :running)
-      (ref-set (.status b) :running))
+      (reset! (.status a) :running)
+      (reset! (.status b) :running))
 
     (is (= :running (engine-status a)))
     (is (= :running (engine-status b)))

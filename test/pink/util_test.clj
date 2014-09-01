@@ -26,7 +26,7 @@
 (deftest test-reader
   (let [a (atom 1)
         rdr (reader a)]
-    (is (= 1 (aget ^doubles (rdr) 0))) 
+    (is (= 1.0 (aget ^doubles (rdr) 0))) 
     (reset! a 3.25) 
     (is (= 3.25 (aget ^doubles (rdr) 0))) 
     ))

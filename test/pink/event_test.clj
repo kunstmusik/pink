@@ -21,7 +21,7 @@
 (deftest event-list-test
   (let [test-note (event test-audio-func 0.0 1.0 440.0)
         evtlst (event-list [test-note])
-        events ^PriorityQueue (:events evtlst)]
+        events ^PriorityQueue (.events evtlst)]
     (is (= 1 (.size events))) 
     (is (= test-note (.peek events)))
     
@@ -34,7 +34,7 @@
         test-note2 (event test-audio-func 0.1 1.1 880.0)
         test-note3 (event test-audio-func 0.2 1.0 220.0)
         evtlst (event-list [test-note2])
-        events ^PriorityQueue (:events evtlst)]
+        events ^PriorityQueue (.events evtlst)]
     (event-list-add evtlst test-note)
     (merge-pending! evtlst)
     (is (= [test-note test-note2] (into [] (.toArray events)))) 

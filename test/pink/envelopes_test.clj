@@ -16,8 +16,8 @@
 
 (deftest test-make-env-data
   (with-private-fns [pink.envelopes [make-env-data]]
-    (let [a (make-env-data pts)]
-      (is (= 2205.0 (first (first a))))
-      (is (= 2 (count a))) 
+    (let [[start-val & pts] (make-env-data pts #(/ (- %1 %2) %3))]
+      (is (= 2205.0 (ffirst pts)))
+      (is (= 2 (count pts))) 
       )))
 
