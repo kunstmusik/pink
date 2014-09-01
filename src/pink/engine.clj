@@ -36,8 +36,7 @@
   [& {:keys [sample-rate nchnls buffer-size] 
       :or {sample-rate 44100 nchnls 1 buffer-size 64}}] 
   (let  [e 
-          (Engine. (atom :stopped)
-            (atom false) (atom [])
+          (Engine. (atom :stopped) (atom false) (atom [])
             (atom []) (atom [])
             sample-rate nchnls buffer-size 
             (* buffer-size nchnls) (* BYTE-SIZE buffer-size nchnls)
@@ -140,7 +139,7 @@
   (loop [[x & xs] cfuncs
          ret []]
     (if x
-      (if (try-func x) 
+      (if (try-func (x)) 
         (recur xs (conj ret x))
         (recur xs ret))
       ret)))
