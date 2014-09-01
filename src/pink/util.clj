@@ -114,20 +114,16 @@
 
 ;; Functions for working with refs
 
-(defmacro drain-ref!
-  [r]
-  `(dosync (let [t# @~r] (ref-set ~r []) t#)))
+(defmacro drain-atom!
+  [a]
+  `(loop [v# @~a]
+    (if (compare-and-set! ~a v# [])
+      v#
+      (recur @~a))))
 
 (defmacro concat-drain!
   [v r]
-  `(if (empty? @~r) ~v (concat ~v (drain-ref! ~r))))
-
-(defn drain-atom!
-  [a]
-  (loop [v @a]
-    (if (compare-and-set! a v [])
-      v
-      (recur @a))))
+  `(if (empty? @~r) ~v (concat ~v (drain-atom! ~r))))
 
 ;; Functions related to audio buffers
 
