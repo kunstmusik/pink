@@ -74,15 +74,16 @@
       (throw (Exception. (str "Unexpected event: " evts)))))
   nil)
 
+(defn event-list-clear
+  "Clear all events from an EventList"
+  [^EventList evtlst]
+  (.clear ^PriorityQueue (.events evtlst)))
+
 (defn event-list-remove 
   "remove an event from the event list"
   [^EventList evtlst evt] 
 
   ; this needs to be done using a pending-removals list 
-  ;(do
-  ;  (dosync
-  ;    (alter (:events evtlst) (fn [a] (remove #(= % evt) a)))) 
-  ;  evtlst)
   
   )
 

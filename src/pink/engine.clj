@@ -19,7 +19,7 @@
 
 ;;;; Engine
 
-(def engines (ref []))
+(def engines (atom []))
 
 (def BYTE-SIZE (/ Short/SIZE Byte/SIZE)) ; 2 bytes for 16-bit audio
 
@@ -36,19 +36,19 @@
   [& {:keys [sample-rate nchnls buffer-size] 
       :or {sample-rate 44100 nchnls 1 buffer-size 64}}] 
   (let  [e 
-          (Engine. (ref :stopped)
-            (ref false) (ref [])
-            (ref []) (ref [])
+          (Engine. (atom :stopped)
+            (atom false) (atom [])
+            (atom []) (atom [])
             sample-rate nchnls buffer-size 
             (* buffer-size nchnls) (* BYTE-SIZE buffer-size nchnls)
             (event-list))]
-    (dosync (alter engines conj e))
+    (swap! engines conj e) 
     e))
 
 ;; should do initialization of f on separate thread?
 (defn engine-add-afunc 
   [^Engine engine f]
-  (dosync (alter (.pending-afuncs engine ) conj f)))
+  (swap! (.pending-afuncs engine ) conj f))
 
 (defn engine-remove-afunc 
   [^Engine engine f]
@@ -56,7 +56,7 @@
 
 (defn engine-add-pre-cfunc 
   [^Engine engine f]
-  (dosync (alter (.pending-pre-cfuncs engine) conj f)))
+  (swap! (.pending-pre-cfuncs engine) conj f))
 
 (defn engine-remove-pre-cfunc 
   [^Engine engine f]
@@ -64,7 +64,7 @@
 
 (defn engine-add-post-cfunc 
   [^Engine engine f]
-  (dosync (alter (.pending-post-cfuncs engine) conj f)))
+  (swap! (.pending-post-cfuncs engine) conj f))
 
 (defn engine-remove-post-cfunc 
   [^Engine engine f]
@@ -166,9 +166,9 @@
         buffer-size (.buffer-size engine)
         nchnls (.nchnls engine) 
         run-engine-events (event-list-processor (.event-list engine))]
-    (loop [pre-cfuncs (drain-ref! pending-pre-cfuncs)
-           cur-funcs (drain-ref! pending-afuncs) 
-           post-cfuncs (drain-ref! pending-post-cfuncs)
+    (loop [pre-cfuncs (drain-atom! pending-pre-cfuncs)
+           cur-funcs (drain-atom! pending-afuncs) 
+           post-cfuncs (drain-atom! pending-post-cfuncs)
            buffer-count 0]
       (if (= @(.status engine) :running)
         (let [pre (binding [*current-buffer-num* buffer-count 
@@ -190,11 +190,11 @@
           (run-engine-events)
           (if @clear-flag
             (do 
-              (dosync
-                (ref-set pending-pre-cfuncs [])
-                (ref-set pending-afuncs [])
-                (ref-set pending-post-cfuncs [])
-                (ref-set clear-flag false))
+              (reset! pending-pre-cfuncs [])
+              (reset! pending-afuncs [])
+              (reset! pending-post-cfuncs [])
+              (reset! clear-flag false)
+              (event-list-clear (.event-list engine))
               (recur [] [] [] (unchecked-inc buffer-count)))
             (recur 
               (concat-drain! pre pending-pre-cfuncs)
@@ -209,23 +209,17 @@
 
 (defn engine-start [^Engine engine]
   (when (= @(.status engine) :stopped)
-    (dosync (ref-set (.status engine) :running))
+    (reset! (.status engine) :running) 
     (.start (Thread. ^Runnable (partial engine-run engine)))))
 
 (defn engine-stop [^Engine engine]
   (when (= @(.status engine) :running)
-    (dosync (ref-set (.status engine) :stopped))))
-
-
+    (reset! (.status engine) :stopped)))
 
 (defn engine-clear 
   [^Engine engine]
   (if (= @(.status engine) :running)
-    (dosync 
-      (ref-set (.clear engine) true))
-    (dosync 
-      (ref-set (.pending-afuncs engine) []))))
-    
+    (reset! (.clear engine) true)))
                             
 (defn engine-status 
   [^Engine engine]
@@ -234,20 +228,19 @@
 (defn engine-kill-all
   "Kills all engines and clears them"
   []
-  (dosync
-    (loop [[a & b] @engines]
-      (when a
-        (engine-clear a)
-        (engine-stop a)
-        (recur b)
-        ))))
+  (loop [[a & b] (drain-atom! engines)]
+    (when a
+      (engine-clear a)
+      (engine-stop a)
+      (recur b)
+      )))
 
 (defn engines-clear
   "Kills all engines and clears global engines list. Useful for development in REPL, but user must be 
   careful after clearing not to use existing engines."
   []
   (engine-kill-all)
-  (dosync (ref-set engines [])))
+  (reset! engines []))
 
 
 ;; Non-Realtime Engine functions
@@ -271,9 +264,9 @@
         buffer-size (.buffer-size engine)
         nchnls (.nchnls engine)
         run-engine-events (event-list-processor (.event-list engine))]
-    (loop [pre-cfuncs (drain-ref! pending-pre-cfuncs)
-           cur-funcs (drain-ref! pending-afuncs) 
-           post-cfuncs (drain-ref! pending-post-cfuncs)
+    (loop [pre-cfuncs (drain-atom! pending-pre-cfuncs)
+           cur-funcs (drain-atom! pending-afuncs) 
+           post-cfuncs (drain-atom! pending-post-cfuncs)
            buffer-count 0]
       (let [pre (binding [*current-buffer-num* buffer-count 
                             *sr* sr 
