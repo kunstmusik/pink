@@ -186,7 +186,11 @@
                              *nchnls* nchnls]
                      (process-cfuncs post-cfuncs))]  
           (buf->line buf line (.byte-buffer-size engine))
-          (run-engine-events)
+          (binding [*current-buffer-num* buffer-count 
+                             *sr* sr 
+                             *buffer-size* buffer-size 
+                             *nchnls* nchnls]
+            (run-engine-events))
           (if @clear-flag
             (do 
               (reset! pending-pre-cfuncs [])
