@@ -98,14 +98,18 @@
   "Merges pending-events with the PriorityQueue of known events."
   [^EventList evtlst]
   (let [pending (.pending-events evtlst)]
-    (when (not-empty @pending)
-      (let [new-events (drain-atom! pending)
+    (when (not-empty @pending) 
+      (try 
+        (let [new-events (drain-atom! pending)
             cur-buffer (.cur-buffer evtlst)
             cur-time (/ (* @cur-buffer *buffer-size*) (double *sr*))
             timed-events 
-              (map (fn [^Event a] (alter-event-time (+ cur-time (.start a)) a)) 
-                   new-events)] 
-        (.addAll ^PriorityQueue (.events evtlst) timed-events)))))
+            (map (fn [^Event a] (alter-event-time (+ cur-time (.start a)) a)) 
+                 new-events)] 
+        (.addAll ^PriorityQueue (.events evtlst) timed-events))
+        (catch Exception e 
+          (println "Error: Invalid pending events found!") 
+          nil)))))
 
 (defn event-list-tick!
   [^EventList evtlst] 
