@@ -3,11 +3,6 @@
   (:require [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]])
   (:import [java.util Arrays]))
 
-
-
-;(defn getd ^double [^doubles a] (aget a 0))
-;(defn setd! ^double [^doubles a ^double v] (aset a 0 v))
-
 ;; utility for running audio-funcs and control-funcs
 
 (defmacro try-func
