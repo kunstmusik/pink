@@ -10,6 +10,7 @@
    ;  improves concurrency by reducing contention on
    ;  the shared heap lock.
    "-XX:MaxTenuringThreshold=0" ; Makes the full NewSize available to every NewGC 
+   ]
   :description "A library for music research, composition, and performance."
 
   :url "http://github.com/kunstmusik/pink"
