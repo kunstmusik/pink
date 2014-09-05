@@ -1,6 +1,6 @@
 (ns pink.oscillators
   "Oscillator Functions"
-  (:require [pink.config :refer [*sr*]]
+  (:require [pink.config :refer [*sr* *buffer-size*]]
             [pink.util :refer [create-buffer fill map-d 
                                      swapd! setd! getd arg]]
             [pink.gen :refer [gen-sine]] 
@@ -146,3 +146,58 @@
                    (+ (* a x3) (* b x2) (* c x) d))) 
                (phsr) (ampfn))))))
 
+
+;; Implementation of Bandlimited Impulse Train (BLIT) functions by Stilson and
+;; Smith. Based on implementations from Synthesis Toolkit (STK)
+
+(defmacro calc-harmonics 
+  [p nharmonics]
+  `(if (<= ~nharmonics 0)
+    (let [max-harmonics# (Math/floor (* 0.5 ~p))]
+      (+ (* 2 max-harmonics#) 1))
+    (+ (* 2 ~nharmonics) 1)))
+
+(defmacro pi-limit
+  [v]
+  `(if (>= ~v Math/PI) (- ~v Math/PI) ~v))
+
+(def DOUBLE-EPSILON
+  (Math/ulp 1.0))
+
+(defn blit-saw
+  "Implementation of BLIT algorithm by Stilson and Smith for band-limited 
+  sawtooth waveform. Based on the C++ implementation from STK."
+  ([freq] (blit-saw freq 0))
+  ([freq nharmonics]
+  (if (number? freq)
+    (let [out ^doubles (create-buffer)
+          state (double-array 1 0) 
+          phs (double-array 1 0)
+          p (/ *sr* freq)
+          c2 (/ 1 p)
+          rate (* Math/PI c2)
+          m (calc-harmonics p nharmonics)
+          a (/ m p)]
+      (fn []
+        (loop [i 0 phase (aget phs 0) st (aget state 0)]
+          (if (< i *buffer-size*)
+            (let [denom (Math/sin phase)
+                  tmp (+ (- st c2) 
+                         (if (<= (Math/abs denom) DOUBLE-EPSILON)
+                           a
+                           (/ (Math/sin (* m phase)) (* p denom))))
+                  new-st (* tmp 0.995)
+                  new-phs (pi-limit (+ phase rate))]
+                (aset out i tmp) 
+                (recur (unchecked-inc i) new-phs new-st) 
+              ) 
+            (do
+              (aset phs 0 phase)
+              (aset state 0 st)
+              out)))))
+    (let [out (create-buffer)
+          state (double-array 1 0) 
+          ]
+
+      )
+    )))
