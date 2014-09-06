@@ -164,44 +164,44 @@
 (def DOUBLE-EPSILON
   (Math/ulp 1.0))
 
-(defn blit-saw
-  "Implementation of BLIT algorithm by Stilson and Smith for band-limited
-  sawtooth waveform. Based on the C++ implementation from STK.
- 
-  Returns an optimized audio-function if freq is a number, or a slower
-  version if freq is itself an audio-function."
-  ([freq] (blit-saw freq 0))
-  ([freq nharmonics]
-   {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
-  (if (number? freq)
-    (let [out ^doubles (create-buffer)
-          state (double-array 1 0) 
-          phs (double-array 1 0)
-          p (/ *sr* freq)
-          c2 (/ 1 p)
-          rate (* Math/PI c2)
-          m (calc-harmonics p nharmonics)
-          a (/ m p)]
-      (fn []
-        (loop [i 0 phase (aget phs 0) st (aget state 0)]
-          (if (< i *buffer-size*)
-            (let [denom (Math/sin phase)
-                  tmp (+ (- st c2) 
-                         (if (<= (Math/abs denom) DOUBLE-EPSILON)
-                           a
-                           (/ (Math/sin (* m phase)) (* p denom))))
-                  new-st (* tmp 0.995)
-                  new-phs (pi-limit (+ phase rate))]
-                (aset out i tmp) 
-                (recur (unchecked-inc i) new-phs new-st) 
-              ) 
-            (do
-              (aset phs 0 phase)
-              (aset state 0 st)
-              out)))))
-    (let [out ^doubles (create-buffer)
+;; blit-saw
+
+(defn- blit-saw-static
+  [freq nharmonics]
+  (let [out ^doubles (create-buffer)
+        phs (double-array 1 0)
+        p (/ *sr* freq)
+        c2 (/ 1 p)
+        rate (* Math/PI c2)
+        m (calc-harmonics p nharmonics)
+        a (/ m p)
+        state (double-array 1 (* -0.5 a))]
+    (fn []
+      (loop [i 0 phase (aget phs 0) st (aget state 0)]
+        (if (< i *buffer-size*)
+          (let [denom (Math/sin phase)
+                tmp (+ (- st c2) 
+                       (if (<= (Math/abs denom) DOUBLE-EPSILON)
+                         a
+                         (/ (Math/sin (* m phase)) (* p denom))))
+                new-st (* tmp 0.995)
+                new-phs (pi-limit (+ phase rate))]
+            (aset out i tmp) 
+            (recur (unchecked-inc i) new-phs new-st) 
+            ) 
+          (do
+            (aset phs 0 phase)
+            (aset state 0 st)
+            out)))))
+  )
+
+(defn- blit-saw-dynamic
+  [freq nharmonics]
+  (let [out ^doubles (create-buffer)
           state (double-array 1 0)
-          phs (double-array 1 0)]
+          phs (double-array 1 0)
+          initialized (atom false)
+          ]
       (fn []
         (when-let [freq-sig ^doubles (freq)]
           (loop [i 0 phase (aget phs 0) st (aget state 0)]
@@ -212,12 +212,13 @@
                     (aset out i 0.0)
                     (recur (unchecked-inc i) phase st))
                   (let [denom (Math/sin phase)
-                        p (/ *sr* (aget freq-sig i))
+                        p (/ *sr* f)
                         c2 (/ 1 p)
                         rate (* Math/PI c2)
                         m (calc-harmonics p nharmonics)
                         a (/ m p)
-                        tmp (+ (- st c2) 
+                        st-val (if @initialized st (reset! initialized (* -0.5 a)))
+                        tmp (+ (- st-val c2) 
                                (if (<= (Math/abs denom) DOUBLE-EPSILON)
                                  a
                                  (/ (Math/sin (* m phase)) (* p denom))))
@@ -232,5 +233,124 @@
                 out))))
 
         ) 
-      )
+      ))
+
+(defn blit-saw
+  "Implementation of BLIT algorithm by Stilson and Smith for band-limited
+  sawtooth waveform. Based on the C++ implementation from STK.
+ 
+  Returns an optimized audio-function if freq is a number, or a slower
+  version if freq is itself an audio-function."
+  ([freq] (blit-saw freq 0))
+  ([freq nharmonics]
+   {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
+  (if (number? freq)
+    (blit-saw-static freq nharmonics)    
+    (blit-saw-dynamic freq nharmonics) 
+    )))
+
+
+
+;; blit-square
+
+(def TWO_PI (* 2 Math/PI))
+(def TOP_LIM (- TWO_PI 0.1))
+         
+(defmacro calc-square-harmonics 
+  [p nharmonics]
+  `(if (<= ~nharmonics 0)
+    (let [max-harmonics# (int (Math/floor (* 0.5 ~p)))]
+      (* 2 (+ max-harmonics# 1)))
+    (* 2 (+ ~nharmonics 1))))
+
+(defmacro two-pi-limit
+  [v]
+  `(if (>= ~v TWO_PI) (- ~v TWO_PI) ~v))
+
+(defn- blit-square-static
+  [freq nharmonics]
+  (let [out ^doubles (create-buffer)
+        phs (double-array 1 0)
+        last-val-state (double-array 1 0)
+        last-blit-state (double-array 1 0)
+        p (/ (* 0.5 *sr*) freq)
+        rate (/ Math/PI p)
+        m (calc-square-harmonics p nharmonics)
+        a (/ m p) ]
+    (fn []
+      (loop [i 0 
+             phase (aget phs 0) 
+             last-val (aget last-val-state 0) 
+             last-blit (aget last-blit-state 0)]
+        (if (< i *buffer-size*)
+          (let [denom (Math/sin phase)
+                new-blit (+ last-blit 
+                            (if (< (Math/abs denom) DOUBLE-EPSILON)
+                              (if (or (< phase 0.1) (> phase TOP_LIM))
+                                a
+                                (- a))
+                              (/ (Math/sin (* m phase)) (* p denom))))
+                new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
+                new-phs (two-pi-limit (+ phase rate))]
+            (aset out i new-val) 
+            (recur (unchecked-inc i) new-phs new-val new-blit)) 
+          (do
+            (aset phs 0 phase)
+            (aset last-val-state 0 last-val)
+            (aset last-blit-state 0 last-blit)
+            out))))))
+
+(defn- blit-square-dynamic
+  [freq nharmonics]
+  (let [out ^doubles (create-buffer)
+        phs (double-array 1 0)
+        last-val-state (double-array 1 0)
+        last-blit-state (double-array 1 0)
+        ]
+    (fn []
+      (when-let [freq-sig ^doubles (freq)] 
+        (loop [i 0 
+               phase (aget phs 0) 
+               last-val (aget last-val-state 0) 
+               last-blit (aget last-blit-state 0)]
+          (if (< i *buffer-size*)
+            (let [f (aget freq-sig i)]
+              (if (zero? f) 
+                (do 
+                  (aset out i 0.0)
+                  (recur (unchecked-inc i) phase last-val last-blit))
+                (let [p (/ (* 0.5 *sr*) f)
+                      rate (/ Math/PI p)
+                      m (calc-square-harmonics p nharmonics)
+                      a (/ m p) 
+                      denom (Math/sin phase)
+                      new-blit (+ last-blit 
+                                  (if (< (Math/abs denom) DOUBLE-EPSILON)
+                                    (if (or (< phase 0.1) (> phase TOP_LIM))
+                                      a
+                                      (- a))
+                                    (/ (Math/sin (* m phase)) (* p denom))))
+                      new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
+                      new-phs (two-pi-limit (+ phase rate))]
+                  (aset out i new-val) 
+                  (recur (unchecked-inc i) new-phs new-val new-blit)))) 
+            (do
+              (aset phs 0 phase)
+              (aset last-val-state 0 last-val)
+              (aset last-blit-state 0 last-blit)
+              out)))))))
+
+
+(defn blit-square
+  "Implementation of BLIT algorithm by Stilson and Smith for band-limited
+  square waveform. Based on the C++ implementation from STK.
+ 
+  Returns an optimized audio-function if freq is a number, or a slower
+  version if freq is itself an audio-function."
+  ([freq] (blit-square freq 0))
+  ([freq nharmonics]
+   {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
+  (if (number? freq)
+    (blit-square-static freq nharmonics)    
+    (blit-square-dynamic freq nharmonics) 
     )))
