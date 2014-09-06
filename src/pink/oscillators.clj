@@ -165,10 +165,14 @@
   (Math/ulp 1.0))
 
 (defn blit-saw
-  "Implementation of BLIT algorithm by Stilson and Smith for band-limited 
-  sawtooth waveform. Based on the C++ implementation from STK."
+  "Implementation of BLIT algorithm by Stilson and Smith for band-limited
+  sawtooth waveform. Based on the C++ implementation from STK.
+ 
+  Returns an optimized audio-function if freq is a number, or a slower
+  version if freq is itself an audio-function."
   ([freq] (blit-saw freq 0))
   ([freq nharmonics]
+   {:pre [(or (and (number? freq) (pos? 0)) (fn? freq))] }
   (if (number? freq)
     (let [out ^doubles (create-buffer)
           state (double-array 1 0) 
@@ -195,9 +199,38 @@
               (aset phs 0 phase)
               (aset state 0 st)
               out)))))
-    (let [out (create-buffer)
-          state (double-array 1 0) 
-          ]
+    (let [out ^doubles (create-buffer)
+          state (double-array 1 0)
+          phs (double-array 1 0)]
+      (fn []
+        (when-let [freq-sig ^doubles (freq)]
+          (loop [i 0 phase (aget phs 0) st (aget state 0)]
+            (if (< i *buffer-size*)
+              (let [f (aget freq-sig i)]
+                (if (zero? f)
+                  (do 
+                    (aset out i 0.0)
+                    (recur (unchecked-inc i) phase st))
+                  (let [denom (Math/sin phase)
+                        p (/ *sr* (aget freq-sig i))
+                        c2 (/ 1 p)
+                        rate (* Math/PI c2)
+                        m (calc-harmonics p nharmonics)
+                        a (/ m p)
+                        tmp (+ (- st c2) 
+                               (if (<= (Math/abs denom) DOUBLE-EPSILON)
+                                 a
+                                 (/ (Math/sin (* m phase)) (* p denom))))
+                        new-st (* tmp 0.995)
+                        new-phs (pi-limit (+ phase rate))]
+                    (aset out i tmp) 
+                    (recur (unchecked-inc i) new-phs new-st) 
+                    ))) 
+              (do
+                (aset phs 0 phase)
+                (aset state 0 st)
+                out))))
 
+        ) 
       )
     )))

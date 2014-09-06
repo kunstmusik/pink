@@ -33,6 +33,9 @@
 
   (engine-add-events e my-score) 
 
+  (node-add-afunc
+    root-node 
+    (instr-saw 0.25 (env [0.0 220 0.1 4000 0.0001 220 0.1 4000]) 0.0))
 
   (engine-stop e)
   (engine-clear e)
