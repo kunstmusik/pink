@@ -172,7 +172,7 @@
   version if freq is itself an audio-function."
   ([freq] (blit-saw freq 0))
   ([freq nharmonics]
-   {:pre [(or (and (number? freq) (pos? 0)) (fn? freq))] }
+   {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
   (if (number? freq)
     (let [out ^doubles (create-buffer)
           state (double-array 1 0) 
