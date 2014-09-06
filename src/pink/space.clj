@@ -11,7 +11,11 @@
   Right Channel Gain [dB] = 20*log (sin (Pi /2* max(0,CC#10 ? 1)/126))
 
   Instead of range 0-127, use [-1.0,1.0]
-  "
+
+  If loc is an audio-function, it should be a non-ending signal generator
+  otherwise on pre-mature end, the signal may zero out until the nil end
+  signal is given.  This would caues the loc to snap to center during the
+  last buffer generated."
   [afn loc]
   (let [left ^doubles (create-buffer)
         right ^doubles (create-buffer)
@@ -21,7 +25,7 @@
         ]
     (fn []
       (when-let [ain ^doubles (afn)] 
-        (let [locs ^doubles (locfn)] 
+        (when-let [locs ^doubles (locfn)] 
           (loop [i 0]
             (when (< i *buffer-size*)
               (let [v (aget ain i)
@@ -30,7 +34,7 @@
                     r (db->amp (* 20 (Math/log (Math/sin (* PI2 cur-loc )))))]
                 (aset left i (* l v)) 
                 (aset right i (* r v)) 
-                (recur (unchecked-inc-int i)))))
+                (recur (unchecked-inc i)))))
           out)))))
 
 
