@@ -46,15 +46,17 @@
         lastindx (dec len)
         ffn (arg freq)]
     (fn ^doubles [] 
-      (let [f (ffn) ]
-        (when f 
+      (let [freq-sig ^doubles (ffn) ]
+        (when freq-sig 
           (loop [i (unchecked-int 0)]
             (when (< i len)
-              (let [incr ^double (/ (aget ^doubles f i) *sr*)] 
-                (aset out i 
-                      (setd! cur-phase (phs-incr (getd cur-phase) incr)))
-                (recur (unchecked-inc-int i)))) 
-            )
+              (let [f (aget freq-sig i)] 
+                (if (<= f 0) 
+                  (aset out i Double/NEGATIVE_INFINITY) 
+                  (let [incr ^double (/ f *sr*)] 
+                    (aset out i 
+                          (setd! cur-phase (phs-incr (getd cur-phase) incr)))))
+                (recur (unchecked-inc-int i)))))
           out)))))
 
 (defn sine2 
@@ -65,7 +67,9 @@
    (let [phsr (vphasor (arg f) p)
          out (create-buffer)]
      (fn ^doubles []
-       (map-d out #(Math/sin (* 2.0 PI ^double %)) (phsr))))))
+       (map-d out #(if (= % Double/NEGATIVE_INFINITY) 
+                     0.0
+                     (Math/sin (* 2.0 PI ^double %))) (phsr))))))
 
 (def sine-table (gen-sine))
 
@@ -82,7 +86,9 @@
          tbl-len (alength table)
          ampfn (arg amp)]
       (fn ^doubles []
-        (map-d out #(* %2 (aget table (int (* % tbl-len)))) (phsr) (ampfn))))))
+        (map-d out #(if (= % Double/NEGATIVE_INFINITY)
+                      0.0
+                     (* %2 (aget table (int (* % tbl-len))))) (phsr) (ampfn))))))
 
 
 (defn oscili
@@ -98,7 +104,9 @@
          ampfn (arg amp)]
       (fn ^doubles []
         (map-d out 
-               #(let [phs (* % tbl-len)
+               #(if (= % Double/NEGATIVE_INFINITY) 
+                  0.0
+                  (let [phs (* % tbl-len)
                       pt0 (int phs)
                       pt1 (mod (inc pt0) tbl-len)  
                       frac (if (zero? pt0) 
@@ -107,7 +115,7 @@
                       v0  (aget table pt0)
                       v1  (aget table pt1)]
                  (* %2 
-                   (+ v0 (* frac (- v1 v0))))) 
+                   (+ v0 (* frac (- v1 v0)))))) 
                (phsr) (ampfn))))))
 
 
@@ -124,7 +132,9 @@
          ampfn (arg amp)]
       (fn ^doubles []
         (map-d out 
-               #(let [phs (* % tbl-len)
+               #(if (= % Double/NEGATIVE_INFINITY) 
+                  0.0
+                  (let [phs (* % tbl-len)
                       pt1 (int phs)
                       pt0 (if (zero? pt1) (- tbl-len 1) (- pt1 1))  
                       pt2 (mod (inc pt1) tbl-len)  
@@ -143,7 +153,7 @@
                       c (+ (* p3 (double -1/6)) p2 (* p1 (double -1/2)) (* p0 (double -1/3)))
                       d p1 ]
                  (* %2 
-                   (+ (* a x3) (* b x2) (* c x) d))) 
+                   (+ (* a x3) (* b x2) (* c x) d)))) 
                (phsr) (ampfn))))))
 
 
@@ -187,8 +197,7 @@
                 new-st (* tmp 0.995)
                 new-phs (pi-limit (+ phase rate))]
             (aset out i tmp) 
-            (recur (unchecked-inc i) new-phs new-st) 
-            ) 
+            (recur (unchecked-inc i) new-phs new-st)) 
           (do
             (aset phs 0 phase)
             (aset state 0 st)
@@ -207,7 +216,7 @@
           (loop [i 0 phase (aget phs 0) st (aget state 0)]
             (if (< i *buffer-size*)
               (let [f (aget freq-sig i)]
-                (if (zero? f)
+                (if (<= f 0)
                   (do 
                     (aset out i 0.0)
                     (recur (unchecked-inc i) phase st))
@@ -315,7 +324,7 @@
                last-blit (aget last-blit-state 0)]
           (if (< i *buffer-size*)
             (let [f (aget freq-sig i)]
-              (if (zero? f) 
+              (if (<= f 0) 
                 (do 
                   (aset out i 0.0)
                   (recur (unchecked-inc i) phase last-val last-blit))
