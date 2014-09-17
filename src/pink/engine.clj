@@ -109,23 +109,22 @@
 (defmacro run-audio-funcs [afs buffer]
   (let [x (gensym)
         b (gensym)]
-   `(loop [[~x & xs#] ~afs 
-          ret# []]
-    (if ~x 
-      (let [~b (try-func (~x))]
-        (if ~b
-          (do 
-            (if (multi-channel? ~b)
-              (loop [i# 0 len# (count ~b)]
-                (when (< i# len#)
-                  (write-asig ~buffer 
-                              (aget ~(with-meta b {:tag "[[D"}) i#) i#)
-                  (recur (unchecked-inc-int i#) len#))) 
-              (write-asig ~buffer ~b 0))
-            ;(map-d ~buffer + b# ~buffer)
-            (recur xs# (conj ret# ~x)))
-          (recur xs# ret#)))
-     ret#)))) 
+    `(loop [[~x & xs#] ~afs 
+            ret# []]
+       (if ~x 
+         (if-let [~b (try-func (~x))]
+           (do 
+             (if (multi-channel? ~b)
+               (loop [i# 0 len# (count ~b)]
+                 (when (< i# len#)
+                   (write-asig ~buffer 
+                               (aget ~(with-meta b {:tag "[[D"}) i#) i#)
+                   (recur (unchecked-inc-int i#) len#))) 
+               (write-asig ~buffer ~b 0))
+             ;(map-d ~buffer + b# ~buffer)
+             (recur xs# (conj ret# ~x)))
+           (recur xs# ret#))
+         ret#)))) 
 
 (defn process-buffer
   [afs ^doubles out-buffer ^ByteBuffer buffer]
