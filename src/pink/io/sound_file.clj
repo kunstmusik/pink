@@ -51,7 +51,8 @@
         bbuffer (ByteBuffer/wrap barray)
         out (if (= channels 1) 
               (double-array chan-length)
-              (into-array (take channels (repeatedly (double-array chan-length)))))]
+              (into-array 
+                (for [i (range channels)] (double-array chan-length))))]
     (loop [i 0]
       (if (< i chan-length)
         (do

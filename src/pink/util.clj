@@ -132,7 +132,8 @@
   [nchnls]
   (if (= 1 nchnls)
     (create-buffer)
-    (into-array (take nchnls (repeatedly create-buffer)))))
+    (into-array 
+      (for [i (range nchnls)] (create-buffer)))))
 
 (def EMPTY-BUFFER (create-buffer 0)) 
 
