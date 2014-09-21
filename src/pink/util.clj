@@ -283,6 +283,114 @@
   (operator + a))
 
 
+;; Macro for Generators
+
+(defmacro box-val [v]
+  (into-array (type v) [v]))
+
+(defn- default-arg?
+  [arg]
+  (and (list? arg) (= (first arg) 'default)))
+
+(defn- process-bindings [bindings]
+  {:pre (even? bindings)}
+  (reduce 
+    (fn [[x y z] [b c]]
+      (let [state-sym (gensym "state")] 
+        [(if (default-arg? c)
+          x 
+          (conj x state-sym (list 'into-array [c])))
+        (if (default-arg? c)
+          (conj y state-sym (second c)) 
+          (conj y b `(aget ~state-sym 0))) 
+        (conj z (list 'aset state-sym 0 b))
+       ])) 
+    [[] [] []]
+    (partition 2 bindings))
+  )
+
+(defn- handle-yield [bindings ret-sym]
+  {:pre (even? bindings)}
+  `(do 
+     ~@bindings 
+     ~ret-sym))
+
+;(defn- process-body [bindings body]
+;  (reverse 
+;    (reduce  
+;    (fn [a b] 
+;      (if (list? b)
+;        (if (= (first b) 'yield) 
+;          (cons (handle-yield bindings (second b)) a)
+;          (cons (process-body bindings b) a)) 
+;        (cons b a))) '() body)))
+
+(defn- process-body [bindings body]
+  {:pre [(= 3 (count body)) (= :yields (second body))]} 
+  [(first body) (handle-yield bindings (nth body 2))])
+
+(defn- process-afn-bindings
+  [afn-bindings]
+  (reduce
+    (fn [[x y z] [b c]]
+      (let [bsym (gensym "buffer")] 
+        [(conj x bsym (with-meta (list c) {:tag "doubles"}))
+         (conj y bsym)
+         (conj z b (list 'aget bsym 'indx))
+         ]))
+    [[] [] []] (partition 2 afn-bindings)))
+
+(defmacro generator 
+  "Creates an audio-function. 
+  * Bindings are for values that will be automatically saved and loaded between calls
+  * afn-bindings are for setting var name to use when indexing a sample from the buffer generated
+  by the audio-function
+  * body should consist of three forms, a single calculation, :yields, then what to use for sending out"
+  [bindings afn-bindings & body] 
+  (let [ [new-afn-bindings afn-results
+         afn-indexing] (process-afn-bindings afn-bindings)
+        [state new-bindings save-bindings] (process-bindings bindings) 
+        [new-body yield-body] (process-body save-bindings body)
+        indx-sym 'indx]
+    `(let [~@state] 
+       (fn [] 
+         (let [~@new-afn-bindings] 
+           (when (and ~@afn-results))
+           (loop [~indx-sym 0
+                  ~@new-bindings
+                  ]
+             (if (< ~indx-sym *buffer-size*)
+               (let [~@afn-indexing] 
+                 ~new-body )          
+               ~yield-body 
+               )
+             ;(let [~@afn-indexing] 
+             ;  ~@new-body )          
+             )))) 
+    ))
+
+(defmacro with-sample [indx bindings & body]
+  (let [new-bindings (reduce (fn [a [b c]]
+                               (conj a b `(aget ~c ~indx)))
+                             [] (partition 2 bindings))]
+    `(let [~@new-bindings]
+       ~@body)))
+
+;(process-bindings '[a 3 b 4])
+
+;(let [out 4
+;      asig 2
+;      bsig 3
+;      ] 
+;  (generator [a 4 b (+ 3 4)]
+;             [ax asig bx bsig]
+;  (if (< indx 32)
+;    (recur (unchecked-inc indx) a b)
+;    (yield out))))
+
+
+;; functions for processing
+
 (defn with-duration 
   [dur afn]
   (let [end (long (/ (* dur *sr* *buffer-size*))) 

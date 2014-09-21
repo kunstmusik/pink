@@ -2,7 +2,8 @@
   "Oscillator Functions"
   (:require [pink.config :refer [*sr* *buffer-size*]]
             [pink.util :refer [create-buffer fill map-d 
-                                     swapd! setd! getd arg]]
+                                     swapd! setd! getd arg
+                                     generator with-sample]]
             [pink.gen :refer [gen-sine]] 
             ))
 
@@ -31,7 +32,6 @@
      (fn ^doubles []
        (map-d out #(Math/sin (* 2.0 PI ^double %)) (phsr))))))
 
-
 (defmacro phs-incr
   [cur incr]
   `(dec-if (+ ~cur ~incr)))
@@ -41,23 +41,39 @@
   [freq phase]
   {:pre (number? phase)}
   (let [out ^doubles (create-buffer)
-        cur-phase (double-array 1 phase)
-        len (alength ^doubles out)
-        lastindx (dec len)
-        ffn (arg freq)]
-    (fn ^doubles [] 
-      (let [freq-sig ^doubles (ffn) ]
-        (when freq-sig 
-          (loop [i (unchecked-int 0)]
-            (when (< i len)
-              (let [f (aget freq-sig i)] 
-                (if (<= f 0) 
-                  (aset out i Double/NEGATIVE_INFINITY) 
-                  (let [incr ^double (/ f *sr*)] 
-                    (aset out i 
-                          (setd! cur-phase (phs-incr (getd cur-phase) incr)))))
-                (recur (unchecked-inc-int i)))))
-          out)))))
+        len (alength out)
+        freq-fn (arg freq)]
+    (generator [cur-phase ^double phase]
+               [f freq-fn]
+               (let [incr ^double (/ f *sr*)]
+                 (aset out indx incr)
+                 (recur (unchecked-inc indx) (phs-incr cur-phase incr)))
+               :yields out)))
+
+((vphasor 440 0.0))
+
+;(defn vphasor 
+;  "Phasor with variable frequency and fixed starting phase."
+;  [freq phase]
+;  {:pre (number? phase)}
+;  (let [out ^doubles (create-buffer)
+;        cur-phase (double-array 1 phase)
+;        len (alength ^doubles out)
+;        lastindx (dec len)
+;        ffn (arg freq)]
+;    (fn ^doubles [] 
+;      (let [freq-sig ^doubles (ffn) ]
+;        (when freq-sig 
+;          (loop [i (unchecked-int 0)]
+;            (when (< i len)
+;              (let [f (aget freq-sig i)] 
+;                (if (<= f 0) 
+;                  (aset out i Double/NEGATIVE_INFINITY) 
+;                  (let [incr ^double (/ f *sr*)] 
+;                    (aset out i 
+;                          (setd! cur-phase (phs-incr (getd cur-phase) incr)))))
+;                (recur (unchecked-inc-int i)))))
+;          out)))))
 
 (defn sine2 
   "Sine generator with variable frequency and fixed starting phase."
