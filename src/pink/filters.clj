@@ -52,3 +52,24 @@
                 (recur (unchecked-inc-int i) (- new-val sig)))
               (aset last-val 0 last-value)))
           out)))))
+
+(defn port
+  [afn half-time] 
+  "Apply portamento to step-wise signal via low-pass filtering."
+  (let [out ^doubles (create-buffer) 
+        onedsr (/ 1.0 *sr*)
+        c2 (Math/pow 0.5 (/ onedsr half-time))
+        c1 (- 1.0 c2)
+        last-val ^doubles (double-array 1 0.0)]
+    (fn []
+      (when-let [buf ^doubles (afn)] 
+        (loop [i 0 previous (aget last-val 0)] 
+          (if (< i *buffer-size*)
+            (do 
+              (let [new-val (+ (* c1 (aget buf i)) (* c2 previous))]
+                (aset out i new-val)
+                (recur (unchecked-inc i) new-val)))
+            (do
+              (aset last-val 0 previous)
+              out)))))))
+
