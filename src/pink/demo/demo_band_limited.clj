@@ -3,23 +3,29 @@
              [pink.event :refer :all] 
              [pink.space :refer [pan]] 
              [pink.oscillators :refer [blit-saw blit-square]]
-             [pink.envelopes :refer [env]]
-             [pink.util :refer [mul]]
-             [pink.node :refer :all]))
+             [pink.envelopes :refer [env xar]]
+             [pink.util :refer [mul sum let-s]]
+             [pink.node :refer :all]
+             [pink.filters :refer [tone]]
+             ))
 
 (defn instr-saw
   [amp freq loc]
-  (pan 
-    (mul (env [0 0 0.02 0.25 0.3 0.25 0.05 0.0])
-         (blit-saw freq))
-    loc))
+  (let-s [e (xar 0.01 1.0)] 
+    (pan 
+      (mul e
+           (tone (blit-saw freq) 
+                 (sum 100 (mul e 400))))
+      loc)))
 
 (defn instr-square
   [amp freq loc]
-  (pan 
-    (mul (env [0 0 0.02 0.25 0.3 0.25 0.05 0.0])
-         (blit-square freq))
-    loc))
+  (let-s [e (xar 0.01 1.0)] 
+    (pan 
+      (mul e
+           (tone (blit-square freq) 
+                 (sum 100 (mul e 400))))
+      loc)))
 
 ;(def a (blit-square 440))
 ;(require '[clojure.pprint :refer [pprint]])
@@ -36,10 +42,13 @@
   (def my-score 
     (let [num-notes 10] 
       (node-events root-node 
-                   (map #(event instr-saw (* % 0.5)  
+                   (map #(event instr-saw (* % 0.25)  
                                 (/ 0.75 (+ 1 %)) 
                                 (* 220 (+ 1 %)) 
                                 (- (* 2 (/ % (- num-notes 1)))  1)) 
+
+                  
+
                         (range num-notes)))))
 
   (engine-add-events e my-score) 
@@ -54,7 +63,7 @@
       (node-events root-node 
                    (map #(event instr-square (* % 0.5)  
                                 (/ 0.75 (+ 1 %)) 
-                                (* 220 (+ 1 %)) 
+                                (* 65 (+ 1 %)) 
                                 (- (* 2 (/ % (- num-notes 1)))  1)) 
                         (range num-notes)))))
 
