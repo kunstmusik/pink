@@ -3,6 +3,7 @@
   
   In general, users will first call create-node to create a node map. node-processor will be used as the audio-rate function to add to an Engine, Node, or other audio-function.  
   "
+  (:import [pink.event Event])
   (:require [pink.config :refer [*nchnls* *buffer-size*]]
             [pink.event :refer :all]
             [pink.util :refer [create-buffer create-buffers
@@ -69,7 +70,7 @@
   (when-let [afunc (fire-event evt)] 
     (node-add-afunc node afunc)))
 
-(defn wrap-node-event [node ^pink.event.Event evt]
+(defn wrap-node-event [node ^Event evt]
   (wrap-event fire-node-event [node] evt))
 
 (defn node-events 

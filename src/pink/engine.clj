@@ -7,7 +7,8 @@
            [java.nio ByteBuffer]
            [java.util Arrays]
            [javax.sound.sampled AudioFormat AudioSystem SourceDataLine
-                                AudioFileFormat$Type AudioInputStream]))
+                                AudioFileFormat$Type AudioInputStream]
+           [pink.event Event]))
 
 
 (defmacro limit [num]
@@ -316,7 +317,7 @@
     (engine-add-afunc eng afunc)))
 
 (defn wrap-engine-event 
-  [eng ^pink.event.Event evt]
+  [eng ^Event evt]
   (wrap-event fire-engine-event [eng] evt))
 
 (defn engine-events 
