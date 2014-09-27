@@ -268,7 +268,7 @@
            cur-funcs (drain-atom! pending-afuncs) 
            post-cfuncs (drain-atom! pending-post-cfuncs)
            buffer-count 0]
-      (let [more-engine-event 
+      (let [more-engine-events
             (binding [*current-buffer-num* buffer-count 
                       *sr* sr 
                       *buffer-size* buffer-size 
