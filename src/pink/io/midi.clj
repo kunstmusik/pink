@@ -130,13 +130,41 @@
                   (create-receiver virtual-device))
     ))
 
-
 (defn get-midi-cc-atom
   [virtual-device channel cc-num]
   (aget (:cc-processors virtual-device)
         channel cc-num))
 
+;(defn midi-cc-trigger 
+;  [trigfn]
+;  (fn [key atm old-v new-v]
+;    (when (and (< old-v 127) (= new-v 127))
+;      (trigfn) 
+;      )))
+
 (defn set-midi-event-processor
   [virtual-device channel midi-event-func]
 
   )
+
+;; MIDI Device Debugging
+
+(defn create-debug-receiver []
+  (reify Receiver
+    (send [this msg timestamp] 
+      (when (instance? ShortMessage msg)
+        (let [smsg ^ShortMessage msg
+              cmd (.getCommand smsg)
+              channel (.getChannel smsg)
+              data1 (.getData1 smsg)
+              data2 (.getData2 smsg)] 
+          (println (format "%d %d %d %d" cmd channel data1 data2)))))))
+
+(defn midi-device-debug 
+  [^String hardware-id]
+  (let [device ^MidiDevice (:device (find-midi-device hardware-id))]
+    (when (not (.isOpen device)) 
+      (.open device))
+    (.setReceiver (.getTransmitter device) (create-debug-receiver))
+    ))
+

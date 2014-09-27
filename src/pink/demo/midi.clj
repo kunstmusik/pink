@@ -8,10 +8,8 @@
             [pink.filters :refer [port]]
             [pink.util :refer [mul try-func create-buffer]])
   (:import [javax.sound.midi MidiSystem Transmitter Receiver MidiMessage
-            ShortMessage
-            ])
- (:import [java.util Arrays])
-  )
+            ShortMessage ]
+           [java.util Arrays]))
 
 
 (def midim (create-midi-manager))
@@ -20,7 +18,15 @@
 
 (bind-device midim "nanoKONTROL SLIDER/KNOB" "slider/knobs 1")
 
+;(midi-device-debug "nanoKONTROL SLIDER/KNOB")
+
 (def get-cc (partial get-midi-cc-atom sliders 0))
+
+;(defn cc-trigger []
+;  (println "hello."))
+
+;(add-watch (get-cc 60) "trigger1"
+;           (midi-cc-trigger cc-trigger))
 
 (defn atom-reader
   [source-atom]
