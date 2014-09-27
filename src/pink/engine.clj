@@ -170,40 +170,38 @@
            post-cfuncs (drain-atom! pending-post-cfuncs)
            buffer-count 0]
       (if (= @(.status engine) :running)
-        (let [pre (binding [*current-buffer-num* buffer-count 
-                            *sr* sr 
-                            *buffer-size* buffer-size 
-                            *nchnls* nchnls] 
-                    (process-cfuncs pre-cfuncs))
-              afs (binding [*current-buffer-num* buffer-count 
-                            *sr* sr 
-                            *buffer-size* buffer-size 
-                            *nchnls* nchnls]
-                    (process-buffer cur-funcs out-buffer buf))
-              post (binding [*current-buffer-num* buffer-count 
-                             *sr* sr 
-                             *buffer-size* buffer-size 
-                             *nchnls* nchnls]
-                     (process-cfuncs post-cfuncs))]  
-          (buf->line buf line (.byte-buffer-size engine))
+        (do 
           (binding [*current-buffer-num* buffer-count 
-                             *sr* sr 
-                             *buffer-size* buffer-size 
-                             *nchnls* nchnls]
-            (run-engine-events))
-          (if @clear-flag
-            (do 
-              (reset! pending-pre-cfuncs [])
-              (reset! pending-afuncs [])
-              (reset! pending-post-cfuncs [])
-              (reset! clear-flag false)
-              (event-list-clear (.event-list engine))
-              (recur [] [] [] (unchecked-inc buffer-count)))
-            (recur 
-              (concat-drain! pre pending-pre-cfuncs)
-              (concat-drain! afs pending-afuncs)
-              (concat-drain! post pending-post-cfuncs)
-              (unchecked-inc buffer-count))))
+                    *sr* sr 
+                    *buffer-size* buffer-size 
+                    *nchnls* nchnls]
+            (run-engine-events)) 
+          (let [pre (binding [*current-buffer-num* buffer-count 
+                              *sr* sr 
+                              *buffer-size* buffer-size 
+                              *nchnls* nchnls] 
+                      (process-cfuncs (concat-drain! pre-cfuncs pending-pre-cfuncs)))
+                afs (binding [*current-buffer-num* buffer-count 
+                              *sr* sr 
+                              *buffer-size* buffer-size 
+                              *nchnls* nchnls]
+                      (process-buffer (concat-drain! cur-funcs pending-afuncs) out-buffer buf))
+                post (binding [*current-buffer-num* buffer-count 
+                               *sr* sr 
+                               *buffer-size* buffer-size 
+                               *nchnls* nchnls]
+                       (process-cfuncs (concat-drain! post-cfuncs pending-post-cfuncs)))]  
+            (buf->line buf line (.byte-buffer-size engine))
+
+            (if @clear-flag
+              (do 
+                (reset! pending-pre-cfuncs [])
+                (reset! pending-afuncs [])
+                (reset! pending-post-cfuncs [])
+                (reset! clear-flag false)
+                (event-list-clear (.event-list engine))
+                (recur [] [] [] (unchecked-inc buffer-count)))
+              (recur pre afs post (unchecked-inc buffer-count)))))
         (do
           (println "stopping...")
           (doto line
@@ -261,7 +259,6 @@
         pending-afuncs (.pending-afuncs engine)
         pending-pre-cfuncs (.pending-pre-cfuncs engine)
         pending-post-cfuncs (.pending-post-cfuncs engine)
-        bufnum (atom -1)
         start-time (System/currentTimeMillis)
         sr (.sample-rate engine)
         buffer-size (.buffer-size engine)
@@ -271,31 +268,33 @@
            cur-funcs (drain-atom! pending-afuncs) 
            post-cfuncs (drain-atom! pending-post-cfuncs)
            buffer-count 0]
-      (let [pre (binding [*current-buffer-num* buffer-count 
-                            *sr* sr 
-                            *buffer-size* buffer-size 
-                            *nchnls* nchnls] 
-                    (process-cfuncs pre-cfuncs))
-              afs (binding [*current-buffer-num* buffer-count 
-                            *sr* sr 
-                            *buffer-size* buffer-size 
-                            *nchnls* nchnls]
-                    (process-buffer cur-funcs out-buffer buf))
-              post (binding [*current-buffer-num* buffer-count 
-                             *sr* sr 
-                             *buffer-size* buffer-size 
-                             *nchnls* nchnls]
-                     (process-cfuncs post-cfuncs))
-              new-pre (concat-drain! pre pending-pre-cfuncs) 
-              new-afs (concat-drain! afs pending-afuncs) 
-              new-post (concat-drain! post pending-post-cfuncs)
-              more-engine-events (run-engine-events)
-              ]  
-        (if (or (not-empty new-pre) (not-empty new-afs) (not-empty new-post) more-engine-events)  
+      (let [more-engine-event 
+            (binding [*current-buffer-num* buffer-count 
+                      *sr* sr 
+                      *buffer-size* buffer-size 
+                      *nchnls* nchnls]
+              (run-engine-events)) 
+            pre (binding [*current-buffer-num* buffer-count 
+                          *sr* sr 
+                          *buffer-size* buffer-size 
+                          *nchnls* nchnls] 
+                  (process-cfuncs (concat-drain! pre-cfuncs pending-pre-cfuncs)))
+            afs (binding [*current-buffer-num* buffer-count 
+                          *sr* sr 
+                          *buffer-size* buffer-size 
+                          *nchnls* nchnls]
+                  (process-buffer (concat-drain! cur-funcs pending-afuncs) out-buffer buf))
+            post (binding [*current-buffer-num* buffer-count 
+                           *sr* sr 
+                           *buffer-size* buffer-size 
+                           *nchnls* nchnls]
+                   (process-cfuncs (concat-drain! post-cfuncs pending-post-cfuncs)))
+            ]  
+        (if (or (not-empty pre) (not-empty afs) (not-empty post) more-engine-events)  
           (do 
             (.write baos (.array buf))
             (.clear buf)
-            (recur new-pre new-afs new-post (unchecked-inc buffer-count)))
+            (recur pre afs post (unchecked-inc buffer-count)))
           (let [data (.toByteArray baos)
                 bais (ByteArrayInputStream. data)
                 af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)
