@@ -7,6 +7,7 @@
              [pink.util :refer [mul sum let-s]]
              [pink.node :refer :all]
              [pink.filters :refer [tone]]
+             [pink.delays :refer [adelay]]
              ))
 
 (defn instr-saw
@@ -36,8 +37,16 @@
   (def e (engine-create :nchnls 2))
   (engine-start e)
 
+  ;(def root-node (create-node :channels 1))
+  ;(def delayed-audio-node
+  ;  (let-s [afn (node-processor root-node)]
+  ;    (sum afn (adelay afn 0.25))))
+
+  ;(engine-add-afunc e delayed-audio-node)
+
   (def root-node (create-node :channels 2))
-  (engine-add-afunc e (node-processor root-node))
+  (engine-add-afunc e 
+                    (node-processor root-node))
 
   (def my-score 
     (let [num-notes 10] 
