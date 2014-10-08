@@ -2,7 +2,8 @@
   "Audio Engine Code"
   (:require [pink.config :refer :all]
             [pink.util :refer :all]
-            [pink.event :refer :all])
+            [pink.event :refer :all]
+            [pink.io.audio :refer :all])
   (:import [java.io ByteArrayInputStream ByteArrayOutputStream File] 
            [java.nio ByteBuffer]
            [java.util Arrays]
@@ -76,12 +77,6 @@
 
 ;;;; JAVASOUND CODE
 
-(defn open-line [audio-format]
-  (let [#^SourceDataLine line (AudioSystem/getSourceDataLine audio-format)]
-    (doto line 
-    (.open audio-format)
-    (.start))))
-
 (defmacro doubles->byte-buffer 
   "Write output from doubles array into ByteBuffer. 
   Maps -1.0,1.0 to Short/MIN_VALUE,Short/MAX_VALUE, truncating
@@ -94,7 +89,7 @@
         (recur (unchecked-inc y#))))))
 
 
-(defn write-asig
+(defn- write-asig
   "Writes asig as a channel into an interleaved out-buffer"
   [^doubles out-buffer ^doubles asig chan-num]
   (if (= *nchnls* 1)
@@ -127,14 +122,14 @@
            (recur xs# ret#))
          ret#)))) 
 
-(defn process-buffer
+(defn- process-buffer
   [afs ^doubles out-buffer ^ByteBuffer buffer]
   (Arrays/fill ^doubles out-buffer 0.0)
   (let [newfs (run-audio-funcs afs out-buffer)]
     (doubles->byte-buffer out-buffer buffer)
     newfs))
 
-(defn process-cfuncs
+(defn- process-cfuncs
   [cfuncs]
   (loop [[x & xs] cfuncs
          ret []]
@@ -144,7 +139,7 @@
         (recur xs ret))
       ret)))
 
-(defn buf->line [^ByteBuffer buffer ^SourceDataLine line
+(defn- buf->line [^ByteBuffer buffer ^SourceDataLine line
                  ^long out-buffer-size]
   (.write line (.array buffer) 0 out-buffer-size)
   (.clear buffer))
@@ -358,20 +353,3 @@
   
   )
 
-
-;; javasound stuff
-
-(defn print-java-sound-info
-  []
-  (let [mixers (AudioSystem/getMixerInfo)
-        cnt (alength mixers)]
-   
-    (println "Mixers Found: " cnt)
-    (loop [indx 0]
-      (when (< indx cnt)
-        (let [mixer ^Mixer$Info (aget mixers indx)] 
-          (println "Mixer " indx " :" mixer)
-          (recur (unchecked-inc-int indx))
-          )))))
-
-;(print-java-sound-info)
