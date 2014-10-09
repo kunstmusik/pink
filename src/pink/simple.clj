@@ -4,7 +4,7 @@
   pink.simple
   (:require [pink.engine :refer :all]))
 
-(def engine (engine-create))
+(def engine (engine-create :channels 2))
 
 (defn start-engine []
   (engine-start engine))
