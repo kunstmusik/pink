@@ -1,11 +1,12 @@
 (ns pink.engine-test
+  (:import [pink.engine Engine])
   (:require [pink.engine :refer :all])
   (:require [clojure.test :refer :all]))
 
 (deftest test-engine-kill-all
   (engines-clear)
-  (let [a ^pink.engine.Engine (engine-create) 
-        b ^pink.engine.Engine (engine-create)]
+  (let [a ^Engine (engine-create)
+        b ^Engine (engine-create)]
     (is (= :stopped (engine-status a)))
     (is (= :stopped (engine-status b)))
     (is (not @(.clear a)))

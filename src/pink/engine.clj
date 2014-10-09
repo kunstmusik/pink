@@ -2,12 +2,14 @@
   "Audio Engine Code"
   (:require [pink.config :refer :all]
             [pink.util :refer :all]
-            [pink.event :refer :all])
+            [pink.event :refer :all]
+            [pink.io.audio :refer :all])
   (:import [java.io ByteArrayInputStream ByteArrayOutputStream File] 
            [java.nio ByteBuffer]
            [java.util Arrays]
            [javax.sound.sampled AudioFormat AudioSystem SourceDataLine
-                                AudioFileFormat$Type AudioInputStream]))
+                                AudioFileFormat$Type AudioInputStream]
+           [pink.event Event]))
 
 
 (defmacro limit [num]
@@ -29,7 +31,7 @@
                    out-buffer-size byte-buffer-size
                    event-list]
   Object
-  (toString [this] (str "[Engine] ID:" (System/identityHashCode this))))
+  (toString [this] (str "[Engine] ID: " (System/identityHashCode this) " Status " @status)))
 
 (defn engine-create 
   "Creates an audio engine"
@@ -75,12 +77,6 @@
 
 ;;;; JAVASOUND CODE
 
-(defn open-line [audio-format]
-  (let [#^SourceDataLine line (AudioSystem/getSourceDataLine audio-format)]
-    (doto line 
-    (.open audio-format)
-    (.start))))
-
 (defmacro doubles->byte-buffer 
   "Write output from doubles array into ByteBuffer. 
   Maps -1.0,1.0 to Short/MIN_VALUE,Short/MAX_VALUE, truncating
@@ -93,7 +89,7 @@
         (recur (unchecked-inc y#))))))
 
 
-(defn write-asig
+(defn- write-asig
   "Writes asig as a channel into an interleaved out-buffer"
   [^doubles out-buffer ^doubles asig chan-num]
   (if (= *nchnls* 1)
@@ -126,14 +122,14 @@
            (recur xs# ret#))
          ret#)))) 
 
-(defn process-buffer
+(defn- process-buffer
   [afs ^doubles out-buffer ^ByteBuffer buffer]
   (Arrays/fill ^doubles out-buffer 0.0)
   (let [newfs (run-audio-funcs afs out-buffer)]
     (doubles->byte-buffer out-buffer buffer)
     newfs))
 
-(defn process-cfuncs
+(defn- process-cfuncs
   [cfuncs]
   (loop [[x & xs] cfuncs
          ret []]
@@ -143,7 +139,7 @@
         (recur xs ret))
       ret)))
 
-(defn buf->line [^ByteBuffer buffer ^SourceDataLine line
+(defn- buf->line [^ByteBuffer buffer ^SourceDataLine line
                  ^long out-buffer-size]
   (.write line (.array buffer) 0 out-buffer-size)
   (.clear buffer))
@@ -169,40 +165,38 @@
            post-cfuncs (drain-atom! pending-post-cfuncs)
            buffer-count 0]
       (if (= @(.status engine) :running)
-        (let [pre (binding [*current-buffer-num* buffer-count 
-                            *sr* sr 
-                            *buffer-size* buffer-size 
-                            *nchnls* nchnls] 
-                    (process-cfuncs pre-cfuncs))
-              afs (binding [*current-buffer-num* buffer-count 
-                            *sr* sr 
-                            *buffer-size* buffer-size 
-                            *nchnls* nchnls]
-                    (process-buffer cur-funcs out-buffer buf))
-              post (binding [*current-buffer-num* buffer-count 
-                             *sr* sr 
-                             *buffer-size* buffer-size 
-                             *nchnls* nchnls]
-                     (process-cfuncs post-cfuncs))]  
-          (buf->line buf line (.byte-buffer-size engine))
+        (do 
           (binding [*current-buffer-num* buffer-count 
-                             *sr* sr 
-                             *buffer-size* buffer-size 
-                             *nchnls* nchnls]
-            (run-engine-events))
-          (if @clear-flag
-            (do 
-              (reset! pending-pre-cfuncs [])
-              (reset! pending-afuncs [])
-              (reset! pending-post-cfuncs [])
-              (reset! clear-flag false)
-              (event-list-clear (.event-list engine))
-              (recur [] [] [] (unchecked-inc buffer-count)))
-            (recur 
-              (concat-drain! pre pending-pre-cfuncs)
-              (concat-drain! afs pending-afuncs)
-              (concat-drain! post pending-post-cfuncs)
-              (unchecked-inc buffer-count))))
+                    *sr* sr 
+                    *buffer-size* buffer-size 
+                    *nchnls* nchnls]
+            (run-engine-events)) 
+          (let [pre (binding [*current-buffer-num* buffer-count 
+                              *sr* sr 
+                              *buffer-size* buffer-size 
+                              *nchnls* nchnls] 
+                      (process-cfuncs (concat-drain! pre-cfuncs pending-pre-cfuncs)))
+                afs (binding [*current-buffer-num* buffer-count 
+                              *sr* sr 
+                              *buffer-size* buffer-size 
+                              *nchnls* nchnls]
+                      (process-buffer (concat-drain! cur-funcs pending-afuncs) out-buffer buf))
+                post (binding [*current-buffer-num* buffer-count 
+                               *sr* sr 
+                               *buffer-size* buffer-size 
+                               *nchnls* nchnls]
+                       (process-cfuncs (concat-drain! post-cfuncs pending-post-cfuncs)))]  
+            (buf->line buf line (.byte-buffer-size engine))
+
+            (if @clear-flag
+              (do 
+                (reset! pending-pre-cfuncs [])
+                (reset! pending-afuncs [])
+                (reset! pending-post-cfuncs [])
+                (reset! clear-flag false)
+                (event-list-clear (.event-list engine))
+                (recur [] [] [] (unchecked-inc buffer-count)))
+              (recur pre afs post (unchecked-inc buffer-count)))))
         (do
           (println "stopping...")
           (doto line
@@ -260,7 +254,6 @@
         pending-afuncs (.pending-afuncs engine)
         pending-pre-cfuncs (.pending-pre-cfuncs engine)
         pending-post-cfuncs (.pending-post-cfuncs engine)
-        bufnum (atom -1)
         start-time (System/currentTimeMillis)
         sr (.sample-rate engine)
         buffer-size (.buffer-size engine)
@@ -270,31 +263,33 @@
            cur-funcs (drain-atom! pending-afuncs) 
            post-cfuncs (drain-atom! pending-post-cfuncs)
            buffer-count 0]
-      (let [pre (binding [*current-buffer-num* buffer-count 
-                            *sr* sr 
-                            *buffer-size* buffer-size 
-                            *nchnls* nchnls] 
-                    (process-cfuncs pre-cfuncs))
-              afs (binding [*current-buffer-num* buffer-count 
-                            *sr* sr 
-                            *buffer-size* buffer-size 
-                            *nchnls* nchnls]
-                    (process-buffer cur-funcs out-buffer buf))
-              post (binding [*current-buffer-num* buffer-count 
-                             *sr* sr 
-                             *buffer-size* buffer-size 
-                             *nchnls* nchnls]
-                     (process-cfuncs post-cfuncs))
-              new-pre (concat-drain! pre pending-pre-cfuncs) 
-              new-afs (concat-drain! afs pending-afuncs) 
-              new-post (concat-drain! post pending-post-cfuncs)
-              more-engine-events (run-engine-events)
-              ]  
-        (if (or (not-empty new-pre) (not-empty new-afs) (not-empty new-post) more-engine-events)  
+      (let [more-engine-events
+            (binding [*current-buffer-num* buffer-count 
+                      *sr* sr 
+                      *buffer-size* buffer-size 
+                      *nchnls* nchnls]
+              (run-engine-events)) 
+            pre (binding [*current-buffer-num* buffer-count 
+                          *sr* sr 
+                          *buffer-size* buffer-size 
+                          *nchnls* nchnls] 
+                  (process-cfuncs (concat-drain! pre-cfuncs pending-pre-cfuncs)))
+            afs (binding [*current-buffer-num* buffer-count 
+                          *sr* sr 
+                          *buffer-size* buffer-size 
+                          *nchnls* nchnls]
+                  (process-buffer (concat-drain! cur-funcs pending-afuncs) out-buffer buf))
+            post (binding [*current-buffer-num* buffer-count 
+                           *sr* sr 
+                           *buffer-size* buffer-size 
+                           *nchnls* nchnls]
+                   (process-cfuncs (concat-drain! post-cfuncs pending-post-cfuncs)))
+            ]  
+        (if (or (not-empty pre) (not-empty afs) (not-empty post) more-engine-events)  
           (do 
             (.write baos (.array buf))
             (.clear buf)
-            (recur new-pre new-afs new-post (unchecked-inc buffer-count)))
+            (recur pre afs post (unchecked-inc buffer-count)))
           (let [data (.toByteArray baos)
                 bais (ByteArrayInputStream. data)
                 af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)
@@ -316,7 +311,7 @@
     (engine-add-afunc eng afunc)))
 
 (defn wrap-engine-event 
-  [eng ^pink.event.Event evt]
+  [eng ^Event evt]
   (wrap-event fire-engine-event [eng] evt))
 
 (defn engine-events 
@@ -358,20 +353,3 @@
   
   )
 
-
-;; javasound stuff
-
-(defn print-java-sound-info
-  []
-  (let [mixers (AudioSystem/getMixerInfo)
-        cnt (alength mixers)]
-   
-    (println "Mixers Found: " cnt)
-    (loop [indx 0]
-      (when (< indx cnt)
-        (let [mixer ^Mixer$Info (aget mixers indx)] 
-          (println "Mixer " indx " :" mixer)
-          (recur (unchecked-inc-int indx))
-          )))))
-
-;(print-java-sound-info)
