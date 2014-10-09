@@ -31,7 +31,7 @@
                    out-buffer-size byte-buffer-size
                    event-list]
   Object
-  (toString [this] (str "[Engine] ID:" (System/identityHashCode this))))
+  (toString [this] (str "[Engine] ID: " (System/identityHashCode this) " Status " @status)))
 
 (defn engine-create 
   "Creates an audio engine"
