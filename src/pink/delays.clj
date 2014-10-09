@@ -15,7 +15,6 @@
       (System/arraycopy asig size0 delay-buffer 0 size1)
       size1)
     (do 
-      (println write-ptr " " new-end " " delay-buffer-len " " *buffer-size* " " (alength delay-buffer) " " asig)
       (System/arraycopy asig 0 delay-buffer write-ptr *buffer-size*)
       new-end))))
 
