@@ -34,7 +34,6 @@
         cur-val (atom @source-atom)]
     (fn []
       (when (not (= @cur-val @source-atom))
-        (let [])
         (Arrays/fill out ^double (reset! cur-val @source-atom)))
       out
       )))
