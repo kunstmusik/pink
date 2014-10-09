@@ -1,5 +1,5 @@
 (ns pink.demo.demo-band-limited
- (:require [pink.engine :refer :all]
+ (:require [pink.simple :refer :all]
              [pink.event :refer :all] 
              [pink.space :refer [pan]] 
              [pink.oscillators :refer [blit-saw blit-square]]
@@ -34,8 +34,10 @@
 
 (comment
 
-  (def e (engine-create :nchnls 2))
-  (engine-start e)
+  (start-engine)
+
+  (def root-node (create-node :channels 2))
+  (add-afunc (node-processor root-node))
 
   ;(def root-node (create-node :channels 1))
   ;(def delayed-audio-node
@@ -43,10 +45,6 @@
   ;    (sum afn (adelay afn 0.25))))
 
   ;(engine-add-afunc e delayed-audio-node)
-
-  (def root-node (create-node :channels 2))
-  (engine-add-afunc e 
-                    (node-processor root-node))
 
   (def my-score 
     (let [num-notes 10] 
@@ -60,7 +58,7 @@
 
                         (range num-notes)))))
 
-  (engine-add-events e my-score) 
+  (add-events my-score) 
 
   (node-add-afunc
     root-node 
@@ -76,15 +74,14 @@
                                 (- (* 2 (/ % (- num-notes 1)))  1)) 
                         (range num-notes)))))
 
-  (engine-add-events e my-score2) 
+  (add-events my-score2) 
 
   (node-add-afunc
     root-node 
     (instr-square 0.25 (env [0.0 220 0.1 4000 0.0001 220 0.1 4000]) 0.0))
 
-  (engine-stop e)
-  (engine-clear e)
-  (engine-kill-all)
+  engine
+  (stop-engine)
 
 
   )
