@@ -282,6 +282,9 @@
   [& a]
   (operator + a))
 
+(defn sub 
+  [& a]
+  (operator - a))
 
 (defn with-duration 
   [dur afn]
