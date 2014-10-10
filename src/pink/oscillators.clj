@@ -3,7 +3,7 @@
   (:require [pink.config :refer [*sr* *buffer-size*]]
             [pink.util :refer [create-buffer fill map-d 
                                      swapd! setd! getd arg
-                                     generator with-sample]]
+                                     generator]]
             [pink.gen :refer [gen-sine]] 
             ))
 
@@ -17,10 +17,15 @@
   "Phasor with fixed frequency and starting phase"
   [^double freq ^double phase]
   (let [phase-incr ^double (/ freq  *sr*)
-        cur-phase (double-array 1 phase)
-        out (create-buffer)]
-      (fn ^doubles [] 
-        (fill out cur-phase #(dec-if (+ phase-incr ^double %))))))
+        ;cur-phase (double-array 1 phase)
+        out ^doubles (create-buffer)]
+    (generator 
+      [cur-phase phase]
+      []
+      (do
+        (aset out indx cur-phase)
+        (recur (unchecked-inc indx) (dec-if (+ phase-incr cur-phase))))
+      (yield out))))
 
 (defn sine 
   "Sine generator with fixed frequency and starting phase"
@@ -43,14 +48,14 @@
   (let [out ^doubles (create-buffer)
         len (alength out)
         freq-fn (arg freq)]
-    (generator [cur-phase ^double phase]
+    (generator [cur-phase phase]
                [f freq-fn]
                (let [incr ^double (/ f *sr*)]
-                 (aset out indx incr)
+                 (aset out indx cur-phase)
                  (recur (unchecked-inc indx) (phs-incr cur-phase incr)))
-               :yields out)))
+               (yield out))))
 
-((vphasor 440 0.0))
+(pprint ((vphasor 440 0.0)))
 
 ;(defn vphasor 
 ;  "Phasor with variable frequency and fixed starting phase."
