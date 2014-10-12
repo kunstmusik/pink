@@ -10,6 +10,10 @@
    ;  improves concurrency by reducing contention on
    ;  the shared heap lock.
    "-XX:MaxTenuringThreshold=0" ; Makes the full NewSize available to every NewGC 
+
+   ; for GC diagnostics 
+   ;"-XX:+PrintGCDetails"
+   ;"-XX:+PrintGCTimeStamps"
    ]
   :description "A library for music research, composition, and performance."
 
