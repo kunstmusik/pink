@@ -9,24 +9,18 @@
   [afn cutoff]
   (let [TPIDSR (/ (* 2 Math/PI) *sr*)
         cutoff-fn (arg cutoff)
-        out ^doubles (create-buffer)
-        last-val (double-array 1 0.0)]
-    (fn []
-      (let [in ^doubles (afn)
-            hps ^doubles (cutoff-fn)] 
-        (when (and in hps)
-          (loop [i 0 last-value (getd last-val)]
-            (if (< i *buffer-size*)
-              (let [hp (aget hps i)
-                    b (- 2.0 (Math/cos (* hp TPIDSR)))
-                    c2 (- b (Math/sqrt (- (* b b) 1.0)))
-                    c1 (- 1.0 c2)
-                    new-val (+ (* c1 (aget in i)) 
-                               (* c2 last-value))]
-                (aset out i new-val) 
-                (recur (unchecked-inc-int i) new-val))
-              (aset last-val 0 last-value)))
-          out)))))
+        out ^doubles (create-buffer)]
+    (generator 
+      [last-val 0.0]
+      [ain afn
+       hp cutoff-fn]
+      (let [b (- 2.0 (Math/cos (* hp TPIDSR)))
+            c2 (- b (Math/sqrt (- (* b b) 1.0)))
+            c1 (- 1.0 c2)
+            new-val (+ (* c1 ain) (* c2 last-val))]
+                (aset out indx new-val) 
+                (recur (unchecked-inc indx) new-val))
+      (yield out))))
 
 (defn atone 
   "A hi-pass filter whose transfer functions are the complements of the tone function (based on Csound's atone opcode). 
@@ -35,23 +29,17 @@
   [afn cutoff]
   (let [TPIDSR (/ (* 2 Math/PI) *sr*)
         cutoff-fn (arg cutoff)
-        out ^doubles (create-buffer)
-        last-val (double-array 1 0.0)]
-    (fn []
-      (let [in ^doubles (afn)
-            hps ^doubles (cutoff-fn)] 
-        (when (and in hps)
-          (loop [i 0 last-value (getd last-val)]
-            (if (< i *buffer-size*)
-              (let [hp (aget hps i)
-                    b (- 2.0 (Math/cos (* hp TPIDSR)))
+        out ^doubles (create-buffer)]
+    (generator 
+      [last-val 0.0]
+      [ain afn
+       hp cutoff-fn]
+      (let [ b (- 2.0 (Math/cos (* hp TPIDSR)))
                     c2 (- b (Math/sqrt (- (* b b) 1.0)))
-                    sig (aget in i)
-                    new-val (* c2 (+ last-value sig))]
-                (aset out i new-val) 
-                (recur (unchecked-inc-int i) (- new-val sig)))
-              (aset last-val 0 last-value)))
-          out)))))
+                    new-val (* c2 (+ last-val ain))]
+                (aset out indx new-val) 
+                (recur (unchecked-inc indx) (- new-val ain)))
+      (yield out))))
 
 (defn port
   [afn half-time] 
@@ -61,15 +49,11 @@
         c2 (Math/pow 0.5 (/ onedsr half-time))
         c1 (- 1.0 c2)
         last-val ^doubles (double-array 1 0.0)]
-    (fn []
-      (when-let [buf ^doubles (afn)] 
-        (loop [i 0 previous (aget last-val 0)] 
-          (if (< i *buffer-size*)
-            (do 
-              (let [new-val (+ (* c1 (aget buf i)) (* c2 previous))]
-                (aset out i new-val)
-                (recur (unchecked-inc i) new-val)))
-            (do
-              (aset last-val 0 previous)
-              out)))))))
+    (generator
+      [last-val 0.0]
+      [ain afn]
+       (let [new-val (+ (* c1 ain) (* c2 last-val))]
+                (aset out indx new-val)
+                (recur (unchecked-inc indx) new-val))
+      (yield out))))
 

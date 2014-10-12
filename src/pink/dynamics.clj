@@ -1,15 +1,15 @@
 (ns pink.dynamics
   "Functions for dealing with dynamics/amplitude of audio"
-  (:require [pink.util :refer [create-buffer getd]]
+  (:require [pink.util :refer [create-buffer getd generator]]
             [pink.config :refer [*buffer-size* *sr*]]))
 
 (def ^:const LOG10D20
     (/  (Math/log 10) 20))
 
 (defn db->amp
-    "Convert decibel to power ratio"
-      [d] 
-        (Math/exp  (* d LOG10D20)))
+  "Convert decibel to power ratio"
+  [d] 
+  (Math/exp  (* d LOG10D20)))
 
 (defn balance
   "Adjust one audio signal according to the values of another. 
@@ -25,6 +25,19 @@
          prvr (double-array 1 0.0)
          prva (double-array 1 0.0)
          out ^doubles (create-buffer)]
+
+     ; this one needs some thought...
+     ;(generator 
+     ;  [prvq 0.0
+     ;   prvr 0.0
+     ;   prva 0.0]
+     ;  [ain asig
+     ;   cin acomp]
+
+
+     ;  (yield out)
+     ;  )
+
 
      (fn []
        (let [abuf ^doubles (asig)

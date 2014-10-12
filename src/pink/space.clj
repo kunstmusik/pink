@@ -1,7 +1,7 @@
 (ns pink.space
   "Functions for processing spatial qualities of sound"
   (:require [pink.config :refer :all]
-            [pink.util :refer [create-buffer arg]]
+            [pink.util :refer [create-buffer arg generator]]
             [pink.dynamics :refer [db->amp]]))
 
 (defn pan 
@@ -23,18 +23,14 @@
         out (into-array [left right])
         PI2 (/ Math/PI 2)
         ]
-    (fn []
-      (when-let [ain ^doubles (afn)] 
-        (when-let [locs ^doubles (locfn)] 
-          (loop [i 0]
-            (when (< i *buffer-size*)
-              (let [v (aget ain i)
-                    cur-loc (+ 0.5 (* 0.5 (aget locs i)))
+    (generator 
+      []
+      [ain afn
+       loc locfn]
+       (let [cur-loc (+ 0.5 (* 0.5 loc))
                     l (db->amp (* 20 (Math/log (Math/cos (* PI2 cur-loc )))))
                     r (db->amp (* 20 (Math/log (Math/sin (* PI2 cur-loc )))))]
-                (aset left i (* l v)) 
-                (aset right i (* r v)) 
-                (recur (unchecked-inc i)))))
-          out)))))
-
-
+                (aset left indx (* l ain)) 
+                (aset right indx (* r ain)) 
+                (recur (unchecked-inc indx)))
+      (yield out))))

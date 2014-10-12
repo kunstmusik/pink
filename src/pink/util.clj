@@ -122,10 +122,10 @@
 
 ;; Functions related to audio buffers
 
-(defn create-buffer 
+(defn create-buffer  
   "Creates a single-channel audio buffer with optional default value"
-  ([] (double-array *buffer-size*))
-  ([i] (double-array *buffer-size* i)))
+  ^doubles ([] (double-array *buffer-size*))
+  ^doubles ([i] (double-array *buffer-size* i)))
 
 (defn create-buffers
   "Creates a single-channel or multi-channel buffer"
