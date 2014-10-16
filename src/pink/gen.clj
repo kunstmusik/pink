@@ -5,18 +5,19 @@
 
 (def TWO_PI (* 2.0 Math/PI))
 
-(defmacro get-sine-value
-  [phase]
-  `(Math/sin (* TWO_PI ~phase)))
+(defn get-sine-value
+  [^double phase]
+  (Math/sin (* ^double TWO_PI phase)))
 
 (defn gen-sine
   "Generates a sine wave with n size table (default to 2^16 (65536))"
   ([] (gen-sine 65536))
-  ([n]
-   (let [buffer (double-array n)]
-     (loop [indx 0]
+  ([^long n]
+   (let [^doubles buffer (double-array n)]
+     (loop [indx (int 0)]
        (when (< indx n)
-         (aset buffer indx (get-sine-value (/ indx (double n))))
+         (let [^double v (get-sine-value (/ indx (double n)))] 
+           (aset buffer indx v))
          (recur (inc indx))))
      buffer)))
 
@@ -32,15 +33,12 @@
         (let [v (aget tbl i) 
             new-mn (if (< v mn) v mn)
             new-mx (if (> v mx) v mx)]
-           (recur (unchecked-inc-int i) new-mn new-mx) 
-            )
-        [mn mx]
-        ))))
+           (recur (unchecked-inc-int i) new-mn new-mx))
+        [mn mx]))))
 
 (defn rescale
   [tbl]
-  tbl
-  )
+  tbl)
 
 ; GEN routines
 
@@ -52,21 +50,24 @@
   0.0 to 1.0. Phases are optional and are expressed in 0-360 degrees, defaulting
   to 0."
   [tbl-size & pts]
-  {:pre (every? #(pos? (first %)) pts)}
-  (let [out (double-array tbl-size)]
-    (loop [[[harmonic strength & [phs]] & xs] pts]
+  {:pre (every? #(pos? ^double (first %)) pts)}
+  (let [size (long tbl-size)
+        dbl-size (double size)
+        out (double-array size)]
+    (loop [[[^double harmonic ^double strength & [^double phs]] & xs] pts]
       (when (and harmonic strength)
         (let [phs-adj (if (nil? phs) 
                         0.0
                         (rem (/ phs 360.0) 1.0))] 
           (loop [indx 0]
-            (when (< indx tbl-size) 
-              (aset out indx 
-                    (+ (aget out indx)
-                       (* strength
-                         (get-sine-value   (rem (+ phs-adj 
-                                             (* harmonic (/ indx tbl-size))) 1)))))
-              (recur (unchecked-inc-int indx))))
+            (when (< indx size) 
+              (let [cur-val (aget out indx) 
+                    ^double sine-val 
+                    (get-sine-value (rem (+ phs-adj 
+                                            (* harmonic (/ indx dbl-size))) 1))
+                    new-val (+ cur-val (* strength sine-val))]
+               (aset out indx new-val)
+              (recur (unchecked-inc-int indx)))))
           (recur xs)))) 
     out))
 
@@ -74,19 +75,22 @@
   "Generates a set of sine waves, given a list of amplitude values for each 
   harmonic"
   [tbl-size & pts]
-  (let [out (double-array tbl-size)]
-    (loop [harmonic 1 [strength & xs] pts]
+  (let [size ^long tbl-size 
+        out (double-array size)]
+    (loop [harmonic 1 [^double strength & xs] pts]
       (when (some? strength)
         (if (<= strength 0)
           (recur (unchecked-inc-int harmonic) xs)
           (do
-            (loop [indx 0]
-              (when (< indx tbl-size) 
-                (aset out indx 
-                      (+ (aget out indx)
-                         (get-sine-value 
-                           (* strength (rem (* harmonic (/ indx tbl-size)) 1)))))
-                (recur (unchecked-inc-int indx))))
+            (loop [indx (int 0)]
+              (when (< indx size) 
+                (let [last-val (aget out indx)
+                      ^double sine-val 
+                      (get-sine-value 
+                        (* strength 
+                           (rem (* harmonic (/ indx (double size))) 1)))] 
+                  (aset out indx (+ last-val sine-val))
+                  (recur (unchecked-inc-int indx)))))
             (recur (unchecked-inc-int harmonic) xs)))))
     out))
 

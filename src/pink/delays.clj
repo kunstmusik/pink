@@ -1,16 +1,16 @@
 (ns pink.delays
   (:require [pink.config :refer :all]
             [pink.util :refer [create-buffer]]
-            )
-  )
+            ))
 
 (defn- do-write
   [^doubles asig ^doubles delay-buffer 
    ^long write-ptr ^long delay-buffer-len ]
-  (let [new-end (+ write-ptr *buffer-size*)]
+  (let [buf-size (long *buffer-size*)
+        new-end (+ write-ptr buf-size)]
    (if (>= new-end delay-buffer-len)
     (let [size0 (- delay-buffer-len write-ptr 1)
-          size1 (- *buffer-size* size0)] 
+          size1 (- buf-size size0)] 
       (System/arraycopy asig 0 delay-buffer write-ptr size0)
       (System/arraycopy asig size0 delay-buffer 0 size1)
       size1)
@@ -21,22 +21,23 @@
 (defn- do-read
   [^doubles out ^doubles delay-buffer 
    ^long read-ptr ^long delay-buffer-len ]
-  (let [new-end (+ read-ptr *buffer-size*)]
+  (let [buf-size (long *buffer-size*)
+        new-end (+ read-ptr buf-size)]
    (if (>= new-end delay-buffer-len)
     (let [size0 (- delay-buffer-len read-ptr 1)
-          size1 (- *buffer-size* size0)] 
+          size1 (- buf-size size0)] 
       (System/arraycopy delay-buffer read-ptr out 0 size0)
       (System/arraycopy delay-buffer 0 out size0 size1)
       size1)
     (do 
-      (System/arraycopy delay-buffer read-ptr out 0 *buffer-size*)
+      (System/arraycopy delay-buffer read-ptr out 0 buf-size)
       new-end))))
 
 (defn adelay
   "Fixed length, non-interpolating delay-line. delay-time given in seconds."
-  [afn delay-time]
+  [afn ^double delay-time]
   (let [out ^doubles (create-buffer) 
-        delay-buffer-len (int (+ 0.5 (* delay-time *sr*)))
+        delay-buffer-len (int (+ 0.5 (* delay-time (long *sr*))))
         delay-buffer (double-array delay-buffer-len 0.0)
         read-ptr (int-array 1 *buffer-size*) ; start reading one buffer ahead
         write-ptr (int-array 1 0)]

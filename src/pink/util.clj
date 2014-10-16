@@ -154,8 +154,8 @@
   "Mix src audio buffer into dest audio buffer, taking into account 
   differences in channel counts"
   [src dest]
-  (let [src-count (buffer-channel-count src)
-        dest-count (buffer-channel-count dest)]
+  (let [^long src-count (buffer-channel-count src)
+        ^long dest-count (buffer-channel-count dest)]
     (if (= src-count dest-count 1)
       (map-d dest + dest src)
       (cond 
@@ -289,14 +289,14 @@
 ;; Macro for Generators
 
 (defmacro box-val [v]
-  (into-array (type v) [v]))
+  (into-array Double/TYPE [v]))
 
 (defn- process-bindings [bindings]
   {:pre (even? bindings)}
   (reduce 
     (fn [[x y z] [b c]]
       (let [state-sym (gensym "state")] 
-        [ (conj x state-sym (list 'into-array Double/TYPE [c]))
+        [ (conj x state-sym (list 'double-array 1 [c]))
           (conj y b `(aget ~(tag-doubles state-sym) 0))
           (conj z `(aset ~(tag-doubles state-sym) 0 ~b))])) 
     [[] [] []]
@@ -336,10 +336,9 @@
        (fn [] 
          (let [~@new-afn-bindings] 
            (when (and ~@afn-results)
-             (loop [~indx-sym 0
-                    ~@new-bindings
-                    ]
-               (if (< ~indx-sym *buffer-size*)
+             (loop [~indx-sym (unchecked-int 0)
+                    ~@new-bindings]
+               (if (< ~indx-sym (long *buffer-size*))
                  (let [~@afn-indexing] 
                    ~body )          
                  ~yield-body 
@@ -347,7 +346,7 @@
                )))))))
 
 
-(process-bindings '[a 3 b 4])
+;(process-bindings '[a 3 b 4])
 
 ;(let [out 4
 ;      asig 2
@@ -362,8 +361,8 @@
 ;; functions for processing
 
 (defn with-duration 
-  [dur afn]
-  (let [end (long (/ (* dur *sr* *buffer-size*))) 
+  [^double dur afn]
+  (let [end (long (/ (* dur ^long *sr* ^long *buffer-size*))) 
         cur-buffer (long-array 1 0)]
     (fn []
       (let [v (aget cur-buffer 0)] 

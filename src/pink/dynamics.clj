@@ -3,21 +3,21 @@
   (:require [pink.util :refer [create-buffer getd generator]]
             [pink.config :refer [*buffer-size* *sr*]]))
 
-(def ^:const LOG10D20
+(def ^:const ^double LOG10D20
     (/  (Math/log 10) 20))
 
 (defn db->amp
   "Convert decibel to power ratio"
-  [d] 
+  [^double d] 
   (Math/exp  (* d LOG10D20)))
 
 (defn balance
   "Adjust one audio signal according to the values of another. 
   Based on Csound's balance opcode."
   ([asig acomp] (balance asig acomp 10))
-  ([asig acomp hp]
+  ([asig acomp ^double hp]
    {:pre (number? hp)}
-   (let [TPIDSR (/ (* 2 Math/PI) *sr*)
+   (let [TPIDSR (/ (* 2 Math/PI) (double *sr*))
          b (- 2.0 (Math/cos (* hp TPIDSR)))
          c2 (- b (Math/sqrt (- (* b b) 1.0)))
          c1 (- 1.0 c2)
@@ -41,12 +41,13 @@
 
      (fn []
        (let [abuf ^doubles (asig)
-             cbuf ^doubles (acomp)] 
+             cbuf ^doubles (acomp)
+             buf-size (long *buffer-size*)] 
        (when (and abuf cbuf)
-         (loop [i 0
+         (loop [i (int 0)
                 q (getd prvq)
                 r (getd prvr)]
-           (if (< i *buffer-size*)
+           (if (< i buf-size)
              (let [av (aget abuf i)
                    cv (aget cbuf i)]
                (recur 
@@ -66,18 +67,17 @@
                ]
            (if (zero? diff)
              (loop [i 0] 
-               (when (< i *buffer-size*)
+               (when (< i buf-size)
                  (aset out i (* a (aget abuf i)))
                  (recur (unchecked-inc-int i))))
-             (let [incr (/ diff *buffer-size*)]
+             (let [incr (/ diff buf-size)]
                (loop [i 0 m pa]
-                 (if (< i *buffer-size*)
+                 (if (< i buf-size)
                    (do 
                      (aset out i (* m (aget abuf i)))
                      (recur (unchecked-inc-int i) (+ m incr)))  
                    (aset prva 0 a))
-                 ))
-             ) 
+                 ))) 
 
            out)))))))
 

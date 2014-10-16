@@ -17,19 +17,19 @@
                    pairs)]
      
     (cons (second x) (second (reduce 
-              (fn [[[a b] lst] [c d :as p]] 
-                (let [run (double (* c *sr*))
+              (fn [[[a b] lst] [^double c ^double d :as p]] 
+                (let [run (double (* c (double *sr*)))
                       rise (double (opfn d b run))
                       last-pt (last lst) 
-                      total-run (if (nil? last-pt) 0.0 (first last-pt))] 
+                      total-run (if (nil? last-pt) 0.0 ^double (first last-pt))] 
                       [p (conj lst [(+ total-run run) rise])] ))
                          [x []] xs)))))
 
 (defn get-line-pt 
-  [sample linedata]
+  [^long sample linedata]
   (loop [[x & xs] linedata]
     (when x
-      (if (< sample (first x))
+      (if (< sample ^double (first x))
         x
         (recur xs)))))
 
@@ -37,14 +37,14 @@
   "Generates an envelope given pairs of values (t0, v0, t1, v1 ...) where tx is duration of segment."
   [pts] 
   {:pre (even? (count pts))}
-  (let [[start & linedata] (make-env-data pts #(/ (- %1 %2) %3))
+  (let [[start & linedata] (make-env-data pts #(/ (- ^double %1 ^double %2) ^double %3))
         cur-val (double-array 1 start)
         counter (long-array 1 0)
         ^doubles out (create-buffer)
         len (alength out)]
     (fn ^doubles[]
       (let [cnt (getl counter)
-            [last-sam increment] (get-line-pt cnt linedata)]
+            [^double last-sam ^double increment] (get-line-pt cnt linedata)]
         (if (and last-sam increment) 
           (loop [end last-sam
                  incr increment 
@@ -73,7 +73,7 @@
 
 (defn- adjust-for-zero
   "for exponential envelopes, can not have zero"
-  [x]
+  [^double x]
   (if (zero? x)
     0.0000000001
     x))
@@ -82,7 +82,7 @@
   {:pre (even? (count pts))}
   (let [adjusted-pts 
         (map #(if (even? %2) %1 (adjust-for-zero %1)) pts (range))]
-   (make-env-data adjusted-pts #(Math/pow (/ %1 %2) (/ 1.0 %3)))))
+   (make-env-data adjusted-pts #(Math/pow (/ ^double %1 ^double %2) (/ 1.0 ^double %3)))))
 
 
 ;; TODO - this is almost exactly the same as env except
@@ -97,9 +97,13 @@
         counter (long-array 1 0)
         ^doubles out (create-buffer)
         len (alength out)]
+    ;(generator
+    ;  [counter 0]
+
+    ;  )
     (fn ^doubles[]
       (let [cnt (getl counter)
-            [last-sam increment] (get-line-pt cnt linedata)]
+            [^double last-sam ^double increment] (get-line-pt cnt linedata)]
         (if (and last-sam increment) 
           (loop [end last-sam
                  incr increment 

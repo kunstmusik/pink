@@ -23,7 +23,7 @@
 
 (def engines (atom []))
 
-(def BYTE-SIZE (/ Short/SIZE Byte/SIZE)) ; 2 bytes for 16-bit audio
+(def ^:constant BYTE-SIZE (/ Short/SIZE Byte/SIZE)) ; 2 bytes for 16-bit audio
 
 (deftype Engine [status clear pending-afuncs
                    pending-pre-cfuncs pending-post-cfuncs
@@ -37,11 +37,13 @@
   "Creates an audio engine"
   [& {:keys [sample-rate nchnls buffer-size] 
       :or {sample-rate 44100 nchnls 1 buffer-size 64}}] 
-  (let  [e 
+  (let  [bsize (long buffer-size)
+         channels (long nchnls)
+         e 
           (Engine. (atom :stopped) (atom false) (atom [])
             (atom []) (atom [])
-            sample-rate nchnls buffer-size 
-            (* buffer-size nchnls) (* BYTE-SIZE buffer-size nchnls)
+            sample-rate nchnls bsize 
+            (* bsize channels) (* (long BYTE-SIZE) bsize channels)
             (event-list))]
     (swap! engines conj e) 
     e))
@@ -91,13 +93,13 @@
 
 (defn- write-asig
   "Writes asig as a channel into an interleaved out-buffer"
-  [^doubles out-buffer ^doubles asig chan-num]
+  [^doubles out-buffer ^doubles asig ^long chan-num]
   (if (= *nchnls* 1)
     (when (= 0 chan-num)
       (map-d out-buffer + out-buffer asig))
-    (loop [i 0]
-      (when (< i *buffer-size*)
-        (let [out-index (+ chan-num (* i *nchnls*))] 
+    (loop [i (unchecked-int 0)]
+      (when (< i (long *buffer-size*))
+        (let [out-index (+ chan-num (* i (long *nchnls*)))] 
           (aset out-buffer out-index
             (+ (aget out-buffer out-index) (aget asig i))))
         (recur (unchecked-inc-int i))))))

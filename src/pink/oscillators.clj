@@ -8,14 +8,10 @@
 (def ^:const PI Math/PI)
 (def ^:const TWO_PI (* 2 PI))
 
-(defmacro dec-if 
-  [a] 
-  `(if (>= ~a 1.0) (dec ~a) ~a))
-
 (defn phasor 
   "Phasor with fixed frequency and starting phase"
   [^double freq ^double phase]
-  (let [phase-incr ^double (/ freq  *sr*)
+  (let [phase-incr ^double (/ freq (double *sr*))
         ;cur-phase (double-array 1 phase)
         out ^doubles (create-buffer)]
     (generator 
@@ -23,7 +19,7 @@
       []
       (do
         (aset out indx cur-phase)
-        (recur (unchecked-inc indx) (dec-if (+ phase-incr cur-phase))))
+        (recur (unchecked-inc indx) (rem (+ phase-incr cur-phase) 1.0)))
       (yield out))))
 
 (defn sine 
@@ -40,9 +36,9 @@
          (recur (unchecked-inc indx)))          
        (yield out)))))
 
-(defmacro phs-incr
-  [cur incr]
-  `(dec-if (+ ~cur ~incr)))
+;(require '[no.disassemble :refer :all])
+;(println (disassemble sine))
+
 
 (defn vphasor 
   "Phasor with variable frequency and fixed starting phase."
@@ -57,9 +53,10 @@
                  (do 
                    (aset out indx Double/NEGATIVE_INFINITY)
                    (recur (unchecked-inc indx) cur-phase))
-                 (let [incr ^double (/ f *sr*)]
+                 (let [incr ^double (/ f (long *sr*))]
                    (aset out indx cur-phase)
-                   (recur (unchecked-inc indx) (phs-incr cur-phase incr))))(yield out))))
+                   (recur (unchecked-inc indx) (rem (+ cur-phase incr) 1.0))))
+               (yield out))))
 
 (defn sine2 
   "Sine generator with variable frequency and fixed starting phase."
@@ -162,8 +159,8 @@
          (let [phs (* p tbl-len)
                pt1 (int phs)
                pt0 (if (zero? pt1) (- tbl-len 1) (- pt1 1))  
-               pt2 (mod (inc pt1) tbl-len)  
-               pt3 (mod (inc pt2) tbl-len)  
+               pt2 (rem (inc pt1) tbl-len)  
+               pt3 (rem (inc pt2) tbl-len)  
                x (if (zero? pt1) 
                    phs
                    (rem phs pt1))
@@ -202,12 +199,12 @@
 ;; blit-saw
 
 (defn- blit-saw-static
-  [freq nharmonics]
+  [^double freq ^long nharmonics]
   (let [out ^doubles (create-buffer)
-        p (/ *sr* freq)
+        p (/ (long *sr*) freq)
         c2 (/ 1 p)
         rate (* Math/PI c2)
-        m (calc-harmonics p nharmonics)
+        m (long (calc-harmonics p nharmonics))
         a (/ m p)]
     (generator
       [phase 0.0
@@ -215,7 +212,7 @@
       [] 
       (let [denom (Math/sin phase)
             tmp (+ (- st c2) 
-                   (if (<= (Math/abs denom) DOUBLE-EPSILON)
+                   (if (<= (Math/abs denom) ^double DOUBLE-EPSILON)
                      a
                      (/ (Math/sin (* m phase)) (* p denom))))
             new-st (* tmp 0.995)
@@ -225,12 +222,9 @@
       (yield out))))
 
 (defn- blit-saw-dynamic
-  [freq nharmonics]
+  [^double freq ^long nharmonics]
   (let [out ^doubles (create-buffer)
-          state (double-array 1 0)
-          phs (double-array 1 0)
-          initialized (atom false)
-          ]
+          initialized (atom false)]
     (generator
       [phase 0.0
        st 0.0]
@@ -240,14 +234,16 @@
           (aset out indx 0.0)
           (recur (unchecked-inc indx) phase st))
         (let [denom (Math/sin phase)
-              p (/ *sr* f)
+              p (/ (long *sr*) f)
               c2 (/ 1 p)
               rate (* Math/PI c2)
-              m (calc-harmonics p nharmonics)
+              m (long (calc-harmonics p nharmonics))
               a (/ m p)
-              st-val (if @initialized st (reset! initialized (* -0.5 a)))
-              tmp (+ (- st-val c2) 
-                     (if (<= (Math/abs denom) DOUBLE-EPSILON)
+              st-val ^double (if @initialized 
+                               st 
+                               (reset! initialized (* -0.5 a)))
+              tmp (+ (- ^double st-val c2) 
+                     (if (<= ^double (Math/abs denom) ^double DOUBLE-EPSILON)
                        a
                        (/ (Math/sin (* m phase)) (* p denom))))
               new-st (* tmp 0.995)
@@ -261,8 +257,8 @@
  
   Returns an optimized audio-function if freq is a number, or a slower
   version if freq is itself an audio-function."
-  ([freq] (blit-saw freq 0))
-  ([freq nharmonics]
+  ([^double freq] (blit-saw freq 0))
+  ([^double freq ^long nharmonics]
    {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
   (if (number? freq)
     (blit-saw-static freq nharmonics)    
@@ -287,9 +283,9 @@
   `(if (>= ~v TWO_PI) (- ~v TWO_PI) ~v))
 
 (defn- blit-square-static
-  [freq nharmonics]
+  [^double freq ^long nharmonics]
   (let [out ^doubles (create-buffer)
-        p (/ (* 0.5 *sr*) freq)
+        p (/ (* 0.5 (long *sr*)) freq)
         rate (/ Math/PI p)
         m (calc-square-harmonics p nharmonics)
         a (/ m p) ]
@@ -300,8 +296,8 @@
       []
       (let [denom (Math/sin phase)
             new-blit (+ last-blit 
-                        (if (< (Math/abs denom) DOUBLE-EPSILON)
-                          (if (or (< phase 0.1) (> phase TOP_LIM))
+                        (if (< (Math/abs denom) ^double DOUBLE-EPSILON)
+                          (if (or (< phase 0.1) (> phase ^double TOP_LIM))
                             a
                             (- a))
                           (/ (Math/sin (* m phase)) (* p denom))))
@@ -312,11 +308,8 @@
       (yield out))))
 
 (defn- blit-square-dynamic
-  [freq nharmonics]
-  (let [out ^doubles (create-buffer)
-        phs (double-array 1 0)
-        last-val-state (double-array 1 0)
-        last-blit-state (double-array 1 0)]
+  [^double freq ^long nharmonics]
+  (let [out ^doubles (create-buffer)]
     (generator
       [phase 0.0
        last-val 0.0
@@ -326,14 +319,14 @@
         (do 
           (aset out indx 0.0)
           (recur (unchecked-inc indx) phase last-val last-blit))
-        (let [p (/ (* 0.5 *sr*) f)
+        (let [p (/ (* 0.5 (long *sr*)) f)
               rate (/ Math/PI p)
-              m (calc-square-harmonics p nharmonics)
+              m ^long (calc-square-harmonics p nharmonics)
               a (/ m p) 
               denom (Math/sin phase)
               new-blit (+ last-blit 
-                          (if (< (Math/abs denom) DOUBLE-EPSILON)
-                            (if (or (< phase 0.1) (> phase TOP_LIM))
+                          (if (< (Math/abs denom) ^double DOUBLE-EPSILON)
+                            (if (or (< phase 0.1) (> phase ^double TOP_LIM))
                               a
                               (- a))
                             (/ (Math/sin (* m phase)) (* p denom))))
@@ -350,8 +343,8 @@
  
   Returns an optimized audio-function if freq is a number, or a slower
   version if freq is itself an audio-function."
-  ([freq] (blit-square freq 0))
-  ([freq nharmonics]
+  ([^double freq] (blit-square freq 0))
+  ([^double freq ^long nharmonics]
    {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
   (if (number? freq)
     (blit-square-static freq nharmonics)    

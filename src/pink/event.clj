@@ -102,7 +102,7 @@
       (try 
         (let [new-events (drain-atom! pending)
             cur-buffer (.cur-buffer evtlst)
-            cur-time (/ (* @cur-buffer *buffer-size*) (double *sr*))
+            cur-time (/ (* (long @cur-buffer) (long *buffer-size*)) (double *sr*))
             timed-events 
             (map (fn [^Event a] (alter-event-time (+ cur-time (.start a)) a)) 
                  new-events)] 
@@ -115,7 +115,7 @@
   [^EventList evtlst] 
   (merge-pending! evtlst)
   (let [cur-buffer (.cur-buffer evtlst)
-        cur-time (/ (* @cur-buffer *buffer-size*) (double *sr*))
+        cur-time (/ (* (long @cur-buffer) (long *buffer-size*)) (double *sr*))
         events ^PriorityQueue (.events evtlst)]
     (loop [evt ^Event (.peek events)]
       (when (and evt (<= (.start evt) cur-time)) 

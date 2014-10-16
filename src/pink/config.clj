@@ -4,4 +4,4 @@
 (def ^:dynamic *buffer-size* 64)
 (def ^:dynamic *nchnls* 1)
 (def ^:dynamic *current-buffer-num* 0)
-(def ^:dynamic *duration* 0)
+(def ^:dynamic *duration* 0.0)

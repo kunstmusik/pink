@@ -7,7 +7,7 @@
   
   For further information, see: http://csound.github.io/docs/manual/tone.html"
   [afn cutoff]
-  (let [TPIDSR (/ (* 2 Math/PI) *sr*)
+  (let [TPIDSR (/ (* 2 Math/PI) (long *sr*))
         cutoff-fn (arg cutoff)
         out ^doubles (create-buffer)]
     (generator 
@@ -22,12 +22,14 @@
                 (recur (unchecked-inc indx) new-val))
       (yield out))))
 
+;(println (disassemble tone))
+
 (defn atone 
   "A hi-pass filter whose transfer functions are the complements of the tone function (based on Csound's atone opcode). 
   
   For further information, see: http://csound.github.io/docs/manual/atone.html"
   [afn cutoff]
-  (let [TPIDSR (/ (* 2 Math/PI) *sr*)
+  (let [TPIDSR (/ (* 2 Math/PI) (long *sr*))
         cutoff-fn (arg cutoff)
         out ^doubles (create-buffer)]
     (generator 
@@ -42,10 +44,10 @@
       (yield out))))
 
 (defn port
-  [afn half-time] 
+  [afn ^double half-time] 
   "Apply portamento to step-wise signal via low-pass filtering."
   (let [out ^doubles (create-buffer) 
-        onedsr (/ 1.0 *sr*)
+        onedsr (/ 1.0 (long *sr*))
         c2 (Math/pow 0.5 (/ onedsr half-time))
         c1 (- 1.0 c2)
         last-val ^doubles (double-array 1 0.0)]
@@ -56,4 +58,6 @@
                 (aset out indx new-val)
                 (recur (unchecked-inc indx) new-val))
       (yield out))))
+
+
 

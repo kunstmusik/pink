@@ -28,8 +28,8 @@
       [ain afn
        loc locfn]
        (let [cur-loc (+ 0.5 (* 0.5 loc))
-                    l (db->amp (* 20 (Math/log (Math/cos (* PI2 cur-loc )))))
-                    r (db->amp (* 20 (Math/log (Math/sin (* PI2 cur-loc )))))]
+                    ^double l (db->amp (* 20 (Math/log (Math/cos (* PI2 cur-loc )))))
+                    ^double r (db->amp (* 20 (Math/log (Math/sin (* PI2 cur-loc )))))]
                 (aset left indx (* l ain)) 
                 (aset right indx (* r ain)) 
                 (recur (unchecked-inc indx)))

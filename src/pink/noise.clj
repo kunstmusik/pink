@@ -1,11 +1,18 @@
 (ns pink.noise
   "Noise audio-functions."
-  (:require [pink.util :refer [create-buffer fill]]))
+  (:require [pink.util :refer [create-buffer generator]]))
 
-(defn white-noise  []
-  (let  [out  (create-buffer)
-         state (double-array 1 0)] 
-    (fn  []
-      (fill out state 
-        (fn [a] (-  (* 2  (Math/random) 1)))))))
+(defn white-noise  
+  "Create white-noise generator."
+  []
+  (let [out ^doubles (create-buffer)] 
+    (generator
+      []
+      []
+      (let [v (-  (* 2  (Math/random) 1))]
+        (aset out indx v)
+        (recur (unchecked-inc indx)))
+      (yield out))))
+
+
 
