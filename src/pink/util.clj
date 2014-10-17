@@ -315,8 +315,15 @@
       (let [bsym (gensym "buffer")] 
         [(conj x bsym (with-meta (list c) {:tag "doubles"}))
          (conj y bsym)
-         (conj z b (list 'aget (tag-doubles bsym) 'indx))
-         ]))
+         (if (vector? b)
+           (loop [out z 
+                  [sig & sigs] b 
+                  channel 0]
+             (if sig
+               (recur (conj out sig (list 'aget (with-meta bsym {:tag "[[D"}) channel 'indx)) sigs (inc channel))
+               out))
+           ;(conj z b (list 'aget (tag-doubles bsym) 'indx))   
+           )]))
     [[] [] []] (partition 2 afn-bindings)))
 
 (defmacro generator 
@@ -387,8 +394,7 @@
        (let [frames# (int (/ *buffer-size* ~buffer-size))
              ~out-buf-sym (create-buffer)
              done# (atom false)
-             current-buf-num# (long-array 1 0)
-             ]
+             current-buf-num# (long-array 1 0)]
          (binding [*buffer-size* ~buffer-size] 
 
            (let [afn# (binding [*buffer-size* ~buffer-size]
