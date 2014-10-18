@@ -322,7 +322,7 @@
              (if sig
                (recur (conj out sig (list 'aget (with-meta bsym {:tag "[[D"}) channel 'indx)) sigs (inc channel))
                out))
-           ;(conj z b (list 'aget (tag-doubles bsym) 'indx))   
+           (conj z b (list 'aget (tag-doubles bsym) 'indx))   
            )]))
     [[] [] []] (partition 2 afn-bindings)))
 
