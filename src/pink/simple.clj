@@ -19,7 +19,7 @@
   (engine-add-afunc engine afn))
 
 (defn remove-afunc [afn]
-  (engine-remove-afunc afn))
+  (engine-remove-afunc engine afn))
 
 (defn add-pre-cfunc [cfn]
   (engine-add-pre-cfunc engine cfn))
@@ -33,5 +33,7 @@
 (defn remove-post-cfunc [cfn]
   (engine-remove-post-cfunc engine cfn))
 
-(defn add-events [evts]
-  (engine-add-events engine evts))
+(defn add-events 
+  "Takes in list of events, wraps in engine events, and adds to engine's event list."
+  [evts]
+  (engine-add-events engine (engine-events engine evts)))
