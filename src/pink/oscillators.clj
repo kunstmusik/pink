@@ -222,7 +222,7 @@
       (yield out))))
 
 (defn- blit-saw-dynamic
-  [^double freq ^long nharmonics]
+  [freq ^long nharmonics]
   (let [out ^doubles (create-buffer)
           initialized (atom false)]
     (generator
@@ -257,11 +257,11 @@
  
   Returns an optimized audio-function if freq is a number, or a slower
   version if freq is itself an audio-function."
-  ([^double freq] (blit-saw freq 0))
-  ([^double freq ^long nharmonics]
+  ([freq] (blit-saw freq 0))
+  ([freq ^long nharmonics]
    {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
   (if (number? freq)
-    (blit-saw-static freq nharmonics)    
+    (blit-saw-static (double freq) nharmonics)    
     (blit-saw-dynamic freq nharmonics) 
     )))
 
@@ -308,7 +308,7 @@
       (yield out))))
 
 (defn- blit-square-dynamic
-  [^double freq ^long nharmonics]
+  [freq ^long nharmonics]
   (let [out ^doubles (create-buffer)]
     (generator
       [phase 0.0
@@ -343,10 +343,10 @@
  
   Returns an optimized audio-function if freq is a number, or a slower
   version if freq is itself an audio-function."
-  ([^double freq] (blit-square freq 0))
-  ([^double freq ^long nharmonics]
+  ([freq] (blit-square freq 0))
+  ([freq ^long nharmonics]
    {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
   (if (number? freq)
-    (blit-square-static freq nharmonics)    
+    (blit-square-static (double freq) nharmonics)    
     (blit-square-dynamic freq nharmonics) 
     )))
