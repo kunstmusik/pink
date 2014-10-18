@@ -112,7 +112,16 @@
           (condp = cmd
             ShortMessage/CONTROL_CHANGE
             (when-let [atm (aget (:cc-processors virtual-device) channel data1)]
-              (reset! atm data2))))
+              (reset! atm data2))
+
+            ShortMessage/NOTE_ON
+            (when-let [efn (aget (:event-processors virtual-device) channel)]
+              (efn cmd data1 data2))
+
+            ShortMessage/NOTE_OFF
+            (when-let [efn (aget (:event-processors virtual-device) channel)]
+              (efn cmd data1 data2))
+            ))
 
         ))))
 
@@ -129,6 +138,10 @@
     (.setReceiver (.getTransmitter device) 
                   (create-receiver virtual-device))
     ))
+
+(defn bind-key-func
+  [virtual-device channel afn]
+  (aset (virtual-device :event-processors) channel afn))
 
 (defn get-midi-cc-atom
   [virtual-device channel cc-num]
@@ -167,4 +180,13 @@
       (.open device))
     (.setReceiver (.getTransmitter device) (create-debug-receiver))
     ))
+
+
+;; Utility functions
+
+
+(defn midi->freq
+  "Convert MIDI Note number to frequency in hertz"
+  [notenum]
+  (* 440  (Math/pow 2.0  (/  (- notenum 57) 12))))
 
