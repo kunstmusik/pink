@@ -1,7 +1,6 @@
 (ns pink.gen
   "Table generator Functions"
-  (:import [java.util Arrays])
-  )
+  (:import [java.util Arrays]))
 
 (def TWO_PI (* 2.0 Math/PI))
 
