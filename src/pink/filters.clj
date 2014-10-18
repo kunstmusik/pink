@@ -59,5 +59,174 @@
                 (recur (unchecked-inc indx) new-val))
       (yield out))))
 
+;; Butterworth Filters
+
+(def ROOT2 (Math/sqrt 2))
+
+(defmacro butter-filter
+  [cut asig out indx a1 a2 a3 a4 a5 a6 a7]
+  `(let [t# (- ~asig (* ~a4 ~a6) (* ~a5 ~a7))
+        y# (+ (* t# ~a1) (* ~a2 ~a6) (* ~a3 ~a7))]
+    (aset ~out ~indx y#) 
+    (recur (unchecked-inc ~indx) ~cut ~a1 ~a2 ~a3 ~a4 ~a5 t# ~a6)))
+
+(defn butterhp
+  [afn cutoff]
+  (let [out ^doubles (create-buffer)
+        cut-fn (arg cutoff)
+        PIDSR ^double (/ Math/PI (long *sr*))]
+    (generator
+      [last-cut 0.0
+       old-a1 0.0
+       old-a2 0.0
+       old-a3 0.0
+       old-a4 0.0
+       old-a5 0.0
+       old-a6 0.0
+       old-a7 0.0]
+      [asig afn
+       cut cut-fn]
+      (if (not= last-cut cut)
+        (let [c (/ 1.0 (Math/tan (* PIDSR cut)))
+              c2 (* c c)
+              root2c (* (double ROOT2) c)
+              a1 (/ 1.0 (+ 1.0 root2c c2))
+              a2 (- (+ a1 a1)) 
+              a3 a1
+              a4 (* 2.0 (- c2 1.0) a1)
+              a5 (* (+ (- 1.0 root2c) c2) a1)]
+          (butter-filter cut asig out indx a1 a2 a3 a4 a5 old-a6 old-a7))
+        (butter-filter last-cut asig out indx old-a1 old-a2 old-a3 old-a4
+                       old-a5 old-a6 old-a7))
+      (yield out))))
+
+(defn butterlp
+  [afn cutoff]
+  (let [out ^doubles (create-buffer)
+        cut-fn (arg cutoff)
+        PIDSR ^double (/ Math/PI (long *sr*))]
+    (generator
+      [last-cut 0.0
+       old-a1 0.0
+       old-a2 0.0
+       old-a3 0.0
+       old-a4 0.0
+       old-a5 0.0
+       old-a6 0.0
+       old-a7 0.0]
+      [asig afn
+       cut cut-fn]
+      (if (not= last-cut cut)
+        (let [c (/ 1.0 (Math/tan (* PIDSR cut)))
+              c2 (* c c)
+              root2c (* (double ROOT2) c)
+              a1 (/ 1.0 (+ 1.0 root2c c2))
+              a2 (+ a1 a1) 
+              a3 a1
+              a4 (* 2.0 (- 1.0 c2) a1)
+              a5 (* (+ (- 1.0 root2c) c2) a1)]
+          (butter-filter cut asig out indx a1 a2 a3 a4 a5 old-a6 old-a7))
+        (butter-filter last-cut asig out indx old-a1 old-a2 old-a3 old-a4
+                       old-a5 old-a6 old-a7))
+      (yield out))))
 
 
+(defmacro butterb-filter
+  [cf bw asig out indx a1 a2 a3 a4 a5 a6 a7]
+  `(let [t# (- ~asig (* ~a4 ~a6) (* ~a5 ~a7))
+        y# (+ (* t# ~a1) (* ~a2 ~a6) (* ~a3 ~a7))]
+    (aset ~out ~indx y#) 
+    (recur (unchecked-inc ~indx) ~cf ~bw ~a1 ~a2 ~a3 ~a4 ~a5 t# ~a6)))
+
+(defn butterbp
+  [afn center-freq bandwidth ]
+  (let [out ^doubles (create-buffer)
+        cf-fn (arg center-freq)
+        bw-fn (arg bandwidth)
+        PIDSR ^double (/ Math/PI (long *sr*))
+        TPIDSR ^double (/ (* 2.0 Math/PI) (long *sr*))]
+    (generator
+      [last-cf 0.0
+       last-bw 0.0
+       old-a1 0.0
+       old-a2 0.0
+       old-a3 0.0
+       old-a4 0.0
+       old-a5 0.0
+       old-a6 0.0
+       old-a7 0.0]
+      [asig afn
+       cf cf-fn
+       bw bw-fn ]
+      (if (or (not= last-cf cf) (not= last-bw bw))
+        (let [c (/ 1.0 (Math/tan (* PIDSR bw)))
+              d (* 2.0 (Math/cos (TPIDSR cf)))
+              a1 (/ 1.0 (+ 1.0 c))
+              a3 (- a1)
+              a4 (* (- c) d a1) 
+              a5 (* (- c 1.0) a1)]
+          (butterb-filter cf bw asig out indx a1 old-a2 a3 a4 a5 old-a6 old-a7))
+        (butterb-filter last-cf last-bw asig out indx old-a1 old-a2 old-a3 old-a4
+                       old-a5 old-a6 old-a7))
+      (yield out))))
+
+(defn butterbr
+  [afn center-freq bandwidth ]
+  (let [out ^doubles (create-buffer)
+        cf-fn (arg center-freq)
+        bw-fn (arg bandwidth)
+        PIDSR ^double (/ Math/PI (long *sr*))
+        TPIDSR ^double (/ (* 2.0 Math/PI) (long *sr*))]
+    (generator
+      [last-cf 0.0
+       last-bw 0.0
+       old-a1 0.0
+       old-a2 0.0
+       old-a3 0.0
+       old-a4 0.0
+       old-a5 0.0
+       old-a6 0.0
+       old-a7 0.0]
+      [asig afn
+       cf cf-fn
+       bw bw-fn ]
+      (if (or (not= last-cf cf) (not= last-bw bw))
+        (let [c (/ 1.0 (Math/tan (* PIDSR bw)))
+              d (* 2.0 (Math/cos (TPIDSR cf)))
+              a1 (/ 1.0 (+ 1.0 c))
+              a2 (* (- d) a1) 
+              a3 a1 
+              a4 a2 
+              a5 (* (- 1.0 c) a1)]
+          (butterb-filter cf bw asig out indx a1 a2 a3 a4 a5 old-a6 old-a7))
+        (butterb-filter last-cf last-bw asig out indx old-a1 old-a2 old-a3 old-a4
+                       old-a5 old-a6 old-a7))
+      (yield out))))
+
+;; Moog Ladder Filter
+
+(defn moogladder
+  [afn cutoff resonance]
+  (let [out ^doubles (create-buffer)
+        cfn (arg cutoff)
+        rfn (arg resonance)
+        del (double-array 6 0.0)
+        ]
+   (generator
+     [del0 0.0 del1 0.0 del2 0.0 del3 0.0 del4 0.0 del5 0.0
+      tanhstg0 0.0 tanhstg1 0.0 tanhstg2 0.0
+      old-freq 0.0
+      old-res -1.0
+      old-acr 0.0
+      old-tune 0.0]
+     [asig afn
+      cut cfn
+      res rfn]
+     (if (or (not= old-freq cut) (not= old-res res))
+       (let []) 
+       (let [])
+       )
+     
+     (yield out)
+     ) 
+    ))

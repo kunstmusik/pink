@@ -6,16 +6,18 @@
              [pink.envelopes :refer [env xar]]
              [pink.util :refer [mul sum let-s]]
              [pink.node :refer :all]
-             [pink.filters :refer [tone]]
+             [pink.filters :refer [tone butterlp]]
              [pink.delays :refer [adelay]]
              ))
 
 (defn instr-saw
   [amp freq loc]
+
+    (print loc)
   (let-s [e (xar 0.01 1.0)] 
     (pan 
       (mul e
-           (tone (blit-saw freq) 
+           (butterlp (blit-saw freq) 
                  (sum 100 (mul e 400))))
       loc)))
 
@@ -24,11 +26,11 @@
   (let-s [e (xar 0.01 1.0)] 
     (pan 
       (mul e
-           (tone (blit-square freq) 
+           (butterlp (blit-square freq) 
                  (sum 100 (mul e 400))))
       loc)))
 
-;(def a (blit-square 440))
+;(def a (instr-saw 0.1 440 0.0))
 ;(require '[clojure.pprint :refer [pprint]])
 ;(pprint (a))
 
@@ -52,17 +54,14 @@
                    (map #(event instr-saw (* % 0.25)  
                                 (/ 0.75 (+ 1 %)) 
                                 (* 220 (+ 1 %)) 
-                                (- (* 2 (/ % (- num-notes 1)))  1)) 
-
-                  
-
+                                (- (* 2 (/ % (- num-notes 1))) 1)) 
                         (range num-notes)))))
 
   (add-events my-score) 
 
   (node-add-afunc
     root-node 
-    (instr-saw 0.25 (env [0.0 220 0.1 4000 0.0001 220 0.1 4000]) 0.0))
+    (instr-saw 0.25 (env [0.0 220 0.1 200 0.0001 220 0.1 4000]) 0.0))
 
 
   (def my-score2
@@ -78,9 +77,8 @@
 
   (node-add-afunc
     root-node 
-    (instr-square 0.25 (env [0.0 220 0.1 4000 0.0001 220 0.1 4000]) 0.0))
+    (instr-square 0.25 (env [0.0 220 0.1 400 0.0001 220 0.4 4000]) 0.0))
 
-  engine
   (stop-engine)
 
 
