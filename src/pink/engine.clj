@@ -27,9 +27,11 @@
 
 (deftype Engine [status clear pending-afuncs
                    pending-pre-cfuncs pending-post-cfuncs
-                   sample-rate nchnls buffer-size
-                   out-buffer-size byte-buffer-size
-                   event-list]
+                   pending-remove-afuncs pending-remove-pre-cfuncs
+                   pending-remove-post-cfuncs
+                   ^long sample-rate ^long nchnls ^long buffer-size
+                   ^long out-buffer-size ^long byte-buffer-size
+                   event-list ]
   Object
   (toString [this] (str "[Engine] ID: " (System/identityHashCode this) " Status " @status)))
 
@@ -42,6 +44,7 @@
          e 
           (Engine. (atom :stopped) (atom false) (atom [])
             (atom []) (atom [])
+            (atom []) (atom []) (atom []) 
             sample-rate nchnls bsize 
             (* bsize channels) (* (long BYTE-SIZE) bsize channels)
             (event-list))]
@@ -55,7 +58,7 @@
 
 (defn engine-remove-afunc 
   [^Engine engine f]
-  (throw (Exception. "Not yet implemented"))) 
+  (swap! (.pending-remove-afuncs engine) conj f)) 
 
 (defn engine-add-pre-cfunc 
   [^Engine engine f]
@@ -63,7 +66,7 @@
 
 (defn engine-remove-pre-cfunc 
   [^Engine engine f]
-  (throw (Exception. "Not yet implemented"))) 
+  (swap! (.pending-remove-pre-cfuncs engine) conj f)) 
 
 (defn engine-add-post-cfunc 
   [^Engine engine f]
@@ -71,7 +74,7 @@
 
 (defn engine-remove-post-cfunc 
   [^Engine engine f]
-  (throw (Exception. "Not yet implemented"))) 
+  (swap! (.pending-remove-post-cfuncs engine) conj f))
 
 (defn engine-add-events 
   [^Engine engine events]
@@ -146,6 +149,16 @@
   (.write line (.array buffer) 0 out-buffer-size)
   (.clear buffer))
 
+(defn update-funcs
+  [v adds-atm removes-atm]
+  (let [removes (drain-atom! removes-atm)]
+    (filter #(< (.indexOf ^"clojure.lang.PersistentVector" removes %) 0)
+           (concat-drain! v adds-atm))))
+
+;(def a (atom [1 2 3]))
+;(def b (atom [0 3]))
+;(update-funcs [0 4 5] a b)
+
 (defn engine-run 
   "Main realtime engine running function. Called within a thread from
   engine-start."
@@ -157,6 +170,9 @@
         pending-afuncs (.pending-afuncs engine)
         pending-pre-cfuncs (.pending-pre-cfuncs engine)
         pending-post-cfuncs (.pending-post-cfuncs engine)
+        pending-remove-afuncs (.pending-remove-afuncs engine)
+        pending-remove-pre-cfuncs (.pending-remove-pre-cfuncs engine)
+        pending-remove-post-cfuncs (.pending-remove-post-cfuncs engine)
         clear-flag (.clear engine)
         sr (.sample-rate engine)
         buffer-size (.buffer-size engine)
@@ -177,17 +193,24 @@
                               *sr* sr 
                               *buffer-size* buffer-size 
                               *nchnls* nchnls] 
-                      (process-cfuncs (concat-drain! pre-cfuncs pending-pre-cfuncs)))
+                      (process-cfuncs 
+                        (update-funcs pre-cfuncs pending-pre-cfuncs 
+                                      pending-remove-pre-cfuncs)))
                 afs (binding [*current-buffer-num* buffer-count 
                               *sr* sr 
                               *buffer-size* buffer-size 
                               *nchnls* nchnls]
-                      (process-buffer (concat-drain! cur-funcs pending-afuncs) out-buffer buf))
+                      (process-buffer 
+                        (update-funcs cur-funcs pending-afuncs 
+                                      pending-remove-afuncs)
+                        out-buffer buf))
                 post (binding [*current-buffer-num* buffer-count 
                                *sr* sr 
                                *buffer-size* buffer-size 
                                *nchnls* nchnls]
-                       (process-cfuncs (concat-drain! post-cfuncs pending-post-cfuncs)))]  
+                       (process-cfuncs 
+                         (update-funcs post-cfuncs pending-post-cfuncs 
+                                       pending-remove-post-cfuncs)))]  
             (buf->line buf line (.byte-buffer-size engine))
 
             (if @clear-flag
@@ -195,6 +218,9 @@
                 (reset! pending-pre-cfuncs [])
                 (reset! pending-afuncs [])
                 (reset! pending-post-cfuncs [])
+                (reset! pending-remove-pre-cfuncs [])
+                (reset! pending-remove-afuncs [])
+                (reset! pending-remove-post-cfuncs [])
                 (reset! clear-flag false)
                 (event-list-clear (.event-list engine))
                 (recur [] [] [] (unchecked-inc buffer-count)))
