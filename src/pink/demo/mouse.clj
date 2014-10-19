@@ -17,8 +17,12 @@
     (mul (tone (blit-saw freq) 1000) amp)
     0.5))
 
-(start-engine)
+(comment
 
-(add-afunc 
-  (instr-saw (mul (sub 1 (mul (port (mouse-y) 0.1) (/ 1 (get-screen-height)))))
-             (sum 200 (mul (port (mouse-x) 0.1) 2000 (/ 1 (get-screen-width))))))
+  (start-engine)
+
+  (add-afunc 
+    (instr-saw (mul (sub 1 (mul (port (mouse-y) 0.1) (/ 1 (get-screen-height)))))
+               (sum 200 (mul (port (mouse-x) 0.1) 2000 (/ 1 (get-screen-width))))))
+  
+  )

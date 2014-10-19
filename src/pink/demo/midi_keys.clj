@@ -20,26 +20,28 @@
   [freq amp]
   (mul amp (blit-saw freq)))
 
-(bind-device midim "nanoKEY KEYBOARD" "keyboard 1")
+(comment
 
-(bind-key-func
-  keyboard 0
-  (let [active (make-array IFn 128)] 
-    (fn [cmd note-num velocity]
-      (println ">> " cmd " " note-num " " velocity)
-      (condp = cmd
-         ShortMessage/NOTE_ON
-         (let [afn (saw (midi->freq note-num) (/ velocity 127))]
-           (aset active note-num afn)
-           (add-afunc afn))
+  (bind-device midim "nanoKEY KEYBOARD" "keyboard 1")
 
-         ShortMessage/NOTE_OFF
-        (when-let [afn (aget active note-num)]
-           (remove-afunc afn)
-           (aset active note-num afn)))
+  (bind-key-func
+    keyboard 0
+    (let [active (make-array IFn 128)] 
+      (fn [cmd note-num velocity]
+        (println ">> " cmd " " note-num " " velocity)
+        (condp = cmd
+          ShortMessage/NOTE_ON
+          (let [afn (saw (midi->freq note-num) (/ velocity 127))]
+            (aset active note-num afn)
+            (add-afunc afn))
+
+          ShortMessage/NOTE_OFF
+          (when-let [afn (aget active note-num)]
+            (remove-afunc afn)
+            (aset active note-num afn)))
         )))
 
 
 
-(start-engine)
+  (start-engine))
 

@@ -29,6 +29,9 @@
       loc)))
 
 ;(def a (instr-saw 0.1 440 0.0))
+;(def b (blit-saw 440))
+;(require '[no.disassemble :refer :all])
+;(println (disassemble b))
 ;(require '[clojure.pprint :refer [pprint]])
 ;(pprint (a))
 
