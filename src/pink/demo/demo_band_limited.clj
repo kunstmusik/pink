@@ -12,8 +12,6 @@
 
 (defn instr-saw
   [amp freq loc]
-
-    (print loc)
   (let-s [e (xar 0.01 1.0)] 
     (pan 
       (mul e
@@ -77,7 +75,7 @@
 
   (node-add-afunc
     root-node 
-    (instr-square 0.25 (env [0.0 220 0.1 400 0.0001 220 0.4 4000]) 0.0))
+    (instr-square 0.25 (env [0.0 220 0.05 64 0.4 64]) 0.0))
 
   (stop-engine)
 

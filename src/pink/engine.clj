@@ -45,7 +45,7 @@
           (Engine. (atom :stopped) (atom false) (atom [])
             (atom []) (atom [])
             (atom []) (atom []) (atom []) 
-            sample-rate nchnls bsize 
+            sample-rate channels bsize 
             (* bsize channels) (* (long BYTE-SIZE) bsize channels)
             (event-list))]
     (swap! engines conj e) 
