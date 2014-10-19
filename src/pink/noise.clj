@@ -11,7 +11,7 @@
       []
       (let [v (-  (* 2  (Math/random) 1))]
         (aset out indx v)
-        (recur (unchecked-inc indx)))
+        (recur (unchecked-inc-int indx)))
       (yield out))))
 
 

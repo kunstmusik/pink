@@ -164,20 +164,20 @@
         (= dest-count 1) (map-d dest + dest (aget ^"[[D" src 0)) 
 
         :else
-        (loop [i 0 end (min src-count dest-count)]
+        (loop [i (int 0) end (min src-count dest-count)]
           (when (< i end)
             (let [out (aget ^"[[D" dest i)]
               (map-d out + out (aget ^"[[D" src i))
-              (recur (unchecked-inc i) end)))))))
+              (recur (unchecked-inc-int i) end)))))))
   dest)
 
 (defn clear-buffer 
   [b]
   (if (multi-channel? b)
-    (loop [i 0 cnt (count b)]
+    (loop [i (int 0) cnt (count b)]
       (when (< i cnt)
         (Arrays/fill ^doubles (aget ^"[[D" b i) 0.0)
-        (recur (unchecked-inc i) cnt)))
+        (recur (unchecked-inc-int i) cnt)))
     (Arrays/fill ^doubles b 0.0)))
 
 
@@ -338,14 +338,17 @@
           afn-indexing] (process-afn-bindings afn-bindings)
         [state new-bindings save-bindings] (process-bindings bindings) 
         yield-body (handle-yield save-bindings (second yield-form))
-        indx-sym 'indx]
-    `(let [~@state] 
+        indx-sym 'indx
+        bsize-sym (gensym "buffer-size")
+        ]
+    `(let [~@state
+           ~bsize-sym (int *buffer-size*)] 
        (fn [] 
          (let [~@new-afn-bindings] 
            (when (and ~@afn-results)
-             (loop [~indx-sym (unchecked-int 0)
+             (loop [~(with-meta indx-sym {:tag int}) (unchecked-int 0)
                     ~@new-bindings]
-               (if (< ~indx-sym (long *buffer-size*))
+               (if (< ~indx-sym ~bsize-sym)
                  (let [~@afn-indexing] 
                    ~body )          
                  ~yield-body 
