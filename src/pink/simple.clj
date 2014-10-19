@@ -4,7 +4,7 @@
   pink.simple
   (:require [pink.engine :refer :all]))
 
-(def engine (engine-create :channels 2))
+(def engine (engine-create :nchnls 2))
 
 (defn start-engine []
   (engine-start engine))
@@ -34,6 +34,11 @@
   (engine-remove-post-cfunc engine cfn))
 
 (defn add-events 
+  "Takes in list of events and adds to engine's event list."
+  [evts]
+  (engine-add-events engine evts))
+
+(defn add-engine-events 
   "Takes in list of events, wraps in engine events, and adds to engine's event list."
   [evts]
   (engine-add-events engine (engine-events engine evts)))
