@@ -115,10 +115,10 @@
   [^EventList evtlst] 
   (merge-pending! evtlst)
   (let [cur-buffer (.cur-buffer evtlst)
-        cur-time (/ (* (long @cur-buffer) (long *buffer-size*)) (double *sr*))
+        cur-time (/ (* (+ 1 (long @cur-buffer)) (long *buffer-size*)) (double *sr*))
         events ^PriorityQueue (.events evtlst)]
     (loop [evt ^Event (.peek events)]
-      (when (and evt (<= (.start evt) cur-time)) 
+      (when (and evt (< (.start evt) cur-time)) 
           (fire-event (.poll events))
           (recur (.peek events))))
     (swap! cur-buffer inc)))
