@@ -164,7 +164,7 @@
   engine-start."
   [^Engine engine]
   (let [af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)
-        #^SourceDataLine line (open-line af)        
+        #^SourceDataLine line (open-line af (* 16 (.nchnls engine) 64))        
         out-buffer (double-array (.out-buffer-size engine))
         buf (ByteBuffer/allocate (.byte-buffer-size engine))
         pending-afuncs (.pending-afuncs engine)

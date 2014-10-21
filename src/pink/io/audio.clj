@@ -7,10 +7,10 @@
                                 AudioFileFormat$Type AudioInputStream]))
 
 
-(defn open-line [audio-format]
+(defn open-line [audio-format buffer-size]
   (let [#^SourceDataLine line (AudioSystem/getSourceDataLine audio-format)]
     (doto line 
-    (.open audio-format)
+    (.open audio-format buffer-size)
     (.start))))
 
 (defn open-input-line [audio-format]
