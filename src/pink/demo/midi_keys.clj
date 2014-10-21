@@ -3,10 +3,10 @@
             [pink.io.midi :refer :all]
             [pink.config :refer :all]
             [pink.space :refer :all]
-            [pink.oscillators :refer [blit-saw]]
+            [pink.oscillators :refer :all]
             [pink.envelopes :refer [env xar]]
             [pink.filters :refer [port butterlp]]
-            [pink.util :refer [mul try-func create-buffer generator]])
+            [pink.util :refer :all])
   (:import [javax.sound.midi MidiSystem Transmitter Receiver MidiMessage
             ShortMessage ]
            [java.util Arrays]
@@ -18,10 +18,21 @@
 
 (defn saw
   [freq amp]
-  (mul amp (blit-saw freq)))
+  (let-s [f (sum freq (mul freq 0.0025 (sine 4)))] 
+    (pan (mul amp 
+              ;(xar 0.005 1.0)
+              (butterlp 
+                (div 
+                  (sum (mul 0.25 
+                            (blit-saw (mul f 2.000)))
+                       (blit-saw f)
+                       (blit-saw (mul f 0.9995))
+                       (sine2 (mul f 0.5)))
+                  3.5)
+                4000)) 
+       0.0))) 
 
 (comment
-
   (bind-device midim "nanoKEY KEYBOARD" "keyboard 1")
 
   (bind-key-func
@@ -43,5 +54,7 @@
 
 
 
-  (start-engine))
+  (start-engine)
+  
+  )
 
