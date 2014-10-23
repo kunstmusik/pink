@@ -86,8 +86,14 @@
        old-a7 0.0]
       [asig afn
        cut cut-fn]
-      (if (not= last-cut cut)
-        (let [c (/ 1.0 (Math/tan (* PIDSR cut)))
+      (cond 
+        (<= cut 0.0) 
+        (do 
+          (aset out indx 0.0)
+          (recur (unchecked-inc-int indx) cut old-a1 old-a2 old-a3 old-a4
+                 old-a5 old-a6 old-a7))
+        (not= last-cut cut)
+        (let [c (Math/tan (* PIDSR cut)) 
               c2 (* c c)
               root2c (* (double ROOT2) c)
               a1 (/ 1.0 (+ 1.0 root2c c2))
@@ -96,6 +102,7 @@
               a4 (* 2.0 (- c2 1.0) a1)
               a5 (* (+ (- 1.0 root2c) c2) a1)]
           (butter-filter cut asig out indx a1 a2 a3 a4 a5 old-a6 old-a7))
+        :else 
         (butter-filter last-cut asig out indx old-a1 old-a2 old-a3 old-a4
                        old-a5 old-a6 old-a7))
       (yield out))))
@@ -116,7 +123,13 @@
        old-a7 0.0]
       [asig afn
        cut cut-fn]
-      (if (not= last-cut cut)
+      (cond
+        (<= cut 0.0) 
+        (do 
+          (aset out indx 0.0)
+          (recur (unchecked-inc-int indx) cut old-a1 old-a2 old-a3 old-a4
+                 old-a5 old-a6 old-a7))
+        (not= last-cut cut)
         (let [c (/ 1.0 (Math/tan (* PIDSR cut)))
               c2 (* c c)
               root2c (* (double ROOT2) c)
@@ -126,6 +139,8 @@
               a4 (* 2.0 (- 1.0 c2) a1)
               a5 (* (+ (- 1.0 root2c) c2) a1)]
           (butter-filter cut asig out indx a1 a2 a3 a4 a5 old-a6 old-a7))
+
+        :else 
         (butter-filter last-cut asig out indx old-a1 old-a2 old-a3 old-a4
                        old-a5 old-a6 old-a7))
       (yield out))))
@@ -158,14 +173,21 @@
       [asig afn
        cf cf-fn
        bw bw-fn ]
-      (if (or (not= last-cf cf) (not= last-bw bw))
+      (cond 
+        (or (<= cf 0.0) (<= bw 0.0))
+        (do 
+          (aset out indx 0.0)
+          (recur (unchecked-inc-int indx) cf bw old-a1 old-a2 old-a3 old-a4
+                 old-a5 old-a6 old-a7))
+        (or (not= last-cf cf) (not= last-bw bw))
         (let [c (/ 1.0 (Math/tan (* PIDSR bw)))
-              d (* 2.0 (Math/cos (TPIDSR cf)))
+              d (* 2.0 (Math/cos (* TPIDSR cf)))
               a1 (/ 1.0 (+ 1.0 c))
               a3 (- a1)
               a4 (* (- c) d a1) 
               a5 (* (- c 1.0) a1)]
           (butterb-filter cf bw asig out indx a1 old-a2 a3 a4 a5 old-a6 old-a7))
+        :else
         (butterb-filter last-cf last-bw asig out indx old-a1 old-a2 old-a3 old-a4
                        old-a5 old-a6 old-a7))
       (yield out))))
@@ -190,15 +212,22 @@
       [asig afn
        cf cf-fn
        bw bw-fn ]
-      (if (or (not= last-cf cf) (not= last-bw bw))
-        (let [c (/ 1.0 (Math/tan (* PIDSR bw)))
-              d (* 2.0 (Math/cos (TPIDSR cf)))
+      (cond
+        (or (<= cf 0.0) (<= bw 0.0))
+        (do 
+          (aset out indx 0.0)
+          (recur (unchecked-inc-int indx) cf bw old-a1 old-a2 old-a3 old-a4
+                 old-a5 old-a6 old-a7))
+        (or (not= last-cf cf) (not= last-bw bw))
+        (let [c (Math/tan (* PIDSR bw)) 
+              d (* 2.0 (Math/cos (* TPIDSR cf)))
               a1 (/ 1.0 (+ 1.0 c))
               a2 (* (- d) a1) 
               a3 a1 
               a4 a2 
               a5 (* (- 1.0 c) a1)]
           (butterb-filter cf bw asig out indx a1 a2 a3 a4 a5 old-a6 old-a7))
+        :else
         (butterb-filter last-cf last-bw asig out indx old-a1 old-a2 old-a3 old-a4
                        old-a5 old-a6 old-a7))
       (yield out))))
