@@ -96,41 +96,61 @@
 
 (defn- write-asig
   "Writes asig as a channel into an interleaved out-buffer"
-  [^doubles out-buffer ^doubles asig ^long chan-num]
-  (if (= *nchnls* 1)
+  [^doubles out-buffer ^doubles asig chan-num
+   buffer-size nchnls]
+  (if (= nchnls 1)
     (when (= 0 chan-num)
       (map-d out-buffer + out-buffer asig))
     (loop [i (unchecked-int 0)]
-      (when (< i (long *buffer-size*))
-        (let [out-index (+ chan-num (* i (long *nchnls*)))] 
+      (when (< i buffer-size)
+        (let [out-index (+ chan-num (* i nchnls))] 
           (aset out-buffer out-index
             (+ (aget out-buffer out-index) (aget asig i))))
         (recur (unchecked-inc-int i))))))
 
-(defmacro run-audio-funcs [afs buffer]
-  (let [x (gensym)
-        b (gensym)]
-    `(loop [[~x & xs#] ~afs 
-            ret# []]
-       (if ~x 
-         (if-let [~b (try-func (~x))]
-           (do 
-             (if (multi-channel? ~b)
-               (loop [i# 0 len# (count ~b)]
-                 (when (< i# len#)
-                   (write-asig ~buffer 
-                               (aget ~(with-meta b {:tag "[[D"}) i#) i#)
-                   (recur (unchecked-inc-int i#) len#))) 
-               (write-asig ~buffer ~b 0))
-             ;(map-d ~buffer + b# ~buffer)
-             (recur xs# (conj ret# ~x)))
-           (recur xs# ret#))
-         ret#)))) 
+
+(defn run-audio-funcs [afs buffer buffer-size nchnls]
+  (loop [[x & xs] afs 
+         ret []]
+    (if x 
+      (if-let [b (try-func (x))]
+        (do 
+          (if (multi-channel? b)
+            (loop [i (unchecked-int 0) len (alength ^"[[D" b)]
+              (when (< i len)
+                (write-asig buffer (aget ^"[[D" b i) i
+                            buffer-size nchnls)
+                (recur (unchecked-inc-int i) len))) 
+            (write-asig buffer b 0 buffer-size nchnls))
+          (recur xs (conj ret x)))
+        (recur xs ret))
+      ret))) 
+
+;(defmacro run-audio-funcs [afs buffer]
+;  (let [x (gensym)
+;        b (gensym)]
+;    `(loop [[~x & xs#] ~afs 
+;            ret# []]
+;       (if ~x 
+;         (if-let [~b (try-func (~x))]
+;           (do 
+;             (if (multi-channel? ~b)
+;               (loop [i# 0 len# (count ~b)]
+;                 (when (< i# len#)
+;                   (write-asig ~buffer 
+;                               (aget ~(with-meta b {:tag "[[D"}) i#) i#)
+;                   (recur (unchecked-inc-int i#) len#))) 
+;               (write-asig ~buffer ~b 0))
+;             ;(map-d ~buffer + b# ~buffer)
+;             (recur xs# (conj ret# ~x)))
+;           (recur xs# ret#))
+;         ret#)))) 
 
 (defn- process-buffer
-  [afs ^doubles out-buffer ^ByteBuffer buffer]
+  [afs ^doubles out-buffer ^ByteBuffer buffer
+   buffer-size nchnls]
   (Arrays/fill ^doubles out-buffer 0.0)
-  (let [newfs (run-audio-funcs afs out-buffer)]
+  (let [newfs (run-audio-funcs afs out-buffer buffer-size nchnls)]
     (doubles->byte-buffer out-buffer buffer)
     newfs))
 
@@ -202,8 +222,10 @@
                               *nchnls* nchnls]
                       (process-buffer 
                         (update-funcs cur-funcs pending-afuncs 
-                                      pending-remove-afuncs)
-                        out-buffer buf))
+                                      pending-remove-afuncs
+                                      
+                                      )
+                        out-buffer buf buffer-size nchnls))
                 post (binding [*current-buffer-num* buffer-count 
                                *sr* sr 
                                *buffer-size* buffer-size 
@@ -306,7 +328,7 @@
                           *sr* sr 
                           *buffer-size* buffer-size 
                           *nchnls* nchnls]
-                  (process-buffer (concat-drain! cur-funcs pending-afuncs) out-buffer buf))
+                  (process-buffer (concat-drain! cur-funcs pending-afuncs) out-buffer buf buffer-size nchnls))
             post (binding [*current-buffer-num* buffer-count 
                            *sr* sr 
                            *buffer-size* buffer-size 
