@@ -51,12 +51,16 @@
   
 
   (add-afunc
-    (let [pch (+ 220 (rand-int 880))] 
-      (let-s [ampenv (xar 0.05 1.5)] 
+    (let [pch (+ 60 (rand-int 400))] 
+      (let-s [;ampenv (xar 0.025 1.5)
+              ampenv (env [0.0 0.0 0.025 1.0 0.025 0.9 1.0 0.9 2.0 0.0])
+              ;cutenv (env [0.0 8.0 0.025 1.0 3.025 1.0])
+              ] 
         (pan (mul 0.5 ampenv
-           (moogladder (sum (blit-saw pch) (blit-square (* pch 2))) 
-                       (sum (* pch 4) (mul (* pch 8) ampenv)) 
-                       0.15))
+           (moogladder (sum (blit-saw pch) 
+                            (mul 0.3 (blit-saw (* pch 2.0)))) 
+                       (sum (* pch 4) (mul (* pch 4) ampenv)) 
+                       (sum 0.4 (mul 0.4 ampenv))))
          0.0))))
 
   ;(add-afunc (mul 0.5 (butterlp (white-noise) (env [0.0 20 5 20000]))))
