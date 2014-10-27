@@ -18,6 +18,7 @@
       :author "Steven Yi"}
   pink.io.midi
   (:import [javax.sound.midi MidiSystem MidiDevice MidiDevice$Info 
+
             Transmitter Receiver ShortMessage]
            [clojure.lang IFn]))
 
@@ -85,10 +86,14 @@
 
 ;; Binding
 
-(defn find-midi-device [^String device-name]
+(defn find-midi-device [^String device-name device-type]
   (let [devices (list-midi-devices)
         found (filter 
-                #(>= (.indexOf ^String (:description %) device-name) 0) 
+                #(and (>= (.indexOf ^String (:description %) device-name) 0) 
+                (if (= :in device-type)  
+                  (>= (.getMaxReceivers ^MidiDevice (:device %) ) 0)
+                  (>= (.getMaxTransmitters ^MidiDevice (:device %) ) 0)
+                  ))
                 devices)
 
         num-found (count found)]
@@ -129,7 +134,7 @@
   [midi-manager ^String hardware-id ^String virtual-device-name]
   {:pre [midi-manager hardware-id virtual-device-name]}
   (println (format "Connecting %s to %s" hardware-id virtual-device-name))
-  (let [device ^MidiDevice (:device (find-midi-device hardware-id)) 
+  (let [device ^MidiDevice (:device (find-midi-device hardware-id :in)) 
         virtual-device (@midi-manager virtual-device-name)]
     (when (nil? virtual-device)
       (throw (Exception. (format "Unknown virtual device: %s" virtual-device-name))))
@@ -175,7 +180,7 @@
 
 (defn midi-device-debug 
   [^String hardware-id]
-  (let [device ^MidiDevice (:device (find-midi-device hardware-id))]
+  (let [device ^MidiDevice (:device (find-midi-device hardware-id :in))]
     (when (not (.isOpen device)) 
       (.open device))
     (.setReceiver (.getTransmitter device) (create-debug-receiver))
