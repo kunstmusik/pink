@@ -1,7 +1,9 @@
 (ns pink.util
   "Audio utility code for working with buffers (double[])"
   (:require [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]])
-  (:import [java.util Arrays]))
+  (:import [java.util Arrays]
+           [pink Operator]
+           [clojure.lang IFn]))
 
 ;; utility for running audio-funcs and control-funcs
 
@@ -259,7 +261,7 @@
 
 (defn- gen-buffer [x] (x))
 
-(defn- operator 
+(defmacro operator 
   "takes in func and list of generators funcs, map operator across the result buffers"
   [f a]
   ;(let  [args  (map arg a)]
@@ -270,41 +272,60 @@
   ;          (when  (not-any? nil? buffers)
   ;            (apply map-d out f buffers)))))
   ;    (nth args 0)))
-  (if (> (count a) 1)
-    (let [^doubles out (create-buffer)
-          args (map arg a)
-          buffer-size (unchecked-int *buffer-size*)]
-      (fn ^doubles []
-        (when-let [^doubles first-buf ((first args))]
-          (System/arraycopy first-buf 0 out 0 buffer-size)
-          (loop [[x & xs] (rest args)]
-            (if x
-              (when-let [^doubles buf (x)]
-                (loop [i (unchecked-int 0)]
-                  (when (< i buffer-size)
-                    (aset out i ^double (f ^double (aget out i) ^double (aget buf i)))
-                    (recur (unchecked-inc i))))
-                (recur xs))  
-              out)))))
-    (nth a 0))
+  (let [out (with-meta (gensym "out") {:tag doubles})
+        buf (with-meta (gensym "out") {:tag doubles})]
+   `(if (> (count ~a) 1)
+    (let [~out (create-buffer)
+          args# (map arg ~a)
+          buffer-size# (unchecked-int *buffer-size*)
+          fns# ^"[Lclojure.lang.IFn;" (into-array IFn args#)
+          fun_len# (alength fns#)]
+      (fn []
+        (when-let [first-buf# ((aget fns# 0))]
+          (System/arraycopy first-buf# 0 ~out 0 buffer-size#)
+          (loop [i# 1]
+            (if (< i# fun_len#) 
+              (when-let [~buf ((aget fns# i#))]
+                (loop [j# (unchecked-int 0)]
+                  (when (< j# buffer-size#)
+                    (aset ~(tag-doubles out) j# 
+                          (~f (aget ~(tag-doubles out) j#) 
+                              (aget ~(tag-doubles buf) j#)))
+                    (recur (unchecked-inc j#))))
+                (recur (unchecked-inc i#)))  
+              ~out)))))
+    (nth ~a 0)))
   
   )
 
+(defn mul2 [& a] (operator * a))
+(defn div2 [& a] (operator / a))
+(defn add2 [& a] (operator + a))
+(defn sub2 [& a] (operator - a))
+
+(defmacro native-operator
+  [f a]
+  (let [out (gensym "out")] 
+    `(let [~out (create-buffer) 
+        fns# (into-array IFn (map arg ~a))]
+    (fn []
+      (~f ~out fns#)))))
+
 (defn mul 
   [& a]
-  (operator * a))
+  (native-operator Operator/mul a))
 
 (defn div 
   [& a]
-  (operator / a))
+  (native-operator Operator/div a))
 
 (defn sum 
   [& a]
-  (operator + a))
+  (native-operator Operator/sum a))
 
 (defn sub 
   [& a]
-  (operator - a))
+  (native-operator Operator/sub a))
 
 ;; Macro for Generators
 

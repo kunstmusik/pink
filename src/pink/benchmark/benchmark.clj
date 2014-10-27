@@ -2,24 +2,18 @@
   (:import [pink.benchmark Benchmark Benchmark$Phasor])
   (:require [pink.config :refer :all]
             [pink.oscillators :refer :all]
+            [pink.util :refer :all]
             [clojure.pprint :refer [pprint]]
             ))
 
-(defn run-java-phasor-test
+(defn run-phasor-test
   []
   (let [p (Benchmark$Phasor. 440.0 0.0 *sr* *buffer-size*)]
     (println "Java Phasor Test")
     (doseq [_ (range 5)] 
       (time 
         (doseq [_ (range 1000000)]
-          (.tick p))))))
-
-
-
-(run-java-phasor-test)
-
-(defn run-pink-phasor-test
-  []
+          (.tick p)))))
   (let [p (phasor 440.0 0.0)]
     (println "Pink Phasor Test")
     (doseq [_ (range 5)] 
@@ -27,5 +21,20 @@
         (doseq [_ (range 1000000)]
           (p))))))
 
+(defn run-mul-test
+  []
+  (let [p (mul 440.0 2.0)]
+    (println "Pink Mul Test")
+    (doseq [_ (range 5)] 
+      (time 
+        (doseq [_ (range 1000000)]
+          (p)))))
+  (let [p (mul2 440.0 2.0)]
+    (println "Pink Mul2 Test")
+    (doseq [_ (range 5)] 
+      (time 
+        (doseq [_ (range 1000000)]
+          (p))))))
 
-(run-pink-phasor-test)
+(run-mul-test)
+(run-phasor-test)

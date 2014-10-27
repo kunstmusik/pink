@@ -51,7 +51,7 @@
     (event test-filter 0.0 moogladder (env [0.0 20 10 20000]) 0.1 ))
   
 
-  (doseq [_ (range 2)] 
+  (doseq [_ (range 3)] 
     (add-afunc
       (let [pch (+ 60 (rand-int 400))] 
         (let-s [;ampenv (xar 0.025 1.5)
@@ -61,9 +61,9 @@
           (pan (mul 0.5 ampenv
                     (moogladder (sum (mul 0.9 (blit-saw pch)) 
                                      (mul 0.2 (blit-saw (* pch 1.5)))) 
-                                ;(sum (* pch 6) (mul (* pch 4) ampenv)) 
+                                (sum (* pch 6) (mul (* pch 4) ampenv)) 
                                 ;cutenv
-                                (* pch 5)
+                                ;(* pch 5)
                                 0.85 
 
                                 ))
