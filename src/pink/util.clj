@@ -207,11 +207,12 @@
   (let [my-buf-num (long-array 1 -1)
         buffer (atom nil) ]
     (fn []
-      (if (not= (getl my-buf-num) *current-buffer-num*)
+      (let [cur-buf (long *current-buffer-num*)] 
+        (if (not= (getl my-buf-num) cur-buf )
         (do 
-          (setl! my-buf-num *current-buffer-num*)
+          (aset my-buf-num 0 cur-buf)
           (reset! buffer (afn))) 
-        @buffer))))
+        @buffer)))))
 
 (defn- decorate-shared 
   "Utility function for let-s macro to decorated bindings with (shared)"
@@ -261,14 +262,33 @@
 (defn- operator 
   "takes in func and list of generators funcs, map operator across the result buffers"
   [f a]
-  (let [args (map arg a)]
-    (if (> (count args) 1)
-      (let [out (create-buffer)]
-        (fn ^doubles []
-          (let [buffers (map gen-buffer args) ]
-            (when (not-any? nil? buffers)
-              (apply map-d out f buffers)))))
-      (nth args 0))))
+  ;(let  [args  (map arg a)]
+  ;  (if  (>  (count args) 1)
+  ;    (let  [out  (create-buffer)]
+  ;      (fn ^doubles  []
+  ;        (let  [buffers  (map gen-buffer args) ]
+  ;          (when  (not-any? nil? buffers)
+  ;            (apply map-d out f buffers)))))
+  ;    (nth args 0)))
+  (if (> (count a) 1)
+    (let [^doubles out (create-buffer)
+          args (map arg a)
+          buffer-size (unchecked-int *buffer-size*)]
+      (fn ^doubles []
+        (when-let [^doubles first-buf ((first args))]
+          (System/arraycopy first-buf 0 out 0 buffer-size)
+          (loop [[x & xs] (rest args)]
+            (if x
+              (when-let [^doubles buf (x)]
+                (loop [i (unchecked-int 0)]
+                  (when (< i buffer-size)
+                    (aset out i ^double (f ^double (aget out i) ^double (aget buf i)))
+                    (recur (unchecked-inc-int i))))
+                (recur xs))  
+              out)))))
+    (nth a 0))
+  
+  )
 
 (defn mul 
   [& a]
@@ -338,15 +358,15 @@
           afn-indexing] (process-afn-bindings afn-bindings)
         [state new-bindings save-bindings] (process-bindings bindings) 
         yield-body (handle-yield save-bindings (second yield-form))
-        indx-sym 'indx
+        indx-sym (with-meta 'indx {:tag int})
         bsize-sym (gensym "buffer-size")
         ]
     `(let [~@state
            ~bsize-sym (int *buffer-size*)] 
-       (fn [] 
+       (fn ~(with-meta [] {:tag doubles}) 
          (let [~@new-afn-bindings] 
            (when (and ~@afn-results)
-             (loop [~(with-meta indx-sym {:tag int}) (unchecked-int 0)
+             (loop [~indx-sym 0 
                     ~@new-bindings]
                (if (< ~indx-sym ~bsize-sym)
                  (let [~@afn-indexing] 
