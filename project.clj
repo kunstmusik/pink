@@ -1,5 +1,6 @@
 (defproject kunstmusik/pink "0.1.0-SNAPSHOT"
   :jvm-opts ;["-server" "-Xmx2g" "-XX:-UseParallelGC"]
+  ^:replace
   ["-server"
    "-Xms256m" "-Xmx1g"           ; Minimum and maximum sizes of the heap
    "-XX:+UseG1GC"
