@@ -33,7 +33,8 @@
        0.0))) 
 
 (comment
-  (bind-device midim "nanoKEY KEYBOARD" "keyboard 1")
+  ;(bind-device midim "nanoKEY KEYBOARD" "keyboard 1")
+  (bind-device midim "MPKmini2" "keyboard 1")
 
   (bind-key-func
     keyboard 0
