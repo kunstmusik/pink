@@ -236,7 +236,7 @@
 
 ; transistor thermal voltage
 (def ^:const THERMAL (/ 1.0 40000.0))
-(def ^:const TWO_PI (* 2.0 Math/PI))
+(def ^:private ^:const TWO_PI (* 2.0 Math/PI))
 
 ;(defn ladder-section)
 
@@ -302,8 +302,7 @@
              acr (+ (* -3.9364 fc2) (* 1.8409 fc) 0.9968)
              tune (/ (- 1.0 (Math/exp (- (* TWO_PI f fcr)))) THERMAL)
              res4 (* 4.0 res acr)]
-         (let [
-               input (- asig (* res4 del5))
+         (let [input (- asig (* res4 del5))
                stg0 (+ del0 (* tune (- (Math/tanh (* input THERMAL)) 
                                        tanhstg0)))
                new-tanhstg0 (Math/tanh (* stg0 THERMAL))
@@ -321,9 +320,9 @@
                _stg0 (+ stg0 (* tune (- (Math/tanh (* _input THERMAL)) 
                                         new-tanhstg0)))
                _new-tanhstg0 (Math/tanh (* _stg0 THERMAL))
-               _stg1 (+ stg1 (* tune (- _new-tanhstg0 tanhstg1)))
+               _stg1 (+ stg1 (* tune (- _new-tanhstg0 new-tanhstg1)))
                _new-tanhstg1 (Math/tanh (* _stg1 THERMAL))
-               _stg2 (+ stg2 (* tune (- _new-tanhstg1 tanhstg2)))
+               _stg2 (+ stg2 (* tune (- _new-tanhstg1 new-tanhstg2)))
                _new-tanhstg2 (Math/tanh (* _stg2 THERMAL))
                _stg3 (+ stg3 (* tune (- _new-tanhstg2 
                                         (Math/tanh (* stg3 THERMAL)))))
@@ -331,8 +330,8 @@
                _new-del4 _stg3]
 
            (aset out indx _new-del5)
-           (recur (unchecked-inc-int indx) 
-                  _stg0 _stg1 _stg3 _stg3 _new-del4 _new-del5 
+           (recur (unchecked-inc indx) 
+                  _stg0 _stg1 _stg2 _stg3 _new-del4 _new-del5 
                   _new-tanhstg0 _new-tanhstg1 _new-tanhstg2
                   cut res acr tune))) 
        (let [acr old-acr 
@@ -356,9 +355,9 @@
                _stg0 (+ stg0 (* tune (- (Math/tanh (* _input THERMAL)) 
                                         new-tanhstg0)))
                _new-tanhstg0 (Math/tanh (* _stg0 THERMAL))
-               _stg1 (+ stg1 (* tune (- _new-tanhstg0 tanhstg1)))
+               _stg1 (+ stg1 (* tune (- _new-tanhstg0 new-tanhstg1)))
                _new-tanhstg1 (Math/tanh (* _stg1 THERMAL))
-               _stg2 (+ stg2 (* tune (- _new-tanhstg1 tanhstg2)))
+               _stg2 (+ stg2 (* tune (- _new-tanhstg1 new-tanhstg2)))
                _new-tanhstg2 (Math/tanh (* _stg2 THERMAL))
                _stg3 (+ stg3 (* tune (- _new-tanhstg2 
                                         (Math/tanh (* stg3 THERMAL)))))
@@ -366,8 +365,8 @@
                _new-del4 _stg3]
 
            (aset out indx _new-del5)
-           (recur (unchecked-inc-int indx) 
-                  _stg0 _stg1 _stg3 _stg3 _new-del4 _new-del5 
+           (recur (unchecked-inc indx) 
+                  _stg0 _stg1 _stg2 _stg3 _new-del4 _new-del5 
                   _new-tanhstg0 _new-tanhstg1 _new-tanhstg2
                   cut res acr tune)))
        )
