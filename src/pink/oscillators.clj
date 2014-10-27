@@ -19,7 +19,7 @@
       []
       (do
         (aset out indx cur-phase)
-        (recur (unchecked-inc-int indx) (rem (+ phase-incr cur-phase) 1.0)))
+        (recur (unchecked-inc indx) (rem (+ phase-incr cur-phase) 1.0)))
       (yield out))))
 
 (defn sine 
@@ -33,7 +33,7 @@
        [] [phs phsr]
        (let [v (Math/sin (* TWO_PI phs))]
          (aset out indx v) 
-         (recur (unchecked-inc-int indx)))          
+         (recur (unchecked-inc indx)))          
        (yield out)))))
 
 ;(require '[no.disassemble :refer :all])
@@ -52,10 +52,10 @@
                (if (<= f 0) 
                  (do 
                    (aset out indx Double/NEGATIVE_INFINITY)
-                   (recur (unchecked-inc-int indx) cur-phase))
+                   (recur (unchecked-inc indx) cur-phase))
                  (let [incr ^double (/ f (long *sr*))]
                    (aset out indx cur-phase)
-                   (recur (unchecked-inc-int indx) (rem (+ cur-phase incr) 1.0))))
+                   (recur (unchecked-inc indx) (rem (+ cur-phase incr) 1.0))))
                (yield out))))
 
 (defn sine2 
@@ -71,10 +71,10 @@
        (if (= phase Double/NEGATIVE_INFINITY) 
          (do 
            (aset out indx 0.0)
-           (recur (unchecked-inc-int indx)))
+           (recur (unchecked-inc indx)))
          (let [v (Math/sin (* TWO_PI phase))]
            (aset out indx v)
-           (recur (unchecked-inc-int indx)) ))
+           (recur (unchecked-inc indx)) ))
        (yield out)))))
 
 (def sine-table (gen-sine))
@@ -97,10 +97,10 @@
        (if (= phase Double/NEGATIVE_INFINITY)
          (do 
            (aset out indx 0.0)
-           (recur (unchecked-inc-int indx)))
+           (recur (unchecked-inc indx)))
          (let [v (* amp (aget table (int (* phase tbl-len))))]
            (aset out indx v)
-           (recur (unchecked-inc-int indx))))
+           (recur (unchecked-inc indx))))
        (yield out)))))
 
 
@@ -122,7 +122,7 @@
        (if (= p Double/NEGATIVE_INFINITY) 
          (do 
            (aset out indx 0.0)
-           (recur (unchecked-inc-int indx)))
+           (recur (unchecked-inc indx)))
          (let [phs (* p tbl-len)
                pt0 (int phs)
                pt1 (mod (inc pt0) tbl-len)  
@@ -133,7 +133,7 @@
                v1  (aget table pt1)
                v (* amp (+ v0 (* frac (- v1 v0))))]
            (aset out indx v)
-           (recur (unchecked-inc-int indx))))
+           (recur (unchecked-inc indx))))
        (yield out)))))
 
 
@@ -155,7 +155,7 @@
        (if (= p Double/NEGATIVE_INFINITY) 
          (do 
            (aset out indx 0.0)
-           (recur (unchecked-inc-int indx)))
+           (recur (unchecked-inc indx)))
          (let [phs (* p tbl-len)
                pt1 (int phs)
                pt0 (if (zero? pt1) (- tbl-len 1) (- pt1 1))  
@@ -176,7 +176,7 @@
                d p1 
                v (* amp (+ (* a x3) (* b x2) (* c x) d))]
            (aset out indx v)
-           (recur (unchecked-inc-int indx))))
+           (recur (unchecked-inc indx))))
        (yield out)))))
 
 ;; Implementation of Bandlimited Impulse Train (BLIT) functions by Stilson and
@@ -218,7 +218,7 @@
             new-st (* tmp 0.995)
             new-phs (pi-limit (+ phase rate))]
         (aset out indx tmp) 
-        (recur (unchecked-inc-int indx) new-phs new-st)) 
+        (recur (unchecked-inc indx) new-phs new-st)) 
       (yield out))))
 
 (defn- blit-saw-dynamic
@@ -232,7 +232,7 @@
       (if (<= f 0)
         (do 
           (aset out indx 0.0)
-          (recur (unchecked-inc-int indx) phase st))
+          (recur (unchecked-inc indx) phase st))
         (let [denom (Math/sin phase)
               p (/ (long *sr*) f)
               c2 (/ 1 p)
@@ -249,7 +249,7 @@
               new-st (* tmp 0.995)
               new-phs (pi-limit (+ phase rate))]
           (aset out indx tmp) 
-          (recur (unchecked-inc-int indx) new-phs new-st)))(yield out))))
+          (recur (unchecked-inc indx) new-phs new-st)))(yield out))))
 
 (defn blit-saw
   "Implementation of BLIT algorithm by Stilson and Smith for band-limited
@@ -304,7 +304,7 @@
             new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
             new-phs (two-pi-limit (+ phase rate))]
         (aset out indx new-val) 
-        (recur (unchecked-inc-int indx) new-phs new-val new-blit))
+        (recur (unchecked-inc indx) new-phs new-val new-blit))
       (yield out))))
 
 (defn- blit-square-dynamic
@@ -318,7 +318,7 @@
       (if (<= f 0) 
         (do 
           (aset out indx 0.0)
-          (recur (unchecked-inc-int indx) phase last-val last-blit))
+          (recur (unchecked-inc indx) phase last-val last-blit))
         (let [p (/ (* 0.5 (long *sr*)) f)
               rate (/ Math/PI p)
               m ^long (calc-square-harmonics p nharmonics)
@@ -333,7 +333,7 @@
               new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
               new-phs (two-pi-limit (+ phase rate))]
           (aset out indx new-val) 
-          (recur (unchecked-inc-int indx) new-phs new-val new-blit)))
+          (recur (unchecked-inc indx) new-phs new-val new-blit)))
       (yield out))))
 
 

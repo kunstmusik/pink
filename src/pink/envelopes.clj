@@ -56,12 +56,12 @@
                 (if (< c end)
                   (let [new-v (+ v incr)]
                     (aset out i new-v)
-                    (recur end incr new-v (unchecked-inc c) (unchecked-inc-int i)))
+                    (recur end incr new-v (unchecked-inc c) (unchecked-inc i)))
                   (let [[new-end new-incr] (get-line-pt c linedata)]
                     (recur new-end new-incr v c i)))
                 (do 
                   (aset out i 0.0)
-                  (recur nil nil 0.0 (unchecked-inc c) (unchecked-inc-int i))))
+                  (recur nil nil 0.0 (unchecked-inc c) (unchecked-inc i))))
               (do
                 (aset cur-val 0 v)
                 (aset counter 0 c)
@@ -115,12 +115,12 @@
                 (if (< c end)
                   (let [new-v (* v incr)]
                     (aset out i new-v)
-                    (recur end incr new-v (unchecked-inc c) (unchecked-inc-int i)))
+                    (recur end incr new-v (unchecked-inc c) (unchecked-inc i)))
                   (let [[new-end new-incr] (get-line-pt c linedata)]
                     (recur new-end new-incr v c i)))
                 (do 
                   (aset out i 0.0)
-                  (recur nil nil 0.0 (unchecked-inc c) (unchecked-inc-int i))))
+                  (recur nil nil 0.0 (unchecked-inc c) (unchecked-inc i))))
               (do
                 (aset cur-val 0 v)
                 (aset counter 0 c)

@@ -109,7 +109,7 @@
         (let [out-index (unchecked-int (+ channel (* i num-channels)))] 
           (aset out-buffer out-index
             (+ ^double (aget out-buffer out-index) ^double (aget asig i))))
-        (recur (unchecked-inc-int i)))))))
+        (recur (unchecked-inc i)))))))
 
 
 (defn run-audio-funcs [afs buffer buffer-size nchnls]
@@ -123,7 +123,7 @@
               (when (< i len)
                 (write-asig buffer (aget ^"[[D" b i) i
                             buffer-size nchnls)
-                (recur (unchecked-inc-int i) len))) 
+                (recur (unchecked-inc i) len))) 
             (write-asig buffer b 0 buffer-size nchnls))
           (recur xs (conj ret x)))
         (recur xs ret))
@@ -142,7 +142,7 @@
 ;                 (when (< i# len#)
 ;                   (write-asig ~buffer 
 ;                               (aget ~(with-meta b {:tag "[[D"}) i#) i#)
-;                   (recur (unchecked-inc-int i#) len#))) 
+;                   (recur (unchecked-inc i#) len#))) 
 ;               (write-asig ~buffer ~b 0))
 ;             ;(map-d ~buffer + b# ~buffer)
 ;             (recur xs# (conj ret# ~x)))

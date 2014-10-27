@@ -53,3 +53,15 @@
           (aset write-ptr 0 (int new-write-ptr))
           out)))))
 
+(defn create-delay
+  [delay-time-max]
+  (double-array (int (+ 0.5 (delay-time-max (long *sr*))))))
+
+(defn delay-read
+  [delay-buffer read-time]
+  )
+
+(defn delay-write
+  [delay-buffer afn])
+
+

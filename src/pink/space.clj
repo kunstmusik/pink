@@ -32,5 +32,5 @@
                     ^double r (db->amp (* 20 (Math/log (Math/sin (* PI2 cur-loc )))))]
                 (aset left indx (* l ain)) 
                 (aset right indx (* r ain)) 
-                (recur (unchecked-inc-int indx)))
+                (recur (unchecked-inc indx)))
       (yield out))))

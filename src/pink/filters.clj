@@ -19,7 +19,7 @@
             c1 (- 1.0 c2)
             new-val (+ (* c1 ain) (* c2 last-val))]
                 (aset out indx new-val) 
-                (recur (unchecked-inc-int indx) new-val))
+                (recur (unchecked-inc indx) new-val))
       (yield out))))
 
 ;(println (disassemble tone))
@@ -40,7 +40,7 @@
                     c2 (- b (Math/sqrt (- (* b b) 1.0)))
                     new-val (* c2 (+ last-val ain))]
                 (aset out indx new-val) 
-                (recur (unchecked-inc-int indx) (- new-val ain)))
+                (recur (unchecked-inc indx) (- new-val ain)))
       (yield out))))
 
 (defn port
@@ -56,7 +56,7 @@
       [ain afn]
        (let [new-val (+ (* c1 ain) (* c2 last-val))]
                 (aset out indx new-val)
-                (recur (unchecked-inc-int indx) new-val))
+                (recur (unchecked-inc indx) new-val))
       (yield out))))
 
 ;; Butterworth Filters
@@ -68,7 +68,7 @@
   `(let [t# (- ~asig (* ~a4 ~a6) (* ~a5 ~a7))
         y# (+ (* t# ~a1) (* ~a2 ~a6) (* ~a3 ~a7))]
     (aset ~out ~indx y#) 
-    (recur (unchecked-inc-int ~indx) ~cut ~a1 ~a2 ~a3 ~a4 ~a5 t# ~a6)))
+    (recur (unchecked-inc ~indx) ~cut ~a1 ~a2 ~a3 ~a4 ~a5 t# ~a6)))
 
 (defn butterhp
   [afn cutoff]
@@ -90,7 +90,7 @@
         (<= cut 0.0) 
         (do 
           (aset out indx 0.0)
-          (recur (unchecked-inc-int indx) cut old-a1 old-a2 old-a3 old-a4
+          (recur (unchecked-inc indx) cut old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (not= last-cut cut)
         (let [c (Math/tan (* PIDSR cut)) 
@@ -127,7 +127,7 @@
         (<= cut 0.0) 
         (do 
           (aset out indx 0.0)
-          (recur (unchecked-inc-int indx) cut old-a1 old-a2 old-a3 old-a4
+          (recur (unchecked-inc indx) cut old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (not= last-cut cut)
         (let [c (/ 1.0 (Math/tan (* PIDSR cut)))
@@ -151,7 +151,7 @@
   `(let [t# (- ~asig (* ~a4 ~a6) (* ~a5 ~a7))
         y# (+ (* t# ~a1) (* ~a2 ~a6) (* ~a3 ~a7))]
     (aset ~out ~indx y#) 
-    (recur (unchecked-inc-int ~indx) ~cf ~bw ~a1 ~a2 ~a3 ~a4 ~a5 t# ~a6)))
+    (recur (unchecked-inc ~indx) ~cf ~bw ~a1 ~a2 ~a3 ~a4 ~a5 t# ~a6)))
 
 (defn butterbp
   [afn center-freq bandwidth ]
@@ -177,7 +177,7 @@
         (or (<= cf 0.0) (<= bw 0.0))
         (do 
           (aset out indx 0.0)
-          (recur (unchecked-inc-int indx) cf bw old-a1 old-a2 old-a3 old-a4
+          (recur (unchecked-inc indx) cf bw old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (or (not= last-cf cf) (not= last-bw bw))
         (let [c (/ 1.0 (Math/tan (* PIDSR bw)))
@@ -216,7 +216,7 @@
         (or (<= cf 0.0) (<= bw 0.0))
         (do 
           (aset out indx 0.0)
-          (recur (unchecked-inc-int indx) cf bw old-a1 old-a2 old-a3 old-a4
+          (recur (unchecked-inc indx) cf bw old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (or (not= last-cf cf) (not= last-bw bw))
         (let [c (Math/tan (* PIDSR bw)) 

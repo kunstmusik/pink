@@ -51,7 +51,7 @@
              (let [av (aget abuf i)
                    cv (aget cbuf i)]
                (recur 
-                 (unchecked-inc-int i)
+                 (unchecked-inc i)
                  (+ (* c1 av av) (* c2 q))
                  (+ (* c1 cv cv) (* c2 r)))) 
              (do 
@@ -69,13 +69,13 @@
              (loop [i 0] 
                (when (< i buf-size)
                  (aset out i (* a (aget abuf i)))
-                 (recur (unchecked-inc-int i))))
+                 (recur (unchecked-inc i))))
              (let [incr (/ diff buf-size)]
                (loop [i 0 m pa]
                  (if (< i buf-size)
                    (do 
                      (aset out i (* m (aget abuf i)))
-                     (recur (unchecked-inc-int i) (+ m incr)))  
+                     (recur (unchecked-inc i) (+ m incr)))  
                    (aset prva 0 a))
                  ))) 
 

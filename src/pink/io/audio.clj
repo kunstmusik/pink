@@ -30,6 +30,6 @@
       (when (< indx cnt)
         (let [mixer ^Mixer$Info (aget mixers indx)] 
           (println "Mixer " indx " :" mixer)
-          (recur (unchecked-inc-int indx))
+          (recur (unchecked-inc indx))
           )))))
 

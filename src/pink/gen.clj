@@ -32,7 +32,7 @@
         (let [v (aget tbl i) 
             new-mn (if (< v mn) v mn)
             new-mx (if (> v mx) v mx)]
-           (recur (unchecked-inc-int i) new-mn new-mx))
+           (recur (unchecked-inc i) new-mn new-mx))
         [mn mx]))))
 
 (defn rescale
@@ -66,7 +66,7 @@
                                             (* harmonic (/ indx dbl-size))) 1))
                     new-val (+ cur-val (* strength sine-val))]
                (aset out indx new-val)
-              (recur (unchecked-inc-int indx)))))
+              (recur (unchecked-inc indx)))))
           (recur xs)))) 
     out))
 
@@ -79,7 +79,7 @@
     (loop [harmonic 1 [^double strength & xs] pts]
       (when (some? strength)
         (if (<= strength 0)
-          (recur (unchecked-inc-int harmonic) xs)
+          (recur (unchecked-inc harmonic) xs)
           (do
             (loop [indx (int 0)]
               (when (< indx size) 
@@ -89,8 +89,8 @@
                         (* strength 
                            (rem (* harmonic (/ indx (double size))) 1)))] 
                   (aset out indx (+ last-val sine-val))
-                  (recur (unchecked-inc-int indx)))))
-            (recur (unchecked-inc-int harmonic) xs)))))
+                  (recur (unchecked-inc indx)))))
+            (recur (unchecked-inc harmonic) xs)))))
     out))
 
 (defn gen17

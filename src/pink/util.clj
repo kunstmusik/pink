@@ -52,7 +52,7 @@
          (when (< ~cnt l#)
            (aset ~out ~cnt
                   ~(tag-double apply-line)) 
-           (recur (unchecked-inc-int ~cnt))
+           (recur (unchecked-inc ~cnt))
            ))
        ~out
        )    
@@ -168,7 +168,7 @@
           (when (< i end)
             (let [out (aget ^"[[D" dest i)]
               (map-d out + out (aget ^"[[D" src i))
-              (recur (unchecked-inc-int i) end)))))))
+              (recur (unchecked-inc i) end)))))))
   dest)
 
 (defn clear-buffer 
@@ -177,7 +177,7 @@
     (loop [i (int 0) cnt (count b)]
       (when (< i cnt)
         (Arrays/fill ^doubles (aget ^"[[D" b i) 0.0)
-        (recur (unchecked-inc-int i) cnt)))
+        (recur (unchecked-inc i) cnt)))
     (Arrays/fill ^doubles b 0.0)))
 
 
@@ -254,7 +254,7 @@
          (loop [~cnt (unchecked-int 0)]
            (when (< ~cnt len#)
              (aset ~(tag-doubles out) ~cnt (swapd! ~start ~f))
-             (recur (unchecked-inc-int ~cnt))))
+             (recur (unchecked-inc ~cnt))))
          ~(tag-doubles out)))))  
 
 (defn- gen-buffer [x] (x))
@@ -283,7 +283,7 @@
                 (loop [i (unchecked-int 0)]
                   (when (< i buffer-size)
                     (aset out i ^double (f ^double (aget out i) ^double (aget buf i)))
-                    (recur (unchecked-inc-int i))))
+                    (recur (unchecked-inc i))))
                 (recur xs))  
               out)))))
     (nth a 0))
@@ -366,7 +366,7 @@
        (fn ~(with-meta [] {:tag doubles}) 
          (let [~@new-afn-bindings] 
            (when (and ~@afn-results)
-             (loop [~indx-sym 0 
+             (loop [~indx-sym (unchecked-int 0) 
                     ~@new-bindings]
                (if (< ~indx-sym ~bsize-sym)
                  (let [~@afn-indexing] 
@@ -435,8 +435,8 @@
                            (System/arraycopy ~buf-sym 0 
                                              ~out-buf-sym (* i# ~buffer-size) 
                                              ~buffer-size)
-                           (recur (unchecked-inc-int i#)
-                                  (unchecked-inc-int buf-num#)))
+                           (recur (unchecked-inc i#)
+                                  (unchecked-inc buf-num#)))
                          (do
                            (reset! done# true)
                            (aset current-buf-num# 0 
@@ -450,17 +450,3 @@
                        ~out-buf-sym))))))))
        (throw (Exception. (str "Invalid buffer-size: " ~buffer-size))))))
 
-
-;; Informal benchmarking tool
-
-(defn time-gen 
-  [gen]
-  (let [t (. System nanoTime)
-      ]
-      (loop [cnt (unchecked-int 0)]
-        (if (nil? (gen))
-          (println (format "TIME: %g FRAMES: %d" 
-                           (double (/ (- (. System nanoTime) t) 1000000000))
-                           cnt))
-          (recur (unchecked-inc-int cnt)))))
-  )
