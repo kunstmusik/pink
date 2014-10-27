@@ -39,5 +39,6 @@
                      :plugins [[lein-nodisassemble "0.1.3"]] }      
               }
 
+  :java-source-paths  ["src"] 
   ;:main 
   )
