@@ -98,15 +98,18 @@
   "Writes asig as a channel into an interleaved out-buffer"
   [^doubles out-buffer ^doubles asig chan-num
    buffer-size nchnls]
-  (if (= nchnls 1)
+  (let [^int channel chan-num
+        ^int bsize buffer-size
+        ^int num-channels nchnls] 
+    (if (= nchnls 1)
     (when (= 0 chan-num)
       (map-d out-buffer + out-buffer asig))
     (loop [i (unchecked-int 0)]
-      (when (< i buffer-size)
-        (let [out-index (+ chan-num (* i nchnls))] 
+      (when (< i bsize)
+        (let [out-index (unchecked-int (+ channel (* i num-channels)))] 
           (aset out-buffer out-index
-            (+ (aget out-buffer out-index) (aget asig i))))
-        (recur (unchecked-inc-int i))))))
+            (+ ^double (aget out-buffer out-index) ^double (aget asig i))))
+        (recur (unchecked-inc-int i)))))))
 
 
 (defn run-audio-funcs [afs buffer buffer-size nchnls]
