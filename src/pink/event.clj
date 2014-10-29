@@ -13,9 +13,7 @@
   (compareTo [this a] 
     (let [t1 (.start this)
           t2 (.start ^Event a)] 
-     (cond (> t1 t2) 1
-           (< t1 t2) -1
-           :else 0))))
+     (compare t1 t2))))
 
 (deftype EventList [^PriorityQueue events pending-events cur-buffer ]
   Object
@@ -25,6 +23,8 @@
 
 (defn event 
   "Create an Event object. Can either pass args as list or variadic args."
+  ([f start] 
+   (Event. f start []))
   ([f start args]
    (if (sequential? args)
      (Event. f start args) 
