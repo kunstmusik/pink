@@ -26,28 +26,28 @@
             [15.0 butterbr (env [0.0 20 5 20000]) 1000]
             ))
 
-  (add-engine-events score)
+  (add-audio-events score)
 
   (start-engine)
 
   ;; Individual tests
 
-  (add-engine-events 
+  (add-audio-events 
     (event test-filter 0.0 butterlp (env [0.0 20 10 20000])))
 
-  (add-engine-events 
+  (add-audio-events 
     (event test-filter 0.0 butterhp (env [0.0 20 5 20000])))
 
-  (add-engine-events 
+  (add-audio-events 
     (event test-filter 0.0 butterbp (env [0.0 20 5 20000]) 100 ))
 
-  (add-engine-events 
+  (add-audio-events 
     (event test-filter 0.0 butterbr (env [0.0 20 5 20000]) 1000 ))
 
-  (add-engine-events 
+  (add-audio-events 
     (event test-filter 0.0 butterbr (env [0.0 20 5 20000]) 100 ))
 
-  (add-engine-events 
+  (add-audio-events 
     (event test-filter 0.0 moogladder (env [0.0 20 10 20000]) 0.1 ))
   
 
@@ -61,7 +61,7 @@
           (pan (mul 0.5 ampenv
                     (moogladder (sum (mul 0.9 (blit-saw pch)) 
                                      (mul 0.2 (blit-saw (* pch 1.5)))) 
-                                (sum (* pch 6) (mul (* pch 4) ampenv)) 
+                                (sum (* pch 3) (mul (* pch 4) ampenv)) 
                                 ;cutenv
                                 ;(* pch 5)
                                 0.85 

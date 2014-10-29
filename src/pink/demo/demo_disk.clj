@@ -23,7 +23,7 @@
   (def num-notes 5)
   (defn schedule 
     [events]
-    (engine-add-events e (engine-events e events)))
+    (engine-add-events e (audio-events e events)))
 
   (schedule (map #(event horn (* % 0.5)  
                          (/ 0.75 (+ 1 %)) 

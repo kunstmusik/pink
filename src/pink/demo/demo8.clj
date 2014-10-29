@@ -40,7 +40,7 @@
   (def e (engine-create))
   (engine-start e)
 
-  (let [eng-events (engine-events e
+  (let [eng-events (audio-events e
                        (map #(event table-synth-interp 0.25 (* 110 %)) (range 1 10)))]
 
       (engine-add-post-cfunc e (event-list-processor eng-events))
@@ -53,7 +53,7 @@
 
   (let [e (engine-create)
         eng-events 
-        (engine-events e
+        (audio-events e
                        (event table-synth 0.0 440.0) 
                        (event table-synth 0.0 550.0) 
                        ;(map #(event table-synth-interp 0.25 (* 110 %)) (range 1 36)) 

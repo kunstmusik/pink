@@ -311,17 +311,17 @@
         sr (.sample-rate engine)
         buffer-size (.buffer-size engine)
         nchnls (.nchnls engine)
-        run-engine-events (event-list-processor (.event-list engine))]
+        run-audio-events (event-list-processor (.event-list engine))]
     (loop [pre-cfuncs (drain-atom! pending-pre-cfuncs)
            cur-funcs (drain-atom! pending-afuncs) 
            post-cfuncs (drain-atom! pending-post-cfuncs)
            buffer-count 0]
-      (let [more-engine-events
+      (let [more-audio-events
             (binding [*current-buffer-num* buffer-count 
                       *sr* sr 
                       *buffer-size* buffer-size 
                       *nchnls* nchnls]
-              (run-engine-events)) 
+              (run-audio-events)) 
             pre (binding [*current-buffer-num* buffer-count 
                           *sr* sr 
                           *buffer-size* buffer-size 
@@ -338,7 +338,7 @@
                            *nchnls* nchnls]
                    (process-cfuncs (concat-drain! post-cfuncs pending-post-cfuncs)))
             ]  
-        (if (or (not-empty pre) (not-empty afs) (not-empty post) more-engine-events)  
+        (if (or (not-empty pre) (not-empty afs) (not-empty post) more-audio-events)  
           (do 
             (.write baos (.array buf))
             (.clear buf)
@@ -357,25 +357,25 @@
  
 ;; Event functions dealing with audio engines
 
-(defn fire-engine-event 
+(defn fire-audio-event 
   "create an instance of an audio function and adds to the engine" 
   [eng evt]  
   (when-let [afunc (fire-event evt)] 
     (engine-add-afunc eng afunc)))
 
-(defn wrap-engine-event 
+(defn wrap-audio-event 
   [eng ^Event evt]
-  (wrap-event fire-engine-event [eng] evt))
+  (wrap-event fire-audio-event [eng] evt))
 
-(defn engine-events 
-  "Takes an engine and series of events, wrapping the events as engine-events.
+(defn audio-events 
+  "Takes an engine and series of events, wrapping the events as audio-events.
   If single arg given, assumes it is a list of events."
   ([eng args]
    (if (sequential? args)
-     (map #(wrap-engine-event eng %) args)    
-     (map #(wrap-engine-event eng %) [args])))
+     (map #(wrap-audio-event eng %) args)    
+     (map #(wrap-audio-event eng %) [args])))
   ([eng x & args]
-   (engine-events eng (list* x args))))
+   (audio-events eng (list* x args))))
 
 ;; Utility Functions
 

@@ -38,7 +38,7 @@
   [evts]
   (engine-add-events engine evts))
 
-(defn add-engine-events 
+(defn add-audio-events 
   "Takes in list of events, wraps in engine events, and adds to engine's event list."
   [evts]
-  (engine-add-events engine (engine-events engine evts)))
+  (engine-add-events engine (audio-events engine evts)))

@@ -17,7 +17,7 @@
 
   (let [e (engine-create)
         eng-events 
-        (engine-events e
+        (audio-events e
                        (event table-synth 0.0 440.0) 
                        (event table-synth 0.5 550.0) 
                        (event table-synth 1.0 660.0) 

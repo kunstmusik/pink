@@ -1,7 +1,7 @@
 (ns pink.event
   (:require [pink.util :refer [create-buffer drain-atom! try-func]]
             [pink.config :refer [*buffer-size* *sr*]]  )
-  (:import [java.util List PriorityQueue]))
+  (:import [java.util Collection PriorityQueue]))
 
 (deftype Event [event-func ^double start event-args ]
   Object
@@ -56,7 +56,7 @@
   performance list, force turning off an audio function, and so on."
 
   ([] (event-list []))
-  ([^List evts] 
+  ([^Collection evts] 
    (EventList. (PriorityQueue. evts) (atom []) (atom 0))))
 
 (defn event-list-add 
@@ -135,7 +135,7 @@
   (defn test-event-list [evtlst]
     (let [wait (* 1000 (/ *buffer-size* *sr*))]
       (loop []
-        (event-list-tick evtlst)
+        (event-list-tick! evtlst)
 
         (when (> (count @(.events evtlst)) 0)
           (Thread/sleep 1) 
@@ -164,7 +164,7 @@
   (def eng (engine-create))
 
   (def eng-events 
-    (engine-events eng
+    (audio-events eng
                    (event test-func 0.0 1.5 110.0) 
                    (event test-func 0.0 1.5 120.0) 
                    (event test-func 1.0 1.5 130.0) 
