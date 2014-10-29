@@ -15,7 +15,8 @@
           t2 (.start ^Event a)] 
      (compare t1 t2))))
 
-(deftype EventList [^PriorityQueue events pending-events cur-buffer ]
+(deftype EventList [^PriorityQueue events pending-events cur-buffer 
+                    buffer-size sr]
   Object
   (toString [this]  (str events)) 
   (hashCode [this] (System/identityHashCode this))
@@ -30,8 +31,7 @@
      (Event. f start args) 
      (Event. f start [args]))) 
   ([f start x & args]
-   (Event. f start (list* x args)))
-  )
+   (Event. f start (list* x args))))
 
 (defn wrap-event 
   "Wraps an event with other top-level functions."
@@ -55,9 +55,9 @@
   things like schedule an audio function to be added to an engine's
   performance list, force turning off an audio function, and so on."
 
-  ([] (event-list []))
-  ([^Collection evts] 
-   (EventList. (PriorityQueue. evts) (atom []) (atom 0))))
+  ([buffer-size sr] (event-list [] buffer-size sr))
+  ([^Collection evts buffer-size sr] 
+   (EventList. (PriorityQueue. evts) (atom []) (atom 0) buffer-size sr)))
 
 (defn event-list-add 
   "Add an event or events to an event list"
@@ -102,7 +102,8 @@
       (try 
         (let [new-events (drain-atom! pending)
             cur-buffer (.cur-buffer evtlst)
-            cur-time (/ (* (long @cur-buffer) (long *buffer-size*)) (double *sr*))
+            cur-time (/ (* (long @cur-buffer) (.buffer-size evtlst)) 
+                        (double (.sr evtlst)))
             timed-events 
             (map (fn [^Event a] (alter-event-time (+ cur-time (.start a)) a)) 
                  new-events)] 
@@ -130,53 +131,4 @@
     (event-list-tick! evtlst)
     (not (.isEmpty ^PriorityQueue (.events evtlst)))))
 
-(comment
 
-  (defn test-event-list [evtlst]
-    (let [wait (* 1000 (/ *buffer-size* *sr*))]
-      (loop []
-        (event-list-tick! evtlst)
-
-        (when (> (count @(.events evtlst)) 0)
-          (Thread/sleep 1) 
-          (recur)
-          ))))
-
-
-  (defn test-func [a b] (println "test-func fired" a b))
-
-  ;(events test-func [1 2 3] [4 5 6])
-
-  (def test-note (event test-func 0.0 1.0 440.0))
-  (def test-note-dupe (event test-func 0.0 1.0 440.0))
-  (def test-note2 (event test-func 0.5 1.0 220.0))
-  (def test-note3 (event test-func 2.0 1.5 110.0))
-  (print (.start test-note3))
-  (def evtlst (event-list [test-note test-note-dupe test-note2 test-note3]))
-  (event-list-add evtlst test-note3)
-
-  (print evtlst)
-
-  (.start (Thread. ^Runnable (partial test-event-list evtlst))) 
-
-
-
-  (def eng (engine-create))
-
-  (def eng-events 
-    (audio-events eng
-                   (event test-func 0.0 1.5 110.0) 
-                   (event test-func 0.0 1.5 120.0) 
-                   (event test-func 1.0 1.5 130.0) 
-                   (event test-func 2.0 1.5 140.0)))
-  (print eng-events)
-  (print (count @(.events eng-events)))
-  (.start (Thread. ^Runnable (partial test-event-list eng-events))) 
-
-  (print eng)
-
-  ;(event-list-remove evtlst test-note)
-  ;(event-list-tick evtlst)
-
-
-  )

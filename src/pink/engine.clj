@@ -47,7 +47,7 @@
             (atom []) (atom []) (atom []) 
             sample-rate channels bsize 
             (* bsize channels) (* (long BYTE-SIZE) bsize channels)
-            (event-list))]
+            (event-list buffer-size sample-rate))]
     (swap! engines conj e) 
     e))
 
