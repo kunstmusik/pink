@@ -19,6 +19,14 @@
       Short/MIN_VALUE 
       (short ~num))))
 
+(def ^:const windows? 
+  (-> (System/getProperty "os.name")
+      (.toLowerCase)
+      (.startsWith "windows")))
+
+(def ^:dynamic *hardware-buffer-size*
+  (if windows? 1024 256))
+
 ;;;; Engine
 
 (def engines (atom []))
@@ -178,16 +186,12 @@
     (filter #(< (.indexOf ^"clojure.lang.PersistentVector" removes %) 0)
            (concat-drain! v adds-atm))))
 
-;(def a (atom [1 2 3]))
-;(def b (atom [0 3]))
-;(update-funcs [0 4 5] a b)
-
 (defn engine-run 
   "Main realtime engine running function. Called within a thread from
   engine-start."
   [^Engine engine]
   (let [af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)
-        #^SourceDataLine line (open-line af (* 16 (.nchnls engine) 64))        
+        #^SourceDataLine line (open-line af (* 16 (.nchnls engine) *hardware-buffer-size*))        
         out-buffer (double-array (.out-buffer-size engine))
         buf (ByteBuffer/allocate (.byte-buffer-size engine))
         pending-afuncs (.pending-afuncs engine)
@@ -382,7 +386,7 @@
 (defn run-audio-block 
   "TODO: Fix this function and document..."
   [a-block & {:keys [sample-rate nchnls block-size] 
-              :or {sample-rate 44100 nchnls 1 block-size 64}}]
+              :or {sample-rate 44100 nchnls 1 block-size 256}}]
   ;(let [af (AudioFormat. sample-rate 16 nchnls true true)
   ;      #^SourceDataLine line (open-line af) 
   ;      buffer (ByteBuffer/allocate buffer-size)
