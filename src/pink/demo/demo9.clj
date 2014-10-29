@@ -5,6 +5,7 @@
              [pink.util :refer [mul]]
              [pink.oscillators :refer [oscil3 sine-table]]
              [pink.envelopes :refer [env]]
+             [pink.config :refer :all]
              ))
 
 
@@ -39,7 +40,7 @@
                                     (- (* 2 (/ % (- num-notes 1)))  1)) 
                             (range num-notes)))]
     (engine-add-post-cfunc e 
-      (event-list-processor (event-list eng-events))))
+      (event-list-processor (event-list eng-events *buffer-size* *sr*))))
 
   (let [eng-events 
         (audio-events e
@@ -50,13 +51,13 @@
                                     (- (* 2 (/ % (- num-notes 1)))  1)) 
                             (range num-notes)))]
       (engine-add-post-cfunc e 
-        (event-list-processor (event-list eng-events))))
+        (event-list-processor (event-list eng-events *buffer-size* *sr*))))
 
 
   (let [eng-events (audio-events e
                        (map #(event table-synth-cubic (* % 0.5) (* 220 (+ 1%))) (range num-notes)))]
       (engine-add-post-cfunc e 
-        (event-list-processor (event-list eng-events)))
+        (event-list-processor (event-list eng-events *buffer-size* *sr*)))
     
     )
   (engine-stop e)

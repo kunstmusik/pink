@@ -6,6 +6,7 @@
             [pink.oscillators :refer [sine oscil oscili oscil3]]
             [pink.gen :refer [gen-sine gen10]]
             [pink.util :refer :all]
+            [pink.config :refer :all]
             [pink.event :refer :all] ))
 
 (def sine256 (gen-sine 128))
@@ -43,7 +44,8 @@
   (let [eng-events (audio-events e
                        (map #(event table-synth-interp 0.25 (* 110 %)) (range 1 10)))]
 
-      (engine-add-post-cfunc e (event-list-processor eng-events))
+      (engine-add-post-cfunc e (event-list-processor 
+                                 (event-list eng-events *buffer-size* *sr*)))
     
     ) 
 
