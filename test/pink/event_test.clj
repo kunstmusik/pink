@@ -2,7 +2,7 @@
   (:require [pink.event :refer :all]
             [clojure.test :refer :all])
   (:import [java.util PriorityQueue]
-           [pink.event Event])
+           [pink.event Event EventList])
   )
 
 (defmacro with-private-fns [[ns fns] & tests]
@@ -21,12 +21,18 @@
 
 (deftest event-list-test
   (let [test-note (event test-audio-func 0.0 1.0 440.0)
-        evtlst (event-list [test-note])
+        evtlst ^EventList (event-list [test-note])
         events ^PriorityQueue (.events evtlst)]
     (is (= 1 (.size events))) 
     (is (= test-note (.peek events)))
     
     ))
+
+(defn event-equals
+  [^Event e1 ^Event e2]
+  (and (= (.event-func e1) (.event-func e2))
+       (= (.start e1) (.start e2))
+       (= (.event-args e1) (.event-args e2))))
 
 (deftest event-list-add-test
   (with-private-fns [pink.event [merge-pending!]] 
@@ -36,25 +42,24 @@
         test-note3 (event test-audio-func 0.2 1.0 220.0)
         evtlst (event-list [test-note2])
         events ^PriorityQueue (.events evtlst)]
+
+    (event-list-add evtlst test-note3)
     (event-list-add evtlst test-note)
+    (event-list-add evtlst test-note-dupe)
+
     (merge-pending! evtlst)
-    (is (= [test-note test-note2] (into [] (.toArray events)))) 
+
+    (is (= 4 (.size events)))
+    (is (event-equals test-note (.poll events)))
+    (is (event-equals test-note-dupe (.poll events)))
+    (is (event-equals test-note2 (.poll events)))
+    (is (event-equals test-note3 (.poll events)))
 
     ;;;Test that adding same note is skipped
     ;(event-list-add evtlst test-note)
     ;(is (= 2 (count (:events evtlst))))
 
-    (event-list-add evtlst test-note3)
-    (merge-pending! evtlst)
-    (is (= 3 (.size events)))
-    (is (= [test-note test-note2 test-note3] (into [] (.toArray events)))) 
 
-
-    ;;Test that adding notes with same values is allowed 
-    (event-list-add evtlst test-note-dupe)
-    (merge-pending! evtlst)
-    (is (= 4 (.size events)))
-    (is (= [test-note test-note-dupe test-note2 test-note3] (into [] (.toArray events)))) 
     )))
 
 ;(deftest event-list-remove-test
