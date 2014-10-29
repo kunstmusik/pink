@@ -16,6 +16,11 @@
   (let [evt ^Event (event test-audio-func 0.5 1.0 4.0 :test)]
    (is (= 0.5 (.start evt))) 
    (is (= [1.0 4.0 :test] (.event-args evt))) 
+   (is (= test-audio-func (.event-func evt))) )
+  ;test no-arg event
+  (let [evt ^Event (event test-audio-func 0.5)]
+   (is (= 0.5 (.start evt))) 
+   (is (= [] (.event-args evt))) 
    (is (= test-audio-func (.event-func evt))) 
     ))
 
@@ -27,6 +32,18 @@
     (is (= test-note (.peek events)))
     
     ))
+
+(deftest alter-event-time-test
+  (let [evt ^Event (event test-audio-func 0.5)
+        evt2 ^Event (alter-event-time 0.0 evt)
+        ]
+   (is (= 0.0 (.start evt2))) 
+   (is (= [] (.event-args evt2))) 
+   (is (= test-audio-func (.event-func evt2)))
+   
+   (is (= (.event-args evt) (.event-args evt2))) 
+   (is (= (.event-func evt) (.event-func evt2)))
+   ))
 
 (defn event-equals
   [^Event e1 ^Event e2]
