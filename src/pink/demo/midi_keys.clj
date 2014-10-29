@@ -5,7 +5,7 @@
             [pink.space :refer :all]
             [pink.oscillators :refer :all]
             [pink.envelopes :refer [env xar]]
-            [pink.filters :refer [port butterlp]]
+            [pink.filters :refer [port butterlp moogladder]]
             [pink.util :refer :all])
   (:import [javax.sound.midi MidiSystem Transmitter Receiver MidiMessage
             ShortMessage ]
@@ -29,7 +29,7 @@
                        (blit-saw (mul f 0.9995))
                        (sine2 (mul f 0.5)))
                   3.5)
-                4000)) 
+                2000)) 
        0.0))) 
 
 (comment
