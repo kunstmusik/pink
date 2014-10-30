@@ -36,5 +36,11 @@
         (doseq [_ (range 1000000)]
           (p))))))
 
+
+(comment 
+
 (run-mul-test)
 (run-phasor-test)
+
+)
+
