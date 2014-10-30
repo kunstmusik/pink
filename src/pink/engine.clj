@@ -9,15 +9,9 @@
            [java.util Arrays]
            [javax.sound.sampled AudioFormat AudioSystem SourceDataLine
                                 AudioFileFormat$Type AudioInputStream]
+           [pink EngineUtils]
            [pink.event Event]))
 
-
-(defmacro limit [num]
-  `(if (> ~(tag-double num) Short/MAX_VALUE)
-    Short/MAX_VALUE 
-    (if (< ~(tag-double num) Short/MIN_VALUE)
-      Short/MIN_VALUE 
-      (short ~num))))
 
 (def ^:const windows? 
   (-> (System/getProperty "os.name")
@@ -90,16 +84,12 @@
 
 ;;;; JAVASOUND CODE
 
-(defmacro doubles->byte-buffer 
+(defn doubles->byte-buffer 
   "Write output from doubles array into ByteBuffer. 
   Maps -1.0,1.0 to Short/MIN_VALUE,Short/MAX_VALUE, truncating
   values outside of -1.0,1.0."
-  [dbls buf]
-  `(let [len# (alength ~dbls)]
-    (loop [y# 0]
-      (when (< y# len#)
-        (.putShort ~buf (limit (* Short/MAX_VALUE (aget ~dbls y#))))  
-        (recur (unchecked-inc y#))))))
+  [^doubles dbls ^ByteBuffer buf]
+  (EngineUtils/writeDoublesToByteBufferAsShorts dbls buf))
 
 
 (defn- write-asig
