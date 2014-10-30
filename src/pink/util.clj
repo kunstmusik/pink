@@ -127,7 +127,7 @@
 (defn create-buffer  
   "Creates a single-channel audio buffer with optional default value"
   ^doubles ([] (double-array *buffer-size*))
-  ^doubles ([i] (double-array *buffer-size* i)))
+  ^doubles ([^double i] (double-array *buffer-size* i)))
 
 (defn create-buffers
   "Creates a single-channel or multi-channel buffer"
@@ -137,7 +137,7 @@
     (into-array 
       (for [i (range nchnls)] (create-buffer)))))
 
-(def EMPTY-BUFFER (create-buffer 0)) 
+(def ^:const ^doubles EMPTY-BUFFER (create-buffer 0)) 
 
 (def MULTI-CHANNEL-TYPE 
   (type (into-array [(double-array 1) (double-array 1)])))

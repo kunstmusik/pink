@@ -8,8 +8,8 @@
 
 (defn db->amp
   "Convert decibel to power ratio"
-  [^double d] 
-  (Math/exp  (* d LOG10D20)))
+  ^double [^double d] 
+  (Math/exp (* d LOG10D20)))
 
 (defn balance
   "Adjust one audio signal according to the values of another. 
