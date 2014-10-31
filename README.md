@@ -9,6 +9,13 @@ This library provides the basis for developing music systems.  It is also design
 For more information, please see the [Documentation](doc/intro.md).
 
 
+## YourKit 
+
+<img src="yourkit.png"/>
+
+YourKit supports open source projects with its full-featured Java Profiler.YourKit, LLC is the creator of <a href="http://www.yourkit.com/java/profiler/index.jsp">YourKit Java Profiler</a> and <a href="http://www.yourkit.com/.net/profiler/index.jsp">YourKit .NET Profiler</a>, innovative and intelligent tools for profiling Java and .NET applications.
+
+
 ## License
 
 Copyright © 2014 Steven Yi 
