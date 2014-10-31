@@ -1,6 +1,8 @@
 (ns pink.util
   "Audio utility code for working with buffers (double[])"
-  (:require [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]])
+  (:require [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]]
+            [primitive-math :refer [not==]]
+            )
   (:import [java.util Arrays]
            [pink Operator]
            [clojure.lang IFn]))
@@ -210,7 +212,7 @@
         buffer (atom nil) ]
     (fn []
       (let [cur-buf (long *current-buffer-num*)] 
-        (if (not= (getl my-buf-num) cur-buf )
+        (if (not== (getl my-buf-num) cur-buf )
         (do 
           (aset my-buf-num 0 cur-buf)
           (reset! buffer (afn))) 

@@ -2,8 +2,15 @@ package pink;
 
 import clojure.lang.IFn;
 
-public class Operator {
-  
+public final class Operator {
+ 
+  public static void sum(double[] out, double[] a) {
+    int length = out.length;
+    for(int i = 0; i < length; i++) {
+      out[i] += a[i];
+    }
+  }
+
   public static double[] sum(double[] out, IFn[] fns) {
     double[] result  = (double[])fns[0].invoke(); 
     int length = out.length;

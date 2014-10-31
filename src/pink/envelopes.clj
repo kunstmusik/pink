@@ -2,7 +2,9 @@
   "Envelope Generator Functions"
   (:require [clojure.pprint :refer [pprint]]
             [pink.config :refer [*sr*]]
-            [pink.util :refer [create-buffer fill swapl! getl setl! getd setd!]]))
+            [pink.util :refer [create-buffer fill swapl! getl setl! getd setd!]]
+            [primitive-math :refer [not==]]
+            ))
 
 (defn- make-env-data 
   "Takes in a list of time tagged pairs (time value) and function for
@@ -12,7 +14,7 @@
   [pts opfn]
   {:pre (even? (count pts))}
   (let [pairs (partition 2 pts)
-        [x & xs] (if (not= (double (ffirst pairs)) 0.0)
+        [x & xs] (if (not== (double (ffirst pairs)) 0.0)
                    (cons [0.0 (second (first pairs))] pairs)
                    pairs)]
      

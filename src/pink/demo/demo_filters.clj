@@ -51,7 +51,7 @@
     (event test-filter 0.0 moogladder (env [0.0 20 10 20000]) 0.1 ))
   
 
-  (doseq [_ (range 3)] 
+  (doseq [_ (range 5)] 
     (add-afunc
       (let [pch (+ 60 (rand-int 400))] 
         (let-s [;ampenv (xar 0.025 1.5)

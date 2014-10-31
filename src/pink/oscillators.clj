@@ -182,18 +182,18 @@
 ;; Implementation of Bandlimited Impulse Train (BLIT) functions by Stilson and
 ;; Smith. Based on implementations from Synthesis Toolkit (STK)
 
-(defmacro calc-harmonics 
-  [p nharmonics]
-  `(if (<= ~nharmonics 0)
-    (let [max-harmonics# (Math/floor (* 0.5 ~p))]
-      (+ (* 2 max-harmonics#) 1))
-    (+ (* 2 ~nharmonics) 1)))
+(defn- calc-harmonics 
+  ^long [^double p ^long nharmonics]
+  (if (<= nharmonics 0)
+    (let [max-harmonics (long (Math/floor (* 0.5 p)))]
+      (+ (* 2 max-harmonics) 1))
+    (+ (* 2 nharmonics) 1)))
 
-(defmacro pi-limit
-  [v]
-  `(if (>= ~v Math/PI) (- ~v Math/PI) ~v))
+(defn- pi-limit
+  ^double [^double v]
+  (if (>= v Math/PI) (- v Math/PI) v))
 
-(def DOUBLE-EPSILON
+(def ^:const ^:private ^double DOUBLE-EPSILON
   (Math/ulp 1.0))
 
 ;; blit-saw
@@ -201,10 +201,10 @@
 (defn- blit-saw-static
   [^double freq ^long nharmonics]
   (let [^doubles out (create-buffer)
-        p (/ (long *sr*) freq)
-        c2 (/ 1 p)
+        p (/ (double *sr*) freq)
+        c2 (/ 1.0 p)
         rate (* Math/PI c2)
-        m (long (calc-harmonics p nharmonics))
+        m (calc-harmonics p nharmonics) 
         a (/ m p)]
     (generator
       [phase 0.0
@@ -224,18 +224,20 @@
 (defn- blit-saw-dynamic
   [freq ^long nharmonics]
   (let [out ^doubles (create-buffer)
-          initialized (atom false)]
+          initialized (atom false)
+          sr (double *sr*)
+          ]
     (generator
       [phase 0.0
        st 0.0]
       [f freq]
-      (if (<= f 0)
+      (if (<= f 0.0)
         (do 
           (aset out indx 0.0)
           (recur (unchecked-inc indx) phase st))
         (let [denom (Math/sin phase)
-              p (/ (long *sr*) f)
-              c2 (/ 1 p)
+              p (/ sr f)
+              c2 (/ 1.0 p)
               rate (* Math/PI c2)
               m (long (calc-harmonics p nharmonics))
               a (/ m p)
@@ -269,18 +271,19 @@
 
 ;; blit-square
 
-(def TOP_LIM (- TWO_PI 0.1))
+(def ^:const ^:private ^double TOP_LIM 
+  (- TWO_PI 0.1))
          
-(defmacro calc-square-harmonics 
-  [p nharmonics]
-  `(if (<= ~nharmonics 0)
-    (let [max-harmonics# (int (Math/floor (* 0.5 ~p)))]
-      (* 2 (+ max-harmonics# 1)))
-    (* 2 (+ ~nharmonics 1))))
+(defn calc-square-harmonics 
+  ^long [^double p ^long nharmonics]
+  (if (<= nharmonics 0)
+    (let [max-harmonics (long (Math/floor (* 0.5 p)))]
+      (* 2 (+ max-harmonics 1)))
+    (* 2 (+ nharmonics 1))))
 
-(defmacro two-pi-limit
-  [v]
-  `(if (>= ~v TWO_PI) (- ~v TWO_PI) ~v))
+(defn two-pi-limit
+  ^double [^double v]
+  (if (>= v ^double TWO_PI) (- v ^double TWO_PI) v))
 
 (defn- blit-square-static
   [^double freq ^long nharmonics]
@@ -309,7 +312,8 @@
 
 (defn- blit-square-dynamic
   [freq ^long nharmonics]
-  (let [out ^doubles (create-buffer)]
+  (let [out ^doubles (create-buffer)
+        sr (double *sr*)]
     (generator
       [phase 0.0
        last-val 0.0
@@ -319,9 +323,9 @@
         (do 
           (aset out indx 0.0)
           (recur (unchecked-inc indx) phase last-val last-blit))
-        (let [p (/ (* 0.5 (long *sr*)) f)
+        (let [p (/ (* 0.5 sr) f)
               rate (/ Math/PI p)
-              m ^long (calc-square-harmonics p nharmonics)
+              m (calc-square-harmonics p nharmonics)
               a (/ m p) 
               denom (Math/sin phase)
               new-blit (+ last-blit 

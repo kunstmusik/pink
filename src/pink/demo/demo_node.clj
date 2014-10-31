@@ -12,8 +12,8 @@
   (def e (engine-create :nchnls 2))
   (engine-start e)
 
-  (require '[pink.noise :refer :all])
-  (engine-add-afunc e (white-noise))
+  ;(require '[pink.noise :refer :all])
+  ;(engine-add-afunc e (white-noise))
 
   (def root-node (create-node :channels 2))
   (engine-add-afunc e (node-processor root-node))

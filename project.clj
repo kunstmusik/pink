@@ -25,7 +25,8 @@
 
   :dependencies [[org.clojure/clojure "1.6.0"]
                  ;[org.clojure/clojure "1.7.0-alpha2"]
-                 [org.clojure/math.numeric-tower "0.0.4"]]
+                 [org.clojure/math.numeric-tower "0.0.4"]
+                 [primitive-math "0.1.4"]]
 
   :profiles  { 
               :dev  {

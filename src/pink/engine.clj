@@ -9,7 +9,7 @@
            [java.util Arrays]
            [javax.sound.sampled AudioFormat AudioSystem SourceDataLine
                                 AudioFileFormat$Type AudioInputStream]
-           [pink EngineUtils]
+           [pink EngineUtils Operator]
            [pink.event Event]))
 
 
@@ -96,18 +96,18 @@
   "Writes asig as a channel into an interleaved out-buffer"
   [^doubles out-buffer ^doubles asig chan-num
    buffer-size nchnls]
-  (let [^int channel chan-num
-        ^int bsize buffer-size
-        ^int num-channels nchnls] 
-    (if (= nchnls 1)
-    (when (= 0 chan-num)
-      (map-d out-buffer + out-buffer asig))
-    (loop [i (unchecked-int 0)]
-      (when (< i bsize)
-        (let [out-index (unchecked-int (+ channel (* i num-channels)))] 
-          (aset out-buffer out-index
-            (+ ^double (aget out-buffer out-index) ^double (aget asig i))))
-        (recur (unchecked-inc i)))))))
+  (let [^long channel chan-num
+        ^long bsize buffer-size
+        ^long num-channels nchnls] 
+    (if (= num-channels 1)
+      (when (= 0 channel)
+        (Operator/sum out-buffer asig))
+      (loop [i 0]
+        (when (< i bsize)
+          (let [out-index (unchecked-int (+ channel (* i num-channels)))] 
+            (aset out-buffer out-index
+                  (+ ^double (aget out-buffer out-index) ^double (aget asig i))))
+          (recur (unchecked-inc i)))))))
 
 
 (defn run-audio-funcs [afs buffer buffer-size nchnls]
@@ -195,60 +195,52 @@
         buffer-size (.buffer-size engine)
         nchnls (.nchnls engine) 
         run-engine-events (event-list-processor (.event-list engine))]
-    (loop [pre-cfuncs (drain-atom! pending-pre-cfuncs)
-           cur-funcs (drain-atom! pending-afuncs) 
-           post-cfuncs (drain-atom! pending-post-cfuncs)
-           buffer-count 0]
-      (if (= @(.status engine) :running)
-        (do 
-          (binding [*current-buffer-num* buffer-count 
-                    *sr* sr 
-                    *buffer-size* buffer-size 
-                    *nchnls* nchnls]
-            (run-engine-events)) 
-          (let [pre (binding [*current-buffer-num* buffer-count 
-                              *sr* sr 
-                              *buffer-size* buffer-size 
-                              *nchnls* nchnls] 
-                      (process-cfuncs 
-                        (update-funcs pre-cfuncs pending-pre-cfuncs 
-                                      pending-remove-pre-cfuncs)))
-                afs (binding [*current-buffer-num* buffer-count 
-                              *sr* sr 
-                              *buffer-size* buffer-size 
-                              *nchnls* nchnls]
-                      (process-buffer 
-                        (update-funcs cur-funcs pending-afuncs 
-                                      pending-remove-afuncs
-                                      
-                                      )
-                        out-buffer buf buffer-size nchnls))
-                post (binding [*current-buffer-num* buffer-count 
-                               *sr* sr 
-                               *buffer-size* buffer-size 
-                               *nchnls* nchnls]
-                       (process-cfuncs 
-                         (update-funcs post-cfuncs pending-post-cfuncs 
-                                       pending-remove-post-cfuncs)))]  
-            (buf->line buf line (.byte-buffer-size engine))
 
-            (if @clear-flag
-              (do 
-                (reset! pending-pre-cfuncs [])
-                (reset! pending-afuncs [])
-                (reset! pending-post-cfuncs [])
-                (reset! pending-remove-pre-cfuncs [])
-                (reset! pending-remove-afuncs [])
-                (reset! pending-remove-post-cfuncs [])
-                (reset! clear-flag false)
-                (event-list-clear (.event-list engine))
-                (recur [] [] [] (unchecked-inc buffer-count)))
-              (recur pre afs post (unchecked-inc buffer-count)))))
-        (do
-          (println "stopping...")
-          (doto line
-            (.flush)
-            (.close)))))))
+    (binding [*sr* sr 
+              *buffer-size* buffer-size *nchnls* nchnls]
+
+      (loop [pre-cfuncs (drain-atom! pending-pre-cfuncs)
+             cur-funcs (drain-atom! pending-afuncs) 
+             post-cfuncs (drain-atom! pending-post-cfuncs)
+             buffer-count 0]
+        (if (= @(.status engine) :running)
+          (do 
+            (binding [*current-buffer-num* buffer-count]
+              (run-engine-events)) 
+            (let [pre (binding [*current-buffer-num* buffer-count] 
+                        (process-cfuncs 
+                          (update-funcs pre-cfuncs pending-pre-cfuncs 
+                                        pending-remove-pre-cfuncs)))
+                  afs (binding [*current-buffer-num* buffer-count]
+                        (process-buffer 
+                          (update-funcs cur-funcs pending-afuncs 
+                                        pending-remove-afuncs
+
+                                        )
+                          out-buffer buf buffer-size nchnls))
+                  post (binding [*current-buffer-num* buffer-count]
+                         (process-cfuncs 
+                           (update-funcs post-cfuncs pending-post-cfuncs 
+                                         pending-remove-post-cfuncs)))]  
+              (buf->line buf line (.byte-buffer-size engine))
+
+              (if @clear-flag
+                (do 
+                  (reset! pending-pre-cfuncs [])
+                  (reset! pending-afuncs [])
+                  (reset! pending-post-cfuncs [])
+                  (reset! pending-remove-pre-cfuncs [])
+                  (reset! pending-remove-afuncs [])
+                  (reset! pending-remove-post-cfuncs [])
+                  (reset! clear-flag false)
+                  (event-list-clear (.event-list engine))
+                  (recur [] [] [] (unchecked-inc buffer-count)))
+                (recur pre afs post (unchecked-inc buffer-count)))))
+          (do
+            (println "stopping...")
+            (doto line
+              (.flush)
+              (.close))))))))
 
 (defn engine-start [^Engine engine]
   (when (= @(.status engine) :stopped)

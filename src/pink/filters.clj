@@ -1,6 +1,8 @@
 (ns pink.filters
   (:require [pink.config :refer [*sr* *buffer-size*]]
-            [pink.util :refer :all]))
+            [pink.util :refer :all]
+            [primitive-math :refer [not==]]
+            ))
 
 (defn tone 
   "A first-order recursive low-pass filter with variable frequency response. (based on Csound's tone opcode). 
@@ -92,7 +94,7 @@
           (aset out indx 0.0)
           (recur (unchecked-inc indx) cut old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
-        (not= last-cut cut)
+        (not== last-cut cut)
         (let [c (Math/tan (* PIDSR cut)) 
               c2 (* c c)
               root2c (* (double ROOT2) c)
@@ -129,7 +131,7 @@
           (aset out indx 0.0)
           (recur (unchecked-inc indx) cut old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
-        (not= last-cut cut)
+        (not== last-cut cut)
         (let [c (/ 1.0 (Math/tan (* PIDSR cut)))
               c2 (* c c)
               root2c (* (double ROOT2) c)
@@ -179,7 +181,7 @@
           (aset out indx 0.0)
           (recur (unchecked-inc indx) cf bw old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
-        (or (not= last-cf cf) (not= last-bw bw))
+        (or (not== last-cf cf) (not== last-bw bw))
         (let [c (/ 1.0 (Math/tan (* PIDSR bw)))
               d (* 2.0 (Math/cos (* TPIDSR cf)))
               a1 (/ 1.0 (+ 1.0 c))
@@ -218,7 +220,7 @@
           (aset out indx 0.0)
           (recur (unchecked-inc indx) cf bw old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
-        (or (not= last-cf cf) (not= last-bw bw))
+        (or (not== last-cf cf) (not== last-bw bw))
         (let [c (Math/tan (* PIDSR bw)) 
               d (* 2.0 (Math/cos (* TPIDSR cf)))
               a1 (/ 1.0 (+ 1.0 c))
@@ -292,7 +294,7 @@
      [asig afn
       cut cfn
       res rfn]
-     (if (or (not= old-freq cut) (not= old-res res))
+     (if (or (not== old-freq cut) (not== old-res res))
        (let [fc (/ cut sr)
              f (* 0.5 fc)
              fc2 (* fc fc)

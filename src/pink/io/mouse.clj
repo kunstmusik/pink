@@ -4,7 +4,8 @@
   (:import [java.awt MouseInfo Toolkit]
            [java.util Arrays])
   (:require [pink.config :refer :all]
-            [pink.util :refer [shared create-buffer]]))
+            [pink.util :refer [shared create-buffer]]
+            [primitive-math :refer [not==]]))
 
 
 (def mouse-x-val (atom 0.0))
@@ -13,7 +14,7 @@
 (let [my-buf-num (long-array 1 -1)] 
   (defn- update-mouse-vals!
   []
-  (when (not= (aget my-buf-num 0) *current-buffer-num*)
+  (when (not== (aget my-buf-num 0) *current-buffer-num*)
     (aset my-buf-num 0 (long *current-buffer-num*))
     (let [pt (.. MouseInfo getPointerInfo getLocation)]
       (reset! mouse-x-val (double (.x pt)))
