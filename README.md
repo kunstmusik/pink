@@ -13,6 +13,8 @@ For more information, please see the [Documentation](doc/intro.md).
 
 <img src="yourkit.png"/>
 
+Many thanks to YourKit for granting an Open Source license.  Their software is exceptional for helping to diagnose memory and performance issues with Pink.
+
 YourKit supports open source projects with its full-featured Java Profiler.YourKit, LLC is the creator of <a href="http://www.yourkit.com/java/profiler/index.jsp">YourKit Java Profiler</a> and <a href="http://www.yourkit.com/.net/profiler/index.jsp">YourKit .NET Profiler</a>, innovative and intelligent tools for profiling Java and .NET applications.
 
 
