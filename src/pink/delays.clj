@@ -37,7 +37,7 @@
   "Fixed length, non-interpolating delay-line. delay-time given in seconds."
   [afn ^double delay-time]
   (let [out ^doubles (create-buffer) 
-        delay-buffer-len (int (+ 0.5 (* delay-time (long *sr*))))
+        delay-buffer-len (int (+ 0.5 (* delay-time (double *sr*))))
         delay-buffer (double-array delay-buffer-len 0.0)
         read-ptr (int-array 1 *buffer-size*) ; start reading one buffer ahead
         write-ptr (int-array 1 0)]
@@ -54,8 +54,8 @@
           out)))))
 
 (defn create-delay
-  [delay-time-max]
-  (double-array (int (+ 0.5 (delay-time-max (long *sr*))))))
+  ^doubles [^double delay-time-max]
+  (double-array (int (+ 0.5 (* delay-time-max (double *sr*))))))
 
 (defn delay-read
   [delay-buffer read-time]

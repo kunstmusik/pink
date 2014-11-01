@@ -102,7 +102,7 @@
       (try 
         (let [new-events (drain-atom! pending)
             cur-buffer (.cur-buffer evtlst)
-            cur-time (/ (* (long @cur-buffer) (.buffer-size evtlst)) 
+            cur-time (/ (double (* (long @cur-buffer) ^long (.buffer-size evtlst))) 
                         (double (.sr evtlst)))
             timed-events 
             (map (fn [^Event a] (alter-event-time (+ cur-time (.start a)) a)) 

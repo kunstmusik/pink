@@ -45,9 +45,9 @@
 
 (defn- convert-to-double-arrays
   "Convert 16-bit, big endian audio samples to +-1.0 double samples"
-  [^ByteArrayOutputStream baos channels]
+  [^ByteArrayOutputStream baos ^long channels]
   (let [barray ^bytes (.toByteArray baos)
-        chan-length (/ (alength barray) (* channels 2)) ; assumes 16-bit/2-byte per sample
+        chan-length ^long (/ (alength barray) (* channels 2)) ; assumes 16-bit/2-byte per sample
         bbuffer (ByteBuffer/wrap barray)
         out (if (= channels 1) 
               (double-array chan-length)

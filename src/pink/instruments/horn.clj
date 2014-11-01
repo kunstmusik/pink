@@ -131,11 +131,11 @@
 
 (defn horn-lookup
   "Returns the wavetable set for a given frequency and bank of wavetable sets"
-  [freq tbls] 
+  [^double freq tbls] 
   (loop [[x & xs] tbls]
     (if (nil? xs) 
       (rest x)
-      (if (< freq (first x))
+      (if (< freq ^double (first x))
         (rest x)
         (recur xs)))))
 
@@ -145,7 +145,8 @@
   [amp freq wave-tables]
   (let [env0 (shared 
                (if (number? amp)
-                 (env [0 0 0.02 amp 0.03 (* 0.9 amp) 0.5 (* 0.9 amp) 0.2 0.0] )
+                 (let [a (double amp)] 
+                   (env [0 0 0.02 a 0.03 (* 0.9 a) 0.5 (* 0.9 a) 0.2 0.0] ))
                  (arg amp)))
         env1 (shared (mul env0 env0))
         env2 (shared (mul env1 env0))

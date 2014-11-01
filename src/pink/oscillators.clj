@@ -261,7 +261,7 @@
   version if freq is itself an audio-function."
   ([freq] (blit-saw freq 0))
   ([freq ^long nharmonics]
-   {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
+   {:pre [(or (and (number? freq) (pos? ^double freq)) (fn? freq))] }
   (if (number? freq)
     (blit-saw-static (double freq) nharmonics)    
     (blit-saw-dynamic freq nharmonics) 
@@ -349,7 +349,7 @@
   version if freq is itself an audio-function."
   ([freq] (blit-square freq 0))
   ([freq ^long nharmonics]
-   {:pre [(or (and (number? freq) (pos? freq)) (fn? freq))] }
+   {:pre [(or (and (number? freq) (pos? ^double freq)) (fn? freq))] }
   (if (number? freq)
     (blit-square-static (double freq) nharmonics)    
     (blit-square-dynamic freq nharmonics) 

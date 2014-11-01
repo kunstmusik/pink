@@ -307,11 +307,13 @@
 
 (defmacro native-operator
   [f a]
-  (let [out (gensym "out")] 
+  (let [out (tag-doubles (gensym "out"))
+        afns (with-meta (gensym "afns") {:tag "[Lclojure.lang.IFn;"})
+        ] 
     `(let [~out (create-buffer) 
-        fns# (into-array IFn (map arg ~a))]
+        ~afns (into-array IFn (map arg ~a))]
     (fn []
-      (~f ~out fns#)))))
+      (~f ~out ~afns)))))
 
 (defn mul 
   [& a]

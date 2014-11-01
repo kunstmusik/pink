@@ -180,8 +180,11 @@
   "Main realtime engine running function. Called within a thread from
   engine-start."
   [^Engine engine]
-  (let [af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)
-        #^SourceDataLine line (open-line af (* 16 (.nchnls engine) *hardware-buffer-size*))        
+  (let [nchnls (.nchnls engine) 
+        sr (.sample-rate engine)
+        buffer-size (.buffer-size engine)
+        af (AudioFormat. (.sample-rate engine) 16 nchnls true true)
+        #^SourceDataLine line (open-line af (* 16 nchnls (long *hardware-buffer-size*)))        
         out-buffer (double-array (.out-buffer-size engine))
         buf (ByteBuffer/allocate (.byte-buffer-size engine))
         pending-afuncs (.pending-afuncs engine)
@@ -191,9 +194,6 @@
         pending-remove-pre-cfuncs (.pending-remove-pre-cfuncs engine)
         pending-remove-post-cfuncs (.pending-remove-post-cfuncs engine)
         clear-flag (.clear engine)
-        sr (.sample-rate engine)
-        buffer-size (.buffer-size engine)
-        nchnls (.nchnls engine) 
         run-engine-events (event-list-processor (.event-list engine))]
 
     (binding [*sr* sr 

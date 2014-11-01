@@ -24,20 +24,22 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 ;[org.clojure/clojure "1.7.0-alpha2"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [primitive-math "0.1.4"]]
 
   :profiles  { 
               :dev  {
-                     :global-vars  {*warn-on-reflection* true
-                                    ;*unchecked-math* true
-                                    }
+                     :global-vars  {*warn-on-reflection* true}
                      :dependencies [[criterium "0.4.2"]] 
                      :plugins [[codox "0.8.8"]] } 
 
               :profiling {
-                     :plugins [[lein-nodisassemble "0.1.3"]] }      
+                     :plugins [[lein-nodisassemble "0.1.3"]] 
+                     :dependencies [[org.clojure/clojure "1.7.0-alpha3"]] 
+                     :global-vars  {*warn-on-reflection* true
+                                    *unchecked-math* :warn-on-boxed
+                                    }
+                     }      
               }
 
   :java-source-paths  ["src"] 
