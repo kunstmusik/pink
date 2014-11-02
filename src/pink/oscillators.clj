@@ -12,7 +12,6 @@
   "Phasor with fixed frequency and starting phase"
   [^double freq ^double phase]
   (let [phase-incr ^double (/ freq (double *sr*))
-        ;cur-phase (double-array 1 phase)
         out ^doubles (create-buffer)]
     (generator 
       [cur-phase phase]

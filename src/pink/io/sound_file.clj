@@ -76,11 +76,11 @@
         ain ^AudioInputStream
         (AudioSystem/getAudioInputStream
           (AudioFormat. AudioFormat$Encoding/PCM_SIGNED
-                        (.getSampleRate src-format) 
-                        (.getSampleSizeInBits src-format) 
+                        (long *sr*) 
+                        16 
                         (.getChannels src-format) 
-                        (.getFrameSize src-format)
-                        (.getSampleRate src-format) 
+                        4 
+                        (long *sr*) 
                         true)
           ain0) 
         channels (.getChannels src-format)

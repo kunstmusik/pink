@@ -383,22 +383,20 @@
           afn-indexing] (process-afn-bindings afn-bindings)
         [state new-bindings save-bindings] (process-bindings bindings) 
         yield-body (handle-yield save-bindings (second yield-form))
-        indx-sym (with-meta 'indx {:tag int})
-        bsize-sym (gensym "buffer-size")
-        ]
+        indx-sym (with-meta 'indx {:tag long})
+        bsize-sym (gensym "buffer-size")]
     `(let [~@state
-           ~bsize-sym (int *buffer-size*)] 
-       (fn ~(with-meta [] {:tag doubles}) 
+           ~bsize-sym (long *buffer-size*)] 
+       (fn []  
          (let [~@new-afn-bindings] 
            (when (and ~@afn-results)
-             (loop [~indx-sym (unchecked-int 0) 
+             (loop [~indx-sym 0 
                     ~@new-bindings]
                (if (< ~indx-sym ~bsize-sym)
                  (let [~@afn-indexing] 
                    ~body )          
                  ~yield-body 
-                 )
-               )))))))
+                 ))))))))
 
 
 ;(process-bindings '[a 3 b 4])
@@ -417,7 +415,8 @@
 
 (defn with-duration 
   [^double dur afn]
-  (let [end (long (/ (* dur ^long *sr* ^long *buffer-size*))) 
+  (let [end (long (/ (* dur (double *sr*)) 
+                     (double *buffer-size*))) 
         cur-buffer (long-array 1 0)]
     (fn []
       (let [v (aget cur-buffer 0)] 
