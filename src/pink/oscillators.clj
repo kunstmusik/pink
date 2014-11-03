@@ -30,8 +30,8 @@
          out ^doubles (create-buffer)]
      (generator 
        [] [phs phsr]
-       (let [v (Math/sin (* TWO_PI phs))]
-         (aset out indx v) 
+       (do
+         (aset out indx (Math/sin (* TWO_PI phs))) 
          (recur (unchecked-inc indx)))          
        (yield out)))))
 
