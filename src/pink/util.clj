@@ -413,20 +413,25 @@
 
 ;; functions for processing
 
-(defn with-duration 
-  [^double dur afn]
-  (let [end (long (/ (* dur (double *sr*)) 
-                     (double *buffer-size*))) 
+(defn duration-processor
+  [^double dur ^booleans done-arr afn]
+  (let [end (long (/ (* dur (double *sr*))
+                     (double *buffer-size*)))
         cur-buffer (long-array 1 0)]
     (fn []
       (let [v (aget cur-buffer 0)] 
-        (if (< v end)
-          (do 
-            (aset cur-buffer 0 (inc v))
-            (afn)) 
-        )) 
+        (if (>= v end)
+          (aset done-arr 0 true)
+          (aset cur-buffer 0 (unchecked-inc v)))) 
+      (afn))))
 
-    )))
+(defmacro with-duration 
+  [^double dur body]
+  `(let [done-arr# (boolean-array 1 false)] 
+     (binding [pink.config/*duration* ~dur
+             pink.config/*done* done-arr#]
+      (let [afn# ~body]
+        (duration-processor ~dur done-arr# afn#)))))
 
 (defmacro with-buffer-size
   "Run code with given buffer-size. Uses binding to bind *buffer-size* during 

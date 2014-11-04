@@ -93,6 +93,20 @@
                                 (if (>= @counter 3) 
                                   nil
                                   (double-array *buffer-size* 80)))))) 
-      ))
+      )))
 
-  )
+(defn done-reader
+  []
+  (let [done-val *done*]
+    (fn []
+      (aget done-val 0))))
+
+(deftest test-with-duration
+  (let [a (with-duration 1.0
+            (done-reader))]
+    (is (= false (a)))
+    (doseq [x (range (long (/ *sr* *buffer-size*)))]
+      (a)) 
+
+    (is (= true (a)))
+    ))
