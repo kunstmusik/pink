@@ -161,18 +161,20 @@
   (let [^long src-count (buffer-channel-count src)
         ^long dest-count (buffer-channel-count dest)]
     (if (= src-count dest-count 1)
-      (map-d dest + dest src)
+      (Operator/sum ^doubles dest ^doubles src)
       (cond 
-        (= src-count 1) (let [out (aget ^"[[D" dest 0)] (map-d out + out src)) 
+        (= src-count 1) 
+        (Operator/sum ^doubles (aget ^"[[D" dest 0) ^doubles src)
 
-        (= dest-count 1) (map-d dest + dest (aget ^"[[D" src 0)) 
+        (= dest-count 1) 
+        (Operator/sum ^doubles dest ^doubles (aget ^"[[D" src 0))
 
         :else
-        (loop [i (int 0) end (min src-count dest-count)]
+        (loop [i 0 end (min src-count dest-count)]
           (when (< i end)
-            (let [out (aget ^"[[D" dest i)]
-              (map-d out + out (aget ^"[[D" src i))
-              (recur (unchecked-inc i) end)))))))
+            (Operator/sum ^doubles (aget ^"[[D" dest i) 
+                          ^doubles (aget ^"[[D" src i))
+            (recur (unchecked-inc i) end))))))
   dest)
 
 (defn clear-buffer 
