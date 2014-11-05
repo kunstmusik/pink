@@ -127,26 +127,6 @@
         (recur xs ret))
       ret))) 
 
-;(defmacro run-audio-funcs [afs buffer]
-;  (let [x (gensym)
-;        b (gensym)]
-;    `(loop [[~x & xs#] ~afs 
-;            ret# []]
-;       (if ~x 
-;         (if-let [~b (try-func (~x))]
-;           (do 
-;             (if (multi-channel? ~b)
-;               (loop [i# 0 len# (count ~b)]
-;                 (when (< i# len#)
-;                   (write-asig ~buffer 
-;                               (aget ~(with-meta b {:tag "[[D"}) i#) i#)
-;                   (recur (unchecked-inc i#) len#))) 
-;               (write-asig ~buffer ~b 0))
-;             ;(map-d ~buffer + b# ~buffer)
-;             (recur xs# (conj ret# ~x)))
-;           (recur xs# ret#))
-;         ret#)))) 
-
 (defn- process-buffer
   [afs ^doubles out-buffer ^ByteBuffer buffer
    buffer-size nchnls]
@@ -214,9 +194,7 @@
                   afs (binding [*current-buffer-num* buffer-count]
                         (process-buffer 
                           (update-funcs cur-funcs pending-afuncs 
-                                        pending-remove-afuncs
-
-                                        )
+                                        pending-remove-afuncs)
                           out-buffer buf buffer-size nchnls))
                   post (binding [*current-buffer-num* buffer-count]
                          (process-cfuncs 
