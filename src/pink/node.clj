@@ -3,37 +3,40 @@
   
   In general, users will first call create-node to create a node map. node-processor will be used as the audio-rate function to add to an Engine, Node, or other audio-function.  
   "
-  (:import [pink.event Event])
   (:require [pink.config :refer [*nchnls* *buffer-size*]]
             [pink.event :refer :all]
-            [pink.util :refer [create-buffer create-buffers
-                               fill map-d swapd! setd! getd 
-                               arg mix-buffers clear-buffer]]))
+            [pink.util :refer :all])
+  (:import [pink.event Event]))
 
-(defmacro run-node-audio-funcs 
+(defn run-node-audio-funcs 
   [afs buffer]
-  (let [x (gensym)
-        b (gensym)]
-   `(loop [[~x & xs#] ~afs 
-          ret# []]
-    (if ~x 
-      (let [~b (~x)]
-        (if ~b
+  (loop [[x & xs] afs 
+         ret []]
+    (if x 
+      (let [b (try-func (x))]
+        (if b
           (do 
-            (mix-buffers ~b ~buffer)
-            (recur xs# (conj ret# ~x)))
-          (recur xs# ret#)))
-     ret#)))) 
+            (mix-buffers b buffer)
+            (recur xs (conj ret x)))
+          (recur xs ret)))
+      ret))) 
 
 (defn create-node 
   [& { :keys [channels] 
       :or {channels *nchnls*}
       }]
   { :audio-funcs (atom []) 
-    :messages (ref [])
+    :pending-afuncs (atom [])
+    :pending-remove-afuncs (atom [])
+    :status (atom nil)
     :channels channels
    })
 
+(defn- update-funcs
+  [v adds-atm removes-atm]
+  (let [removes (drain-atom! removes-atm)]
+    (filter #(< (.indexOf ^"clojure.lang.PersistentVector" removes %) 0)
+           (concat-drain! v adds-atm))))
 
 ; currently will continue rendering even if afs are empty. need to have
 ; option to return nil when afs are empty, for the scenario of disk render.
@@ -42,30 +45,41 @@
 (defn node-processor
   "An audio-rate function that renders child audio-funcs and returns the 
   signals in an out-buffer."
- [node] 
- (let [out-buffer (create-buffers (:channels node))
-       node-afuncs (:audio-funcs node)]
-  (fn []
-    (clear-buffer out-buffer)
-    (let [afs (run-node-audio-funcs @node-afuncs out-buffer)]
-      (reset! node-afuncs afs) 
-      out-buffer))))
+  [node] 
+  (let [out-buffer (create-buffers (:channels node))
+        node-afuncs (:audio-funcs node)
+        pending-afuncs (:pending-afuncs node)
+        pending-remove-afuncs (:pending-remove-afuncs node)
+        status (:status node)]
+    (fn []
+      (clear-buffer out-buffer)
+      (if (= :clear @status)
+        (do 
+          (reset! node-afuncs [])
+          (reset! pending-afuncs [])
+          (reset! pending-remove-afuncs [])
+          (reset! status nil)) 
+        (let [afs (run-node-audio-funcs 
+                    (update-funcs @node-afuncs pending-afuncs pending-remove-afuncs) 
+                    out-buffer)]
+          (reset! node-afuncs afs)))
+      out-buffer
+      )))
 
 (defn node-add-afunc
   "Adds an audio function to a node. Should not be called directly but rather be used via a message added to the node."
   [node afn]
-  (when (not (.contains ^"clojure.lang.PersistentVector" @(:audio-funcs node) afn))
-    (swap! (:audio-funcs node) conj afn)))
+  (swap! (:pending-afuncs node) conj afn))
 
 (defn node-remove-afunc
   [node afn]
-  )
+  (swap! (:pending-remove-afuncs node) conj afn))
 
 
 ;; Event functions dealing with nodes
 
 (defn fire-node-event 
-  "create an instance of an audio function and adds to the engine" 
+  "create an instance of an audio function and adds to the node" 
   [node evt]  
   (when-let [afunc (fire-event evt)] 
     (node-add-afunc node afunc)))

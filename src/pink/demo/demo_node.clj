@@ -3,7 +3,7 @@
              [pink.event :refer :all] 
              [pink.instruments.horn :refer :all]
              [pink.util :refer [mul try-func]]
-             [pink.oscillators :refer [oscil3 sine-table]]
+             [pink.oscillators :refer :all]
              [pink.envelopes :refer [env]]
              [pink.node :refer :all]))
 
@@ -29,6 +29,9 @@
 
   (engine-add-events e my-score) 
 
+  ;(def s (sine 440.0))
+  ;(node-add-afunc root-node s)
+  ;(node-remove-afunc root-node s)
 
   (engine-stop e)
   (engine-clear e)
