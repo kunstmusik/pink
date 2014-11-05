@@ -60,7 +60,7 @@
 
   (add-events my-score) 
 
-  (node-add-afunc
+  (node-add-func
     root-node 
     (instr-saw 0.25 (env [0.0 220 0.1 200 0.0001 220 0.1 4000]) 0.0))
 
@@ -76,7 +76,7 @@
 
   (add-events my-score2) 
 
-  (node-add-afunc
+  (node-add-func
     root-node 
     (instr-square 0.25 (env [0.0 220 0.05 64 0.4 64]) 0.0))
 

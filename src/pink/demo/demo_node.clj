@@ -30,8 +30,8 @@
   (engine-add-events e my-score) 
 
   ;(def s (sine 440.0))
-  ;(node-add-afunc root-node s)
-  ;(node-remove-afunc root-node s)
+  ;(node-add-func root-node s)
+  ;(node-remove-func root-node s)
 
   (engine-stop e)
   (engine-clear e)

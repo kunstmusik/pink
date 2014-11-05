@@ -8,7 +8,25 @@
             [pink.util :refer :all])
   (:import [pink.event Event]))
 
-(defn run-node-audio-funcs 
+
+(defn create-node 
+  [& { :keys [channels] 
+      :or {channels *nchnls*}
+      }]
+  { :funcs (atom []) 
+    :pending-adds (atom [])
+    :pending-removes (atom [])
+    :status (atom nil)
+    :channels channels
+   })
+
+(defn- update-funcs
+  [v adds-atm removes-atm]
+  (let [removes (drain-atom! removes-atm)]
+    (filter #(< (.indexOf ^"clojure.lang.PersistentVector" removes %) 0)
+           (concat-drain! v adds-atm))))
+
+(defn run-node-funcs 
   [afs buffer]
   (loop [[x & xs] afs 
          ret []]
@@ -21,60 +39,80 @@
           (recur xs ret)))
       ret))) 
 
-(defn create-node 
-  [& { :keys [channels] 
-      :or {channels *nchnls*}
-      }]
-  { :audio-funcs (atom []) 
-    :pending-afuncs (atom [])
-    :pending-remove-afuncs (atom [])
-    :status (atom nil)
-    :channels channels
-   })
-
-(defn- update-funcs
-  [v adds-atm removes-atm]
-  (let [removes (drain-atom! removes-atm)]
-    (filter #(< (.indexOf ^"clojure.lang.PersistentVector" removes %) 0)
-           (concat-drain! v adds-atm))))
+(defn- process-cfuncs
+  [cfuncs]
+  (loop [[x & xs] cfuncs
+         ret []]
+    (if x
+      (if (try-func (x)) 
+        (recur xs (conj ret x))
+        (recur xs ret))
+      ret)))
 
 ; currently will continue rendering even if afs are empty. need to have
 ; option to return nil when afs are empty, for the scenario of disk render.
 ; should add a *disk-render* flag to config and a default option here
 ; so that user can override behavior.
 (defn node-processor
-  "An audio-rate function that renders child audio-funcs and returns the 
+  "An audio-rate function that renders child funcs and returns the 
   signals in an out-buffer."
   [node] 
   (let [out-buffer (create-buffers (:channels node))
-        node-afuncs (:audio-funcs node)
-        pending-afuncs (:pending-afuncs node)
-        pending-remove-afuncs (:pending-remove-afuncs node)
+        node-afuncs (:funcs node)
+        pending-adds (:pending-adds node)
+        pending-removes (:pending-removes node)
         status (:status node)]
     (fn []
       (clear-buffer out-buffer)
       (if (= :clear @status)
         (do 
           (reset! node-afuncs [])
-          (reset! pending-afuncs [])
-          (reset! pending-remove-afuncs [])
+          (reset! pending-adds [])
+          (reset! pending-removes [])
           (reset! status nil)) 
-        (let [afs (run-node-audio-funcs 
-                    (update-funcs @node-afuncs pending-afuncs pending-remove-afuncs) 
+        (let [afs (run-node-funcs 
+                    (update-funcs @node-afuncs pending-adds pending-removes) 
                     out-buffer)]
           (reset! node-afuncs afs)))
       out-buffer
       )))
 
-(defn node-add-afunc
+(defn control-node-processor
+  "Creates a control node processing functions that runs controls functions, 
+  handling pending adds and removes, as well as filters out done functions."
+  [node]
+  (let [node-funcs (:funcs node)
+        pending-adds (:pending-adds node)
+        pending-removes (:pending-removes node)
+        status (:status node)]
+    (fn []
+      (if (= :clear @status)
+        (do 
+          (reset! node-funcs [])
+          (reset! pending-adds [])
+          (reset! pending-removes [])
+          (reset! status nil))
+        (let [newfns (process-cfuncs 
+                       (update-funcs @node-funcs pending-adds pending-removes))] 
+          (reset! node-funcs newfns))
+        ))))
+
+(defn node-add-func
   "Adds an audio function to a node. Should not be called directly but rather be used via a message added to the node."
   [node afn]
-  (swap! (:pending-afuncs node) conj afn))
+  (swap! (:pending-adds node) conj afn))
 
-(defn node-remove-afunc
+(defn node-remove-func
   [node afn]
-  (swap! (:pending-remove-afuncs node) conj afn))
+  (swap! (:pending-removes node) conj afn))
 
+(defn node-clear
+  [node]
+  (reset! (:status node) :clear))
+
+(defn node-empty?
+  [node]
+  (and (empty? @(:funcs node)) (empty? @(:pending-adds node))))
 
 ;; Event functions dealing with nodes
 
@@ -82,7 +120,7 @@
   "create an instance of an audio function and adds to the node" 
   [node evt]  
   (when-let [afunc (fire-event evt)] 
-    (node-add-afunc node afunc)))
+    (node-add-func node afunc)))
 
 (defn wrap-node-event [node ^Event evt]
   (wrap-event fire-node-event [node] evt))

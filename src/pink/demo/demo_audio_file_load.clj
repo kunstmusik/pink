@@ -46,7 +46,7 @@
 
   (engine-add-events e my-score) 
 
-  (node-add-afunc
+  (node-add-func
     root-node 
     (instr-waveform 0.25 (env [0.0 220 0.1 4000 0.0001 220 0.1 4000]) 0.0))
 

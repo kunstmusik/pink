@@ -3,7 +3,8 @@
   (:require [pink.config :refer :all]
             [pink.util :refer :all]
             [pink.event :refer :all]
-            [pink.io.audio :refer :all])
+            [pink.io.audio :refer :all]
+            [pink.node :refer :all])
   (:import [java.io ByteArrayInputStream ByteArrayOutputStream File] 
            [java.nio ByteBuffer]
            [java.util Arrays]
@@ -27,10 +28,10 @@
 
 (def ^:constant BYTE-SIZE (/ Short/SIZE Byte/SIZE)) ; 2 bytes for 16-bit audio
 
-(deftype Engine [status clear pending-afuncs
-                   pending-pre-cfuncs pending-post-cfuncs
-                   pending-remove-afuncs pending-remove-pre-cfuncs
-                   pending-remove-post-cfuncs
+(deftype Engine [status clear 
+                   pre-cfunc-node
+                   root-audio-node
+                   post-cfunc-node
                    ^long sample-rate ^long nchnls ^long buffer-size
                    ^long out-buffer-size ^long byte-buffer-size
                    event-list ]
@@ -44,9 +45,10 @@
   (let  [bsize (long buffer-size)
          channels (long nchnls)
          e 
-          (Engine. (atom :stopped) (atom false) (atom [])
-            (atom []) (atom [])
-            (atom []) (atom []) (atom []) 
+          (Engine. (atom :stopped) (atom false) 
+            (create-node)
+            (create-node :channels channels)
+            (create-node)
             sample-rate channels bsize 
             (* bsize channels) (* (long BYTE-SIZE) bsize channels)
             (event-list buffer-size sample-rate))]
@@ -56,27 +58,27 @@
 ;; should do initialization of f on separate thread?
 (defn engine-add-afunc 
   [^Engine engine f]
-  (swap! (.pending-afuncs engine ) conj f))
+  (node-add-func (.root-audio-node engine) f))
 
 (defn engine-remove-afunc 
   [^Engine engine f]
-  (swap! (.pending-remove-afuncs engine) conj f)) 
+  (node-remove-func (.root-audio-node engine) f)) 
 
 (defn engine-add-pre-cfunc 
   [^Engine engine f]
-  (swap! (.pending-pre-cfuncs engine) conj f))
+  (node-add-func (.pre-cfunc-node engine) f))
 
 (defn engine-remove-pre-cfunc 
   [^Engine engine f]
-  (swap! (.pending-remove-pre-cfuncs engine) conj f)) 
+  (node-remove-func (.pre-cfunc-node engine) f)) 
 
 (defn engine-add-post-cfunc 
   [^Engine engine f]
-  (swap! (.pending-post-cfuncs engine) conj f))
+  (node-add-func (.post-cfunc-node engine) f))
 
 (defn engine-remove-post-cfunc 
   [^Engine engine f]
-  (swap! (.pending-remove-post-cfuncs engine) conj f))
+  (node-remove-func (.post-cfunc-node engine) f))
 
 (defn engine-add-events 
   [^Engine engine events]
@@ -92,58 +94,20 @@
   (EngineUtils/writeDoublesToByteBufferAsShorts dbls buf))
 
 
-(defn- write-asig
-  "Writes asig as a channel into an interleaved out-buffer"
-  [^doubles out-buffer ^doubles asig chan-num
-   buffer-size nchnls]
-  (let [^long channel chan-num
-        ^long bsize buffer-size
-        ^long num-channels nchnls] 
-    (if (= num-channels 1)
-      (when (= 0 channel)
-        (Operator/sum out-buffer asig))
-      (loop [i 0]
-        (when (< i bsize)
-          (let [out-index (unchecked-int (+ channel (* i num-channels)))] 
-            (aset out-buffer out-index
-                  (+ ^double (aget out-buffer out-index) ^double (aget asig i))))
-          (recur (unchecked-inc i)))))))
-
-
-(defn run-audio-funcs [afs buffer buffer-size nchnls]
-  (loop [[x & xs] afs 
-         ret []]
-    (if x 
-      (if-let [b (try-func (x))]
-        (do 
-          (if (multi-channel? b)
-            (loop [i (unchecked-int 0) len (alength ^"[[D" b)]
-              (when (< i len)
-                (write-asig buffer (aget ^"[[D" b i) i
-                            buffer-size nchnls)
-                (recur (unchecked-inc i) len))) 
-            (write-asig buffer b 0 buffer-size nchnls))
-          (recur xs (conj ret x)))
-        (recur xs ret))
-      ret))) 
-
-(defn- process-buffer
-  [afs ^doubles out-buffer ^ByteBuffer buffer
-   buffer-size nchnls]
-  (Arrays/fill ^doubles out-buffer 0.0)
-  (let [newfs (run-audio-funcs afs out-buffer buffer-size nchnls)]
-    (doubles->byte-buffer out-buffer buffer)
-    newfs))
-
-(defn- process-cfuncs
-  [cfuncs]
-  (loop [[x & xs] cfuncs
-         ret []]
-    (if x
-      (if (try-func (x)) 
-        (recur xs (conj ret x))
-        (recur xs ret))
-      ret)))
+(defn- write-interleaved 
+  [^doubles out-buffer asig ^long num-channels ^long buffer-size]
+  (if (= num-channels 1)
+    (System/arraycopy ^doubles asig 0 out-buffer 0 buffer-size)
+    (loop [i 0]
+      (when (< i num-channels) 
+        (let [^doubles channel (aget ^"[[D" asig i)]
+          (loop [j 0]
+            (when (< j buffer-size) 
+              (aset out-buffer (+ i (* j num-channels))
+                    (aget channel j))
+              (recur (unchecked-inc j)))))
+        (recur (unchecked-inc i)))))
+  out-buffer)
 
 (defn- buf->line [^ByteBuffer buffer ^SourceDataLine line
                  ^long out-buffer-size]
@@ -167,53 +131,35 @@
         #^SourceDataLine line (open-line af (* 16 nchnls (long *hardware-buffer-size*)))        
         out-buffer (double-array (.out-buffer-size engine))
         buf (ByteBuffer/allocate (.byte-buffer-size engine))
-        pending-afuncs (.pending-afuncs engine)
-        pending-pre-cfuncs (.pending-pre-cfuncs engine)
-        pending-post-cfuncs (.pending-post-cfuncs engine)
-        pending-remove-afuncs (.pending-remove-afuncs engine)
-        pending-remove-pre-cfuncs (.pending-remove-pre-cfuncs engine)
-        pending-remove-post-cfuncs (.pending-remove-post-cfuncs engine)
+        pre-control (.pre-cfunc-node engine)
+        root-audio-node (.root-audio-node engine)
+        post-control (.post-cfunc-node engine)
         clear-flag (.clear engine)
-        run-engine-events (event-list-processor (.event-list engine))]
+        run-engine-events (event-list-processor (.event-list engine))
+        run-pre-control-funcs (control-node-processor pre-control)
+        run-audio-funcs (node-processor root-audio-node)
+        run-post-control-funcs (control-node-processor post-control)]
 
-    (binding [*sr* sr 
-              *buffer-size* buffer-size *nchnls* nchnls]
+    (binding [*sr* sr *buffer-size* buffer-size *nchnls* nchnls]
 
-      (loop [pre-cfuncs (drain-atom! pending-pre-cfuncs)
-             cur-funcs (drain-atom! pending-afuncs) 
-             post-cfuncs (drain-atom! pending-post-cfuncs)
-             buffer-count 0]
+      (loop [buffer-count 0]
         (if (= @(.status engine) :running)
           (do 
             (binding [*current-buffer-num* buffer-count]
-              (run-engine-events)) 
-            (let [pre (binding [*current-buffer-num* buffer-count] 
-                        (process-cfuncs 
-                          (update-funcs pre-cfuncs pending-pre-cfuncs 
-                                        pending-remove-pre-cfuncs)))
-                  afs (binding [*current-buffer-num* buffer-count]
-                        (process-buffer 
-                          (update-funcs cur-funcs pending-afuncs 
-                                        pending-remove-afuncs)
-                          out-buffer buf buffer-size nchnls))
-                  post (binding [*current-buffer-num* buffer-count]
-                         (process-cfuncs 
-                           (update-funcs post-cfuncs pending-post-cfuncs 
-                                         pending-remove-post-cfuncs)))]  
-              (buf->line buf line (.byte-buffer-size engine))
-
-              (if @clear-flag
-                (do 
-                  (reset! pending-pre-cfuncs [])
-                  (reset! pending-afuncs [])
-                  (reset! pending-post-cfuncs [])
-                  (reset! pending-remove-pre-cfuncs [])
-                  (reset! pending-remove-afuncs [])
-                  (reset! pending-remove-post-cfuncs [])
-                  (reset! clear-flag false)
-                  (event-list-clear (.event-list engine))
-                  (recur [] [] [] (unchecked-inc buffer-count)))
-                (recur pre afs post (unchecked-inc buffer-count)))))
+              (run-engine-events)
+              (run-pre-control-funcs)
+              (-> out-buffer  
+                  (write-interleaved (run-audio-funcs) nchnls buffer-size)
+                  (doubles->byte-buffer buf))
+              (run-post-control-funcs)) 
+            (buf->line buf line (.byte-buffer-size engine))
+            (when @clear-flag 
+              (node-clear pre-control)
+              (node-clear root-audio-node)
+              (node-clear post-control)
+              (reset! clear-flag false)
+              (event-list-clear (.event-list engine)))
+            (recur (unchecked-inc buffer-count)))
           (do
             (println "stopping...")
             (doto line
@@ -255,7 +201,6 @@
   (engine-kill-all)
   (reset! engines []))
 
-
 ;; Non-Realtime Engine functions
 
 (defn engine->disk 
@@ -265,48 +210,52 @@
   Warning: Be careful not to render with an engine setup with infinite
   duration!"
   [^Engine engine ^String filename]
-  (let [baos (ByteArrayOutputStream.)
-        buf (ByteBuffer/allocate (.byte-buffer-size engine))
-        out-buffer (double-array (.out-buffer-size engine))
-        pending-afuncs (.pending-afuncs engine)
-        pending-pre-cfuncs (.pending-pre-cfuncs engine)
-        pending-post-cfuncs (.pending-post-cfuncs engine)
-        start-time (System/currentTimeMillis)
-        sr (.sample-rate engine)
+  
+  (let [sr (.sample-rate engine)
         buffer-size (.buffer-size engine)
         nchnls (.nchnls engine)
-        run-audio-events (event-list-processor (.event-list engine))]
-    (loop [pre-cfuncs (drain-atom! pending-pre-cfuncs)
-           cur-funcs (drain-atom! pending-afuncs) 
-           post-cfuncs (drain-atom! pending-post-cfuncs)
-           buffer-count 0]
-      (let [more-audio-events
-            (binding [*current-buffer-num* buffer-count 
-                      *sr* sr 
-                      *buffer-size* buffer-size 
-                      *nchnls* nchnls]
-              (run-audio-events)) 
-            pre (binding [*current-buffer-num* buffer-count 
-                          *sr* sr 
-                          *buffer-size* buffer-size 
-                          *nchnls* nchnls] 
-                  (process-cfuncs (concat-drain! pre-cfuncs pending-pre-cfuncs)))
-            afs (binding [*current-buffer-num* buffer-count 
-                          *sr* sr 
-                          *buffer-size* buffer-size 
-                          *nchnls* nchnls]
-                  (process-buffer (concat-drain! cur-funcs pending-afuncs) out-buffer buf buffer-size nchnls))
-            post (binding [*current-buffer-num* buffer-count 
-                           *sr* sr 
-                           *buffer-size* buffer-size 
-                           *nchnls* nchnls]
-                   (process-cfuncs (concat-drain! post-cfuncs pending-post-cfuncs)))
-            ]  
-        (if (or (not-empty pre) (not-empty afs) (not-empty post) more-audio-events)  
+        baos (ByteArrayOutputStream.)
+        buf (ByteBuffer/allocate (.byte-buffer-size engine))
+        out-buffer (double-array (.out-buffer-size engine))
+        start-time (System/currentTimeMillis)
+        pre-control (.pre-cfunc-node engine)
+        root-audio-node (.root-audio-node engine)
+        post-control (.post-cfunc-node engine)
+        clear-flag (.clear engine)
+        run-engine-events (event-list-processor (.event-list engine))
+        run-pre-control-funcs (control-node-processor pre-control)
+        run-audio-funcs (node-processor root-audio-node)
+        run-post-control-funcs (control-node-processor post-control) 
+        ]
+
+    (reset! (.status engine) :running)
+
+    (binding [*sr* sr *buffer-size* buffer-size *nchnls* nchnls]
+
+      (loop [buffer-count 0]
+        (if (= @(.status engine) :running)
           (do 
+            (binding [*current-buffer-num* buffer-count]
+              (run-engine-events)
+              (run-pre-control-funcs)
+              (-> out-buffer  
+                  (write-interleaved (run-audio-funcs) nchnls buffer-size)
+                  (doubles->byte-buffer buf))
+              (run-post-control-funcs)) 
+            (when @clear-flag 
+              (node-clear pre-control)
+              (node-clear root-audio-node)
+              (node-clear post-control)
+              (reset! clear-flag false)
+              (event-list-clear (.event-list engine)))
             (.write baos (.array buf))
             (.clear buf)
-            (recur pre afs post (unchecked-inc buffer-count)))
+            (when (and (node-empty? pre-control) 
+                       (node-empty? root-audio-node) 
+                       (node-empty? post-control) 
+                       (event-list-empty? (.event-list engine)))
+              (engine-stop engine))
+            (recur (unchecked-inc buffer-count)))
           (let [data (.toByteArray baos)
                 bais (ByteArrayInputStream. data)
                 af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)

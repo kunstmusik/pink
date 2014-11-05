@@ -87,6 +87,10 @@
   
   )
 
+(defn event-list-empty?
+  [^EventList evtlst]
+  (.isEmpty ^PriorityQueue (.events evtlst)))
+
 (defn fire-event 
   "Evaluates event as delayed function application. Swallows exceptions and
   returns nil."
