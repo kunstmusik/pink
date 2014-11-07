@@ -34,7 +34,7 @@
     )
 
   (add-afunc
-    (with-duration 2.0
+    (with-duration 0.035
       (instr-saw 0.5 440.0 0.0)
       )
     )

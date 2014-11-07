@@ -187,19 +187,13 @@
                     (recur buffer-size s 0))
 
                   :release 
-                  (if (< cur-samp release-samps)
-                    (let [v (+ last-v release-incr)]
-                      (if (< v 0)
-                        (do 
-                          (Arrays/fill out indx buffer-size 0.0)
-                          (reset! stage :complete)
-                          (recur buffer-size 0.0 0))
-                        (recur (unchecked-inc indx) v (unchecked-inc cur-samp)))) 
-                    (do
-                      (Arrays/fill out indx buffer-size 0.0)
-                      (reset! stage :complete)
-                      (recur buffer-size 0.0 0)))
-
+                  (let [v (+ last-v release-incr)]
+                    (if (< v 0)
+                      (do 
+                        (Arrays/fill out indx buffer-size 0.0)
+                        (reset! stage :complete)
+                        (recur buffer-size 0.0 0))
+                      (recur (unchecked-inc indx) v (unchecked-inc cur-samp))))
                   ))
               (do 
                 (aset last-val 0 last-v)
