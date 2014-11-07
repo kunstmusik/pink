@@ -77,7 +77,7 @@
 
 (defn- adjust-for-zero
   "for exponential envelopes, can not have zero"
-  [^double x]
+  ^double [^double x]
   (if (zero? x)
     0.0000000001
     x))
@@ -215,17 +215,96 @@
       dur
       (env [0.0 0.0 a 1.0 d s (max 0.0 (- dur a d r)) s r 0.0])
 
-     :else
+      :else
       (env [0.0 0.0 a 1.0 d s 1.0 s r 0.0])
       )
     )
   )
 
-(defn xadsr 
-  "Exponential Attack-Decay-Sustain-Release Envelope"
-  [a d s r & {:keys [dur] :or {dur 1.0}}]
-  (exp-env [0.0 0.00001 a 1.0 d s dur s r 0.00001]))
 
+(defn- xadsr-impl
+  "Exponential ADSR that checks for *done* flag before doing release."
+  [^double a ^double d ^double s ^double r]
+  (let [^doubles out (create-buffer)
+        done *done*
+        sr (double *sr*)
+        buffer-size (long *buffer-size*)
+        attack-samps (long (* a sr))
+        attack-incr (Math/pow (/ 1.0 0.0000000001) (/ 1.0 attack-samps))
+        decay-samps (long (* d sr))
+        decay-incr (Math/pow (/ s 1.0) (/ 1.0 decay-samps))
+        release-samps (long (* r sr))
+        release-incr (Math/pow (/ 0.0000000001 s) (/ 1.0 release-samps))
+        ^longs last-sample (long-array 1 0) 
+        ^doubles last-val (double-array 1 0.0000000001)
+        stage (atom :attack)]
+    (fn []
+      (if (= @stage :complete)
+        nil
+
+        (do
+          (when (and (is-done? done) (not= :release @stage))
+            (aset last-sample 0 0)
+            (reset! stage :release))
+          (loop [indx 0 
+                 last-v (aget last-val 0)
+                 cur-samp (aget last-sample 0)]
+            (if (< indx buffer-size) 
+              (do 
+                (aset out indx last-v)
+                (case @stage
+
+                  :attack
+                  (if (< cur-samp attack-samps)
+                    (recur (unchecked-inc indx) (* last-v attack-incr) (unchecked-inc cur-samp)) 
+                    (do
+                      (reset! stage :decay)
+                      (recur (unchecked-inc indx) 1.0 0)))              
+
+                  :decay
+                  (if (< cur-samp decay-samps)
+                    (recur (unchecked-inc indx) (* last-v decay-incr) (unchecked-inc cur-samp)) 
+                    (do
+                      (reset! stage :sustain)
+                      (recur (unchecked-inc indx) s 0)))              
+
+                  :sustain
+                  (do 
+                    (Arrays/fill out indx buffer-size s)
+                    (recur buffer-size s 0))
+
+                  :release 
+                  (let [v (* last-v release-incr)]
+                    (if (< v 0.0000000001)
+                      (do 
+                        (Arrays/fill out indx buffer-size 0.0)
+                        (reset! stage :complete)
+                        (recur buffer-size 0.0 0))
+                      (recur (unchecked-inc indx) v (unchecked-inc cur-samp))))
+                  ))
+              (do 
+                (aset last-val 0 last-v)
+                (aset last-sample 0 cur-samp)
+                out))))
+        ))))   
+
+(defn xadsr 
+  "Exponential Attack-Decay-Sustain-Release Envelope. If *done* boolean array flag is used,
+  will await until done is set to true before performing release stage.  Otherwise, 
+  defaults to *duration* or 1.0 for total time of envelope."
+  [^double a ^double d ^double s ^double r ]
+  (let [dur *duration*
+        done *done*]
+    (cond 
+      done
+      (xadsr-impl a d s r)     
+
+      dur
+      (exp-env [0.0 0.0000000001 a 1.0 d s (max 0.0 (- dur a d r)) s r 0.0000000001])
+
+      :else
+      (exp-env [0.0 0.0000000001 a 1.0 d s 1.0 s r 0.0000000001])
+      )))
 
 (defn xar 
   "Exponential Attack-Release Envelope"
