@@ -435,6 +435,10 @@
       (let [afn# ~body]
         (duration-processor ~dur done-arr# afn#)))))
 
+(defn is-done?
+  [done]
+  (aget ^booleans done 0))
+
 (defmacro with-buffer-size
   "Run code with given buffer-size. Uses binding to bind *buffer-size* during 
   initialization-time as well as performance-time. Returns an audio function

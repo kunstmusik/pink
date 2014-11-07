@@ -1,10 +1,11 @@
 (ns pink.envelopes
   "Envelope Generator Functions"
   (:require [clojure.pprint :refer [pprint]]
-            [pink.config :refer [*sr*]]
-            [pink.util :refer [create-buffer fill swapl! getl setl! getd setd!]]
-            [primitive-math :refer [not==]]
-            ))
+            [pink.config :refer :all]
+            [pink.util :refer :all]
+            [primitive-math :refer [not==]])
+  (:import [java.util Arrays])
+  )
 
 (defn- make-env-data 
   "Takes in a list of time tagged pairs (time value) and function for
@@ -18,7 +19,8 @@
                    (cons [0.0 (second (first pairs))] pairs)
                    pairs)]
      
-    (cons (second x) (second (reduce 
+    (cons (second x) 
+          (second (reduce 
               (fn [[[a b] lst] [^double c ^double d :as p]] 
                 (let [run (double (* c (double *sr*)))
                       rise (double (opfn d b run))
@@ -132,11 +134,98 @@
 
 ;; Simple Envs
 
-(defn adsr 
-  "Linear Attack-Decay-Sustain-Release Envelope"
-  [a d s r & {:keys [dur] :or {dur 1.0}}]
-  (env [0.0 0.0 a 1.0 d s dur s r 0.0]))
+(defn- adsr-impl
+  "Linear ADSR that checks for *done* flag before doing release."
+  [^double a ^double d ^double s ^double r]
+  (let [^doubles out (create-buffer)
+        done *done*
+        sr (double *sr*)
+        buffer-size (long *buffer-size*)
+        attack-samps (long (* a sr))
+        attack-incr (/ 1.0 attack-samps)
+        decay-samps (long (* d sr))
+        decay-incr (/ (- s 1.0) decay-samps)
+        release-samps (long (* r sr))
+        release-incr (/ (- s) release-samps)
+        ^longs last-sample (long-array 1 0) 
+        ^doubles last-val (double-array 1 0.0)
+        stage (atom :attack)
+        ]
+    (fn []
+      (if (= @stage :complete)
+        nil
 
+        (do
+          (when (and (is-done? done) (not= :release @stage))
+            (aset last-sample 0 0)
+            (reset! stage :release))
+          (loop [indx 0 
+                 last-v (aget last-val 0)
+                 cur-samp (aget last-sample 0)]
+            (if (< indx buffer-size) 
+              (do 
+                (aset out indx last-v)
+                (case @stage
+
+                  :attack
+                  (if (< cur-samp attack-samps)
+                    (recur (unchecked-inc indx) (+ last-v attack-incr) (unchecked-inc cur-samp)) 
+                    (do
+                      (reset! stage :decay)
+                      (recur (unchecked-inc indx) 1.0 0)))              
+
+                  :decay
+                  (if (< cur-samp decay-samps)
+                    (recur (unchecked-inc indx) (+ last-v decay-incr) (unchecked-inc cur-samp)) 
+                    (do
+                      (reset! stage :sustain)
+                      (recur (unchecked-inc indx) s 0)))              
+
+                  :sustain
+                  (do 
+                    (Arrays/fill out indx buffer-size s)
+                    (recur buffer-size s 0))
+
+                  :release 
+                  (if (< cur-samp release-samps)
+                    (let [v (+ last-v release-incr)]
+                      (if (< v 0)
+                        (do 
+                          (Arrays/fill out indx buffer-size 0.0)
+                          (reset! stage :complete)
+                          (recur buffer-size 0.0 0))
+                        (recur (unchecked-inc indx) v (unchecked-inc cur-samp)))) 
+                    (do
+                      (Arrays/fill out indx buffer-size 0.0)
+                      (reset! stage :complete)
+                      (recur buffer-size 0.0 0)))
+
+                  ))
+              (do 
+                (aset last-val 0 last-v)
+                (aset last-sample 0 cur-samp)
+                out))))
+        ))))   
+
+(defn adsr 
+  "Linear Attack-Decay-Sustain-Release Envelope. If *done* boolean array flag is used,
+  will await until done is set to true before performing release stage.  Otherwise, 
+  defaults to *duration* or 1.0 for total time of envelope."
+  [^double a ^double d ^double s ^double r ]
+  (let [dur *duration*
+        done *done*]
+    (cond 
+      done
+      (adsr-impl a d s r)     
+
+      dur
+      (env [0.0 0.0 a 1.0 d s (max 0.0 (- dur a d r)) s r 0.0])
+
+     :else
+      (env [0.0 0.0 a 1.0 d s 1.0 s r 0.0])
+      )
+    )
+  )
 
 (defn xadsr 
   "Exponential Attack-Decay-Sustain-Release Envelope"
