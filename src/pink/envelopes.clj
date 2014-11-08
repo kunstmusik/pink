@@ -135,7 +135,7 @@
 ;; Simple Envs
 
 (defn- adsr-calc-coef
- [target-ratio samps] 
+ ^double [^double target-ratio ^double samps] 
  (Math/exp (/ (- (Math/log (/ (+ 1.0 target-ratio) target-ratio))) 
               samps)))
 
@@ -148,13 +148,13 @@
         buffer-size (long *buffer-size*)
         attack-ratio 0.3
         decay-ratio 0.0001
-        attack-samps (long (* a sr))
+        attack-samps (* a sr) 
         attack-coef (adsr-calc-coef attack-ratio attack-samps) 
         attack-base (* (+ 1.0 attack-ratio) (- 1.0 attack-coef))
-        decay-samps (long (* d sr))
+        decay-samps (* d sr) 
         decay-coef (adsr-calc-coef decay-ratio decay-samps)
         decay-base (* (- s decay-ratio) (- 1.0 decay-coef))
-        release-samps (long (* r sr))
+        release-samps (* r sr) 
         release-coef (adsr-calc-coef decay-ratio release-samps)
         release-base (* (- decay-ratio) (- 1.0 release-coef))
         ^doubles last-val (double-array 1 0.0)
@@ -167,34 +167,34 @@
           (when (and (is-done? done) (not= :release @stage))
             (reset! stage :release))
           (loop [indx 0 
-                 last-v (aget last-val 0)]
+                 last-v (aget last-val 0)
+                 cur-stage @stage
+                 ]
             (if (< indx buffer-size) 
               (do 
                 (aset out indx last-v)
-                (case @stage
+                (case cur-stage
 
                   :attack
                   (let [v (+ attack-base (* last-v attack-coef))]
                     (if (>= v 1.0)
                       (do
-                        (reset! stage :decay)
-                        (recur (unchecked-inc indx) 1.0)) 
-                      (recur (unchecked-inc indx) v)
+                        (recur (unchecked-inc indx) 1.0 :decay)) 
+                      (recur (unchecked-inc indx) v cur-stage)
                       ))
 
                   :decay
                   (let [v (+ decay-base (* last-v decay-coef))]
                     (if (<= v s)
                       (do
-                        (reset! stage :sustain)
-                        (recur (unchecked-inc indx) s)) 
-                      (recur (unchecked-inc indx) v)
+                        (recur (unchecked-inc indx) s :sustain)) 
+                      (recur (unchecked-inc indx) v cur-stage)
                       ))
 
                   :sustain
                   (do 
                     (Arrays/fill out indx buffer-size s)
-                    (recur buffer-size s))
+                    (recur buffer-size s cur-stage))
 
                   :release 
 
@@ -202,12 +202,12 @@
                     (if (<= v 0.0)
                       (do
                         (Arrays/fill out indx buffer-size 0.0)
-                        (reset! stage :complete)
-                        (recur buffer-size 0.0)) 
-                      (recur (unchecked-inc indx) v)
+                        (recur buffer-size 0.0 :complete)) 
+                      (recur (unchecked-inc indx) v cur-stage)
                       ))
                   ))
               (do 
+                (reset! stage cur-stage)
                 (aset last-val 0 last-v)
                 out))))
         ))))   
