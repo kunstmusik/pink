@@ -1,7 +1,28 @@
 (ns pink.delays
   (:require [pink.config :refer :all]
-            [pink.util :refer [create-buffer]]
+            [pink.util :refer [create-buffer mix-buffers]]
             ))
+
+;; feedback functions
+
+(defn feedback-read 
+  "Takes in a buffer and returns an audio function that will return that buffer.
+   Pair with feedback-write to do feedback in signal graph. "
+  [buffer]
+  (fn []
+    buffer))
+
+(defn feedback-write
+  "Writes afn result into a buffer as side-effect, returns afn result. Pair with
+ feedback-read to do feedback in signal graph. "
+  [afn buffer]
+  (let [buffer-size (long *buffer-size*)] 
+    (fn []
+    (when-let [b (afn)]
+      (System/arraycopy b 0 buffer 0 buffer-size) 
+      b))))
+
+;; simple adelay
 
 (defn- do-write
   [^doubles asig ^doubles delay-buffer 
@@ -52,6 +73,9 @@
           (aset read-ptr 0 (int new-read-ptr))
           (aset write-ptr 0 (int new-write-ptr))
           out)))))
+
+
+;; Multi-Tap Delay
 
 (defn create-delay
   ^doubles [^double delay-time-max]
