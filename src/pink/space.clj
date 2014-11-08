@@ -35,11 +35,11 @@
          (let [new-loc-v (+ 0.5 (* 0.5 loc))
                new-l (db->amp (* 20 (Math/log (Math/cos (* PI2 new-loc-v )))))
                new-r (db->amp (* 20 (Math/log (Math/sin (* PI2 new-loc-v )))))]
-            (aset left indx (* new-l ain)) 
-            (aset right indx (* new-r ain)) 
+            (aset left int-indx (* new-l ain)) 
+            (aset right int-indx (* new-r ain)) 
             (recur (unchecked-inc indx) loc new-loc-v new-l new-r))
          (do
-           (aset left indx (* last-l ain)) 
-           (aset right indx (* last-r ain)) 
+           (aset left int-indx (* last-l ain)) 
+           (aset right int-indx (* last-r ain)) 
            (recur (unchecked-inc indx) loc last-loc-v last-l last-r)))
        (yield out))))

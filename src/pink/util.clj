@@ -367,7 +367,7 @@
                   [sig & sigs] b 
                   channel 0]
              (if sig
-               (recur (conj out sig (list 'aget (with-meta bsym {:tag "[[D"}) channel 'indx)) sigs (inc channel))
+               (recur (conj out sig (list 'aget (with-meta bsym {:tag "[[D"}) channel 'int-indx)) sigs (inc channel))
                out))
            (conj z b (list 'aget (tag-doubles bsym) 'indx))   
            )]))
@@ -381,11 +381,12 @@
   * body should do processing and recur with newly calculated values
   * yield-form should be (yield value-to-return)"
   [bindings afn-bindings body yield-form] 
-  (let [ [new-afn-bindings afn-results
+  (let [indx-sym (with-meta 'indx {:tag long})
+        int-indx-sym (with-meta 'int-indx {:tag int})
+        [new-afn-bindings afn-results
           afn-indexing] (process-afn-bindings afn-bindings)
         [state new-bindings save-bindings] (process-bindings bindings) 
         yield-body (handle-yield save-bindings (second yield-form))
-        indx-sym (with-meta 'indx {:tag long})
         bsize-sym (gensym "buffer-size")]
     `(let [~@state
            ~bsize-sym (long *buffer-size*)] 
@@ -395,7 +396,8 @@
              (loop [~indx-sym 0 
                     ~@new-bindings]
                (if (< ~indx-sym ~bsize-sym)
-                 (let [~@afn-indexing] 
+                 (let [~int-indx-sym (int ~indx-sym) 
+                       ~@afn-indexing] 
                    ~body )          
                  ~yield-body 
                  ))))))))
