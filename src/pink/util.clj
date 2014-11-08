@@ -428,7 +428,7 @@
       (afn))))
 
 (defmacro with-duration 
-  [^double dur body]
+  [dur body]
   `(let [done-arr# (boolean-array 1 false)] 
      (binding [pink.config/*duration* ~dur
              pink.config/*done* done-arr#]

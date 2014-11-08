@@ -2,7 +2,7 @@
 
 (ns pink.demo.demo8
   (:require [pink.engine :refer :all]
-            [pink.envelopes :refer [env exp-env adsr xadsr xar]]
+            [pink.envelopes :refer [env exp-env adsr xar]]
             [pink.oscillators :refer [sine oscil oscili oscil3]]
             [pink.gen :refer [gen-sine gen10]]
             [pink.util :refer :all]

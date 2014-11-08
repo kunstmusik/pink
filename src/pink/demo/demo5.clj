@@ -4,7 +4,7 @@
 (ns pink.demo.demo5
   (:require [pink.engine :refer :all]
             [pink.config :refer :all]
-            [pink.envelopes :refer [env exp-env adsr xadsr xar]]
+            [pink.envelopes :refer [env exp-env adsr xar]]
             [pink.oscillators :refer [sine sine2]]
             [pink.util :refer [mul swapd! sum const create-buffer getd setd! arg shared let-s reader]]))
 
