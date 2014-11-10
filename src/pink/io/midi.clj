@@ -106,7 +106,12 @@
 
 
 (defn create-receiver [virtual-device]
-  (reify Receiver
+  (let [^"[[Lclojure.lang.Atom;" cc-processors 
+        (:cc-processors virtual-device)
+        ^"[Lclojure.lang.IFn;" event-processors 
+        (:event-processors virtual-device)
+        ] 
+    (reify Receiver
     (send [this msg timestamp] 
       (when (instance? ShortMessage msg)
         (let [smsg ^ShortMessage msg
@@ -116,19 +121,19 @@
               data2 (.getData2 smsg)] 
           (condp = cmd
             ShortMessage/CONTROL_CHANGE
-            (when-let [atm (aget (:cc-processors virtual-device) channel data1)]
+            (when-let [atm (aget cc-processors channel data1)]
               (reset! atm data2))
 
             ShortMessage/NOTE_ON
-            (when-let [efn (aget (:event-processors virtual-device) channel)]
+            (when-let [efn (aget event-processors channel)]
               (efn cmd data1 data2))
 
             ShortMessage/NOTE_OFF
-            (when-let [efn (aget (:event-processors virtual-device) channel)]
+            (when-let [efn (aget event-processors channel)]
               (efn cmd data1 data2))
             ))
 
-        ))))
+        )))))
 
 (defn bind-device 
   [midi-manager ^String hardware-id ^String virtual-device-name]
@@ -145,8 +150,9 @@
     ))
 
 (defn bind-key-func
-  [virtual-device channel afn]
-  (aset (virtual-device :event-processors) channel afn))
+  [virtual-device ^long channel ^IFn afn]
+  (aset ^"[Lclojure.lang.IFn;" ( :event-processors virtual-device) 
+        channel afn))
 
 (defn get-midi-cc-atom
   [virtual-device channel cc-num]
@@ -192,6 +198,6 @@
 
 (defn midi->freq
   "Convert MIDI Note number to frequency in hertz"
-  [notenum]
-  (* 440  (Math/pow 2.0  (/  (- notenum 57) 12))))
+  ^double [^long notenum]
+  (* 440.0  (Math/pow 2.0  (/ (- notenum 57) 12))))
 
