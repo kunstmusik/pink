@@ -17,7 +17,7 @@
       [cur-phase phase]
       []
       (do
-        (aset out indx cur-phase)
+        (aset out int-indx cur-phase)
         (recur (unchecked-inc indx) (rem (+ phase-incr cur-phase) 1.0)))
       (yield out))))
 
@@ -31,7 +31,7 @@
      (generator 
        [] [phs phsr]
        (do
-         (aset out indx (Math/sin (* TWO_PI phs))) 
+         (aset out int-indx (Math/sin (* TWO_PI phs))) 
          (recur (unchecked-inc indx)))          
        (yield out)))))
 
@@ -45,15 +45,16 @@
   {:pre (number? phase)}
   (let [out ^doubles (create-buffer)
         len (alength out)
-        freq-fn (arg freq)]
+        freq-fn (arg freq)
+        sr (double *sr*)]
     (generator [cur-phase phase]
                [f freq-fn]
-               (if (<= f 0) 
+               (if (<= f 0.0) 
                  (do 
-                   (aset out indx Double/NEGATIVE_INFINITY)
+                   (aset out int-indx Double/NEGATIVE_INFINITY)
                    (recur (unchecked-inc indx) cur-phase))
-                 (let [incr ^double (/ f (long *sr*))]
-                   (aset out indx cur-phase)
+                 (let [incr (/ f sr)]
+                   (aset out int-indx cur-phase)
                    (recur (unchecked-inc indx) (rem (+ cur-phase incr) 1.0))))
                (yield out))))
 
@@ -69,10 +70,10 @@
        [phase phsr]
        (if (= phase Double/NEGATIVE_INFINITY) 
          (do 
-           (aset out indx 0.0)
+           (aset out int-indx 0.0)
            (recur (unchecked-inc indx)))
          (let [v (Math/sin (* TWO_PI phase))]
-           (aset out indx v)
+           (aset out int-indx v)
            (recur (unchecked-inc indx)) ))
        (yield out)))))
 
@@ -95,10 +96,10 @@
         amp ampfn]
        (if (= phase Double/NEGATIVE_INFINITY)
          (do 
-           (aset out indx 0.0)
+           (aset out int-indx 0.0)
            (recur (unchecked-inc indx)))
          (let [v (* amp (aget table (int (* phase tbl-len))))]
-           (aset out indx v)
+           (aset out int-indx v)
            (recur (unchecked-inc indx))))
        (yield out)))))
 
@@ -120,7 +121,7 @@
         amp ampfn]
        (if (= p Double/NEGATIVE_INFINITY) 
          (do 
-           (aset out indx 0.0)
+           (aset out int-indx 0.0)
            (recur (unchecked-inc indx)))
          (let [phs (* p tbl-len)
                pt0 (int phs)
@@ -131,7 +132,7 @@
                v0  (aget table pt0)
                v1  (aget table pt1)
                v (* amp (+ v0 (* frac (- v1 v0))))]
-           (aset out indx v)
+           (aset out int-indx v)
            (recur (unchecked-inc indx))))
        (yield out)))))
 
@@ -153,7 +154,7 @@
         amp ampfn]
        (if (= p Double/NEGATIVE_INFINITY) 
          (do 
-           (aset out indx 0.0)
+           (aset out int-indx 0.0)
            (recur (unchecked-inc indx)))
          (let [phs (* p tbl-len)
                pt1 (int phs)
@@ -174,7 +175,7 @@
                c (+ (* p3 (double -1/6)) p2 (* p1 (double -1/2)) (* p0 (double -1/3)))
                d p1 
                v (* amp (+ (* a x3) (* b x2) (* c x) d))]
-           (aset out indx v)
+           (aset out int-indx v)
            (recur (unchecked-inc indx))))
        (yield out)))))
 
@@ -216,7 +217,7 @@
                      (/ (Math/sin (* m phase)) (* p denom))))
             new-st (* tmp 0.995)
             new-phs (pi-limit (+ phase rate))]
-        (aset out indx tmp) 
+        (aset out int-indx tmp) 
         (recur (unchecked-inc indx) new-phs new-st)) 
       (yield out))))
 
@@ -224,15 +225,14 @@
   [freq ^long nharmonics]
   (let [out ^doubles (create-buffer)
           initialized (atom false)
-          sr (double *sr*)
-          ]
+          sr (double *sr*)]
     (generator
       [phase 0.0
        st 0.0]
       [f freq]
       (if (<= f 0.0)
         (do 
-          (aset out indx 0.0)
+          (aset out int-indx 0.0)
           (recur (unchecked-inc indx) phase st))
         (let [denom (Math/sin phase)
               p (/ sr f)
@@ -249,7 +249,7 @@
                        (/ (Math/sin (* m phase)) (* p denom))))
               new-st (* tmp 0.995)
               new-phs (pi-limit (+ phase rate))]
-          (aset out indx tmp) 
+          (aset out int-indx tmp) 
           (recur (unchecked-inc indx) new-phs new-st)))(yield out))))
 
 (defn blit-saw
@@ -287,7 +287,7 @@
 (defn- blit-square-static
   [^double freq ^long nharmonics]
   (let [out ^doubles (create-buffer)
-        p (/ (* 0.5 (long *sr*)) freq)
+        p (/ (* 0.5 (double *sr*)) freq)
         rate (/ Math/PI p)
         m (calc-square-harmonics p nharmonics)
         a (/ m p) ]
@@ -305,7 +305,7 @@
                           (/ (Math/sin (* m phase)) (* p denom))))
             new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
             new-phs (two-pi-limit (+ phase rate))]
-        (aset out indx new-val) 
+        (aset out int-indx new-val) 
         (recur (unchecked-inc indx) new-phs new-val new-blit))
       (yield out))))
 
@@ -320,7 +320,7 @@
       [f freq]
       (if (<= f 0) 
         (do 
-          (aset out indx 0.0)
+          (aset out int-indx 0.0)
           (recur (unchecked-inc indx) phase last-val last-blit))
         (let [p (/ (* 0.5 sr) f)
               rate (/ Math/PI p)
@@ -335,7 +335,7 @@
                             (/ (Math/sin (* m phase)) (* p denom))))
               new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
               new-phs (two-pi-limit (+ phase rate))]
-          (aset out indx new-val) 
+          (aset out int-indx new-val) 
           (recur (unchecked-inc indx) new-phs new-val new-blit)))
       (yield out))))
 
