@@ -23,7 +23,7 @@
   [amp freq loc]
   (let-s [e (xar 0.01 1.0)] 
     (pan 
-      (mul e
+      (mul e amp
            (butterlp (blit-square freq) 
                  (sum 100 (mul e 400))))
       loc)))
@@ -78,7 +78,7 @@
 
   (node-add-func
     root-node 
-    (instr-square 0.25 (env [0.0 220 0.05 64 0.4 64]) 0.0))
+    (instr-square 0.5 (env [0.0 200 0.05 40 0.4 40]) 0.0))
 
   (stop-engine)
 
