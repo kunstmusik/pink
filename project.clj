@@ -15,6 +15,8 @@
    ; for GC diagnostics 
    ;"-XX:+PrintGCDetails"
    ;"-XX:+PrintGCTimeStamps"
+   ;"-XX:+PrintGCApplicationStoppedTime"
+   ;"-verbose:gc"
    ]
   :description "A library for music research, composition, and performance."
 
@@ -35,7 +37,7 @@
 
               :profiling {
                      :plugins [[lein-nodisassemble "0.1.3"]] 
-                     :dependencies [[org.clojure/clojure "1.7.0-alpha3"]] 
+                     :dependencies [[org.clojure/clojure "1.7.0-alpha4"]] 
                      :global-vars  {*warn-on-reflection* true
                                     *unchecked-math* :warn-on-boxed
                                     }
