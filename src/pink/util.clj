@@ -111,7 +111,7 @@
 (defmacro swapl! [l f]
   `(setl! ~l (~f (getl ~l))))
 
-;; Functions for working with refs
+;; Functions for working with atoms 
 
 (defmacro drain-atom!
   [a]
@@ -215,10 +215,10 @@
     (fn []
       (let [cur-buf (long *current-buffer-num*)] 
         (if (not== (getl my-buf-num) cur-buf )
-        (do 
-          (aset my-buf-num 0 cur-buf)
-          (reset! buffer (afn))) 
-        @buffer)))))
+          (do 
+            (aset my-buf-num 0 cur-buf)
+            (reset! buffer (afn))) 
+          @buffer)))))
 
 (defn- decorate-shared 
   "Utility function for let-s macro to decorated bindings with (shared)"
