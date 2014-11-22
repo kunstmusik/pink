@@ -376,3 +376,29 @@
      (yield out)
      ) 
     ))
+
+;; General Filters
+
+;; Biquad
+
+;(defn biquad 
+;  [afn b0 b1 b2 a1 a2]
+;  (let [^doubles out (create-buffer)
+;        _a1 (double a1) 
+;        _a2 (double a2) 
+;        _b0 (double b0) 
+;        _b1 (double b1) 
+;        _b2 (double b2) 
+;        ]
+;   (generator
+;     [x-1 0.0 x-2 0.0 y-1 0.0 y-2 0.0]
+;     [xn afn]
+;     (let [yn (- (+ (* _b0 xn) (* b1 x-1) (* b2 x-2))
+;                 (* _a1 y-1) (* _a2 y-2))]
+;       (aset out int-indx yn)
+;       (recur (unchecked-inc indx) xn x-1 yn y-1))
+;     (yield out)
+;     )))
+
+
+
