@@ -8,3 +8,4 @@ This manual serves as a guide to understanding and using Pink.  It covers high-l
 * [Terminology](terminology.md)
 * [Architecture](architecture.md)
 * [Events](events.md)
+* [Performance](performance.md)
