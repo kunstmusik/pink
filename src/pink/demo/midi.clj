@@ -7,9 +7,7 @@
             [pink.envelopes :refer [env]]
             [pink.filters :refer [port]]
             [pink.util :refer [mul try-func create-buffer generator]])
-  (:import [javax.sound.midi MidiSystem Transmitter Receiver MidiMessage
-            ShortMessage ]
-           [java.util Arrays]))
+  (:import [java.util Arrays]))
 
 
 (comment

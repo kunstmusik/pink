@@ -3,7 +3,7 @@
             [pink.util :refer [create-buffers]])
   (:import [java.io File ByteArrayOutputStream]
            [java.nio ByteBuffer]
-           [javax.sound.sampled AudioFileFormat$Type AudioFormat
+           [javax.sound.sampled AudioFormat
             AudioFormat$Encoding AudioInputStream AudioSystem]))
 
 (defn- locate-file

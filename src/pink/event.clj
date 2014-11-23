@@ -5,7 +5,7 @@
 
 (deftype Event [event-func ^double start event-args ]
   Object
-  (toString [this]  (format "\t%s\t%s\t%s\n" event-func start event-args )) 
+  (toString [_]  (format "\t%s\t%s\t%s\n" event-func start event-args ))
   (hashCode [this] (System/identityHashCode this))
   (equals [this b] (identical? this b))
 
@@ -18,7 +18,7 @@
 (deftype EventList [^PriorityQueue events pending-events cur-buffer 
                     buffer-size sr]
   Object
-  (toString [this]  (str events)) 
+  (toString [_]  (str events))
   (hashCode [this] (System/identityHashCode this))
   (equals [this b] (identical? this b)))
 

@@ -2,9 +2,9 @@
   ^{:doc "Functions for handling Audio I/O using Javasound"
    :author "Steven Yi"}
   pink.io.audio
-  (:import [javax.sound.sampled AudioFormat AudioSystem SourceDataLine
+  (:import [javax.sound.sampled AudioSystem SourceDataLine
                                 TargetDataLine
-                                AudioFileFormat$Type AudioInputStream]))
+                                ]))
 
 
 (defn open-line [audio-format buffer-size]

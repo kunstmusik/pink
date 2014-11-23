@@ -137,7 +137,7 @@
   (if (= 1 nchnls)
     (create-buffer)
     (into-array 
-      (for [i (range nchnls)] (create-buffer)))))
+      (for [_ (range nchnls)] (create-buffer)))))
 
 (def ^:const ^doubles EMPTY-BUFFER (create-buffer 0)) 
 

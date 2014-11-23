@@ -1,5 +1,5 @@
 (ns pink.benchmark.benchmark
-  (:import [pink.benchmark Benchmark Benchmark$Phasor])
+  (:import [pink.benchmark Benchmark$Phasor])
   (:require [pink.config :refer :all]
             [pink.oscillators :refer :all]
             [pink.util :refer :all]

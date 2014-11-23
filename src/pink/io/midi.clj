@@ -17,9 +17,9 @@
 
       :author "Steven Yi"}
   pink.io.midi
-  (:import [javax.sound.midi MidiSystem MidiDevice MidiDevice$Info 
+  (:import [javax.sound.midi MidiSystem MidiDevice MidiDevice$Info
 
-            Transmitter Receiver ShortMessage]
+                             Receiver ShortMessage]
            [clojure.lang IFn]))
 
 

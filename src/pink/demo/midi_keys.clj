@@ -7,9 +7,7 @@
             [pink.envelopes :refer [env xar]]
             [pink.filters :refer [port butterlp moogladder]]
             [pink.util :refer :all])
-  (:import [javax.sound.midi MidiSystem Transmitter Receiver MidiMessage
-            ShortMessage ]
-           [java.util Arrays]
+  (:import [javax.sound.midi ShortMessage ]
            [clojure.lang IFn]))
 
 
