@@ -16,4 +16,4 @@
 
 * Unit Generator - Composable units of signal processing. These are used to create directed acyclic graphs of signal processing, for example, to build up instruments  effects. See [ugen](ugen.md) for more information.  
 
-
+* Engine Time - The current value of time by the engine, measured as the number of blocks or number of samples since the engine's start, depending on the processing model of the engine. Pink uses a block-based model, so time is measured in number of blocks; sample time can be derived from block time (block number * block size) for sample-accurate operations.  For musical operations to be in sync with generated sound, they must be done in sync with engine time. If an operation is done in accordance with another clock (i.e. using a separate timer in another thread), it can not be in sync with the engine time. 

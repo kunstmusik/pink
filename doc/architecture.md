@@ -1,13 +1,23 @@
 # Architecture 
 
-The design of Pink is motivated by the concept of being a Minimal Engine. It is the goal to have a limited set of primitive constructs that allow for supporting the widest variety of musical use cases. 
+The design of Pink is motivated by the concept of being a Minimal Engine. It is the goal in Pink's design to have a limited set of primitive constructs that allow for supporting the widest variety of musical use cases.  
+
+## Processing Model
+
+### Time
+
+### Synchronization 
+
+### Parallelism
 
 ## Main Thread
 
 <img src="architecture.png"/>
 
-### Time
-### Synchronization 
+Pink uses a single-threaded design. The main thread in Pink is responsible for running the engine. Each time through the loop, the engine has three main tasks: running any events that are scheduled to run at the current engine time, processing the control function graphs, and processing the audio function graph. When processing the audio graph, the engine is responsible for taking the returned audio samples and writing that to the soundcard or to disk.  
+
+Additionally, the engine may respond to two messages, one for clearing the engine and one for stopping the engine. 
+
 
 ## Audio Functions
 
