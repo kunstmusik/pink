@@ -1,6 +1,23 @@
 # Architecture 
 
-The following are running notes on the design of Pink. These will eventually be rewritten into proper documentation.
+The design of Pink is motivated by the concept of being a Minimal Engine. It is the goal to have a limited set of primitive constructs that allow for supporting the widest variety of musical use cases. 
+
+## Main Thread
+
+<img src="architecture.png"/>
+
+### Time
+### Synchronization 
+
+## Audio Functions
+
+## Control Functions
+
+## Events
+
+============
+
+The following are older running notes on the design of Pink. These will eventually be rewritten into proper documentation.
 
 ## Premise for Design
 
