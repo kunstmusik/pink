@@ -8,6 +8,9 @@ This library provides the basis for developing music systems.  It is also design
 
 For more information, please see the [Documentation](doc/intro.md).
 
+## Mailing List
+
+For questions, please consider joining the Pink Users mailing list [here](https://groups.google.com/forum/?hl=en#!forum/pink-users).
 
 ## YourKit 
 
