@@ -8,9 +8,17 @@ This library provides the basis for developing music systems.  It is also design
 
 For more information, please see the [Documentation](doc/intro.md).
 
+## Installation
+
+At the moment, installation requires cloning this repostory and installing it using 'lein install'.  (This instruction will be updated when a stable release is made available.)
+
 ## Mailing List
 
 For questions, please consider joining the Pink Users mailing list [here](https://groups.google.com/forum/?hl=en#!forum/pink-users).
+
+## Examples
+
+Examples for using Pink are available in the [music-examples](http://github.com/kunstmusik/music-examples) project. 
 
 ## YourKit 
 
