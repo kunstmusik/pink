@@ -110,3 +110,27 @@
 
     (is (= true (a)))
     ))
+
+
+(deftest test-max-allocator
+  (let [a (create-max-allocator 3)]
+    (is (= 0 (num-allocs a)))
+    (doseq [_ (range 3)]
+      (is (= true (acquire-alloc a)))) 
+    (is (= false (acquire-alloc a)))
+    (is (= 3 (num-allocs a))))
+  (let [a (create-max-allocator 3)]
+    (doseq [_ (range 3)]
+      (is (= true (acquire-alloc a)))
+      (let [temp-afn (with-allocator a (fn [] nil))]
+        (is (= 1 (num-allocs a)))
+        (temp-afn)
+        (is (= 0 (num-allocs a)))))
+    (let [v (acquire-alloc a) 
+          temp-afn (with-allocator a (fn [] (double-array 64)))]
+      (is (= true v)) 
+
+      (is (= 1 (num-allocs a)))
+      (temp-afn)
+      (is (= 1 (num-allocs a)))
+      )))

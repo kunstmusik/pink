@@ -402,19 +402,6 @@
                  ~yield-body 
                  ))))))))
 
-
-;(process-bindings '[a 3 b 4])
-
-;(let [out 4
-;      asig 2
-;      bsig 3] 
-;  (generator [a 4 b (+ 3 4)]
-;             [ax asig bx bsig]
-;    (recur (unchecked-inc indx) a b)
-;    (yield out)
-;  ))
-
-
 ;; functions for processing
 
 (defn duration-processor
@@ -486,4 +473,44 @@
                        (aset current-buf-num# 0 buf-num#)
                        ~out-buf-sym))))))))
        (throw (Exception. (str "Invalid buffer-size: " ~buffer-size))))))
+
+(defprotocol 
+  Allocator
+  (acquire-alloc! [x] "Returns true if alloc is available. Note: may update current alloc num when called.")
+  (num-allocs [x] "Returns number of current allocs.")
+  (reset-allocs! [x] "Reset allocs to 0.")
+  (with-allocator [x afn] "Decorates afn with dealloc-on-done afn, which decrements alloc count when afn is done."))
+
+(defn dealloc-on-done 
+  [atm afn]
+  (fn []
+    (if-let [b (afn)]
+      b
+      (locking atm
+        (swap! atm #(if (pos? %) (dec %) 0))
+        nil))))
+
+;; This might not be the best use of protocol/reify... revisit this later, could always be
+;; swapped out with a drop-in replacement of functions that take in an allocator data struct (or atom)
+(defn create-max-allocator
+  "Keeps track of current allocations for limiting max-number. Warning: Depends on audio functions
+  exiting by returning nil to keep track of deallocations. ."
+  [max-allocs]
+  (let [allocs (atom 0)]
+    (reify Allocator
+      (num-allocs [x] @allocs)
+      (acquire-alloc! [x] 
+        (locking allocs
+          (let [v @allocs]
+            (if (< v max-allocs)
+              (do 
+                (swap! allocs inc)
+                true)
+              false))))
+        (reset-allocs! [x]
+          (locking allocs 
+            (reset! allocs 0)))
+        (with-allocator [x afn]
+          (dealloc-on-done allocs afn)))))
+
 
