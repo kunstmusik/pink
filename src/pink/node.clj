@@ -29,25 +29,25 @@
 (defn run-node-funcs 
   [afs buffer]
   (loop [[x & xs] afs 
-         ret []]
+         ret (transient [])]
     (if x 
       (let [b (try-func (x))]
         (if b
           (do 
             (mix-buffers b buffer)
-            (recur xs (conj ret x)))
+            (recur xs (conj! ret x)))
           (recur xs ret)))
-      ret))) 
+      (persistent! ret)))) 
 
 (defn- process-cfuncs
   [cfuncs]
   (loop [[x & xs] cfuncs
-         ret []]
+         ret (transient [])]
     (if x
       (if (try-func (x)) 
-        (recur xs (conj ret x))
+        (recur xs (conj! ret x))
         (recur xs ret))
-      ret)))
+      (persistent! ret))))
 
 ; currently will continue rendering even if afs are empty. need to have
 ; option to return nil when afs are empty, for the scenario of disk render.
