@@ -6,6 +6,14 @@ A library for music systems development, written in Clojure.
 
 This library provides the basis for developing music systems.  It is also designed so to scale to user needs, whether they are exploring and designing low-level signal processing algorithms, developing pre-written compositions, or creating interactive real-time systems. It offers a slim core engine designed to be highly customizable.   
 
+Features include:
+
+* 64-bit signal processing chain
+* Functional Audio Signal Graph: Build up Audio Graphs using functional approach
+* Clear Synchronization of time-aware functions with Control Functions
+* Higher-order Events: Functions and events can be used as arguments to events 
+* Use Clojure to extend the system: single language for all extension points to the system
+
 For more information, please see the [Documentation](doc/intro.md).
 
 ## Installation
