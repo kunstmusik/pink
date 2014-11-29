@@ -9,3 +9,4 @@
 (def ^:dynamic *current-buffer-num* 0)
 (def ^:dynamic *duration* nil)
 (def ^:dynamic *done* nil)
+(def ^:dynamic *tempo* 60.0)

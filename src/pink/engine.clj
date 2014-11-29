@@ -84,6 +84,18 @@
   [^Engine engine events]
   (event-list-add (.event-list engine) events))
 
+(defn engine-get-tempo-atom
+  [^Engine engine]
+  (event-list-get-tempo-atom (.event-list engine)))
+
+(defn engine-get-tempo
+  [^Engine engine]
+  @(engine-get-tempo-atom engine))
+
+(defn engine-set-tempo
+  [^Engine engine tempo]
+  (reset! (engine-get-tempo-atom engine) tempo))
+
 ;;;; JAVASOUND CODE
 
 (defn doubles->byte-buffer 

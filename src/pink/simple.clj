@@ -36,6 +36,15 @@
 (defn remove-post-cfunc [cfn]
   (engine-remove-post-cfunc engine cfn))
 
+(defn get-tempo []
+  (engine-get-tempo engine))
+
+(defn get-tempo-atom []
+  (engine-get-tempo-atom engine))
+
+(defn set-tempo [tempo]
+  (engine-set-tempo engine tempo))
+
 (defn add-events 
   "Takes in list of events and adds to engine's event list."
   ([evts]

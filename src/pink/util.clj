@@ -1,8 +1,7 @@
 (ns pink.util
   "Audio utility code for working with buffers (double[])"
   (:require [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]]
-            [primitive-math :refer [not==]]
-            )
+            [primitive-math :refer [not==]])
   (:import [java.util Arrays]
            [pink Operator]
            [clojure.lang IFn]))
@@ -40,8 +39,7 @@
 
 (defn tag-long
   [a]
-  (tagit a "long")
-  )
+  (tagit a "long"))
 
 ;; map-d 
 
@@ -416,13 +414,16 @@
           (aset cur-buffer 0 (unchecked-inc v)))) 
       (afn))))
 
+;; TODO - the calculation of duration needs to be done according to future tempo
+;; if time-varying tempo is used. May need to introduce tempo-mapper to event-list. 
 (defmacro with-duration 
   [dur body]
-  `(let [done-arr# (boolean-array 1 false)] 
-     (binding [pink.config/*duration* ~dur
+  `(let [done-arr# (boolean-array 1 false)
+         adjusted-dur# (* ~dur (/ 60.0 pink.config/*tempo*))] 
+     (binding [pink.config/*duration* adjusted-dur#
              pink.config/*done* done-arr#]
       (let [afn# ~body]
-        (duration-processor ~dur done-arr# afn#)))))
+        (duration-processor adjusted-dur# done-arr# afn#)))))
 
 (defn is-done?
   [done]
