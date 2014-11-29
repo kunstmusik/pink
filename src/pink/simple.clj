@@ -9,40 +9,65 @@
 
 (def engine (engine-create :nchnls 2))
 
-(defn start-engine []
+(defn start-engine 
+  "Starts the global pink.simple engine."
+  []
   (engine-start engine))
 
-(defn stop-engine []
+(defn stop-engine 
+  "Stops the global pink.simple engine."
+  []
   (engine-stop engine))
 
-(defn clear-engine []
+(defn clear-engine 
+  "Clears the global pink.simple engine.  Will clear out active and pending
+  functions and evnts from the root audio node, control functions, events."
+  []
   (engine-clear engine))
 
-(defn add-afunc [afn]
+(defn add-afunc 
+  "Add an audio function to the root node of the pink.simple engine."
+  [afn]
   (engine-add-afunc engine afn))
 
-(defn remove-afunc [afn]
+(defn remove-afunc 
+  "Removes an audio function from the root node of the pink.simple engine."
+  [afn]
   (engine-remove-afunc engine afn))
 
-(defn add-pre-cfunc [cfn]
+(defn add-pre-cfunc 
+  "Add a control function to the pre-audio node for the pink.simple engine."
+  [cfn]
   (engine-add-pre-cfunc engine cfn))
 
-(defn remove-pre-cfunc [cfn]
+(defn remove-pre-cfunc 
+  "Remove a control function from the pre-audio node for the pink.simple engine."
+  [cfn]
   (engine-remove-pre-cfunc engine cfn))
 
-(defn add-post-cfunc [cfn]
+(defn add-post-cfunc
+  "Add a control function to the post-audio node for the pink.simple engine."
+  [cfn]
   (engine-add-post-cfunc engine cfn))
 
-(defn remove-post-cfunc [cfn]
+(defn remove-post-cfunc 
+  "Remove a control function from the post-audio node for the pink.simple engine."
+  [cfn]
   (engine-remove-post-cfunc engine cfn))
 
-(defn get-tempo []
+(defn get-tempo
+  "Get the current tempo from the engine's built-in event-list."
+  []
   (engine-get-tempo engine))
 
-(defn get-tempo-atom []
+(defn get-tempo-atom
+  "Get the current tempo-atom from the engine's built-in event-list."
+  []
   (engine-get-tempo-atom engine))
 
-(defn set-tempo [tempo]
+(defn set-tempo 
+  "Set the current tempo on the engine's built-in event-list."
+  [tempo]
   (engine-set-tempo engine tempo))
 
 (defn add-events 
