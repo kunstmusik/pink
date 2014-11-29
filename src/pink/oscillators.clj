@@ -38,25 +38,26 @@
 ;(require '[no.disassemble :refer :all])
 ;(println (disassemble sine))
 
-
 (defn vphasor 
-  "Phasor with variable frequency and fixed starting phase."
+  "Phasor with variable frequency and variable starting phase."
   [freq phase]
-  {:pre (number? phase)}
   (let [out ^doubles (create-buffer)
         len (alength out)
         freq-fn (arg freq)
+        phase-fn (arg phase)
         sr (double *sr*)]
-    (generator [cur-phase phase]
-               [f freq-fn]
-               (if (<= f 0.0) 
-                 (do 
-                   (aset out int-indx Double/NEGATIVE_INFINITY)
-                   (recur (unchecked-inc indx) cur-phase))
-                 (let [incr (/ f sr)]
-                   (aset out int-indx cur-phase)
-                   (recur (unchecked-inc indx) (rem (+ cur-phase incr) 1.0))))
-               (yield out))))
+    (generator 
+      [cur-phase 0.0]
+      [f freq-fn
+       phs phase-fn]
+      (if (<= f 0.0) 
+        (do 
+          (aset out int-indx Double/NEGATIVE_INFINITY)
+          (recur (unchecked-inc indx) cur-phase))
+        (let [incr (/ f sr)]
+          (aset out int-indx (rem (+ cur-phase phs) 1.0))
+          (recur (unchecked-inc indx) (+ cur-phase incr))))
+      (yield out))))
 
 (defn sine2 
   "Sine generator with variable frequency and fixed starting phase."
