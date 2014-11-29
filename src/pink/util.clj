@@ -341,9 +341,15 @@
   (reduce 
     (fn [[x y z] [b c]]
       (let [state-sym (gensym "state")] 
-        [ (conj x state-sym (list 'double-array 1 [c]))
+        (if (and (sequential? c) (= 'long (first c)))
+         [(conj x state-sym (list 'long-array 1 (second c) ))
+          (conj y b `(aget ~(tag-longs state-sym) 0))
+          (conj z `(aset ~(tag-longs state-sym) 0 ~b))] 
+         [ (conj x state-sym (list 'double-array 1 c))
           (conj y b `(aget ~(tag-doubles state-sym) 0))
-          (conj z `(aset ~(tag-doubles state-sym) 0 ~b))])) 
+          (conj z `(aset ~(tag-doubles state-sym) 0 ~b))] 
+          )
+        )) 
     [[] [] []]
     (partition 2 bindings)))
 
@@ -399,6 +405,13 @@
                    ~body )          
                  ~yield-body 
                  ))))))))
+
+;(generator 
+;  [a (long 4)
+;   b 3.5]
+;  []
+;  (recur (unchecked-inc a) (+ 1.5 b))
+;  (yield a))
 
 ;; functions for processing
 
