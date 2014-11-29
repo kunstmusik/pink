@@ -35,9 +35,22 @@
            (recur (unchecked-inc i) new-mn new-mx))
         [mn mx]))))
 
-(defn rescale
-  [tbl]
-  tbl)
+(defn table-max
+  "Finds max absolute value within a table"
+[^doubles tbl]
+  (areduce tbl indx ret 0.0 
+         (Math/max ret (Math/abs (aget tbl indx)))))
+
+(defn rescale!
+  "Rescales values in table to -1.0,1.0. Not: this is a destructive change."
+  [^doubles tbl]
+  (let [len (alength tbl)
+        rescale-val (table-max tbl)]
+    (loop [indx 0]
+      (when (< indx len)
+        (aset tbl indx (/ (aget tbl indx) rescale-val))
+        (recur (unchecked-inc indx))))
+    tbl))
 
 ; GEN routines
 
@@ -68,7 +81,7 @@
                (aset out indx new-val)
               (recur (unchecked-inc indx)))))
           (recur xs)))) 
-    out))
+    (rescale! out)))
 
 (defn gen10
   "Generates a set of sine waves, given a list of amplitude values for each 
@@ -91,7 +104,7 @@
                   (aset out indx (+ last-val sine-val))
                   (recur (unchecked-inc indx)))))
             (recur (unchecked-inc harmonic) xs)))))
-    out))
+    (rescale! out)))
 
 (defn gen17
   "Generates a step-wise function from x/y pairs"

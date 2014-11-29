@@ -61,7 +61,7 @@
                        ;(map #(event table-synth-interp 0.25 (* 110 %)) (range 1 36)) 
 
                        (event table-synth-interp 1.0 440.0) 
-                       ;(event table-synth-interp 1.0 550.0)
+                       (event table-synth-interp 1.0 550.0)
 
                        (event table-synth-cubic 2.0 440.0) 
                        (event table-synth-cubic 2.0 550.0)
