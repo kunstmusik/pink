@@ -5,7 +5,7 @@
 (:require [pink.util :refer :all]
           [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]]
           [pink.envelopes :refer :all]
-          [pink.gen :refer [gen9 gen17 rescale]]
+          [pink.gen :refer [gen9 gen17]]
           [pink.oscillators :refer :all]
           [pink.filters :refer [tone atone]]
           [pink.space :refer [pan]]
