@@ -1,6 +1,6 @@
 (ns pink.event
   (:require [pink.util :refer [create-buffer drain-atom! try-func]]
-            [pink.config :refer [*buffer-size* *sr* *tempo*]]  )
+            [pink.config :refer [*tempo*]]  )
   (:import [java.util Collection PriorityQueue]))
 
 (deftype Event [event-func ^double start event-args ]
@@ -15,7 +15,7 @@
           t2 (.start ^Event a)] 
      (compare t1 t2))))
 
-(deftype EventList [^PriorityQueue events pending-events cur-buffer 
+(deftype EventList [^PriorityQueue events pending-events cur-beat
                     buffer-size sr tempo-atom]
   Object
   (toString [_]  (str events))
@@ -57,7 +57,8 @@
 
   ([buffer-size sr] (event-list [] buffer-size sr))
   ([^Collection evts buffer-size sr] 
-   (EventList. (PriorityQueue. evts) (atom []) (atom 0) buffer-size sr (atom *tempo*))))
+   (EventList. 
+     (PriorityQueue. evts) (atom []) (atom 0.0) buffer-size sr (atom *tempo*))))
 
 (defn event-list-add 
   "Add an event or events to an event list"
@@ -102,10 +103,6 @@
   (try-func (apply (.event-func ^Event evt) 
                  (.event-args ^Event evt))))
 
-
-;; TODO - adjusting start times here may be the wrong approach.  Should work for now, but event should 
-;; probably maintain its original beat-time, and event-processor should do calculations according to tempo
-;; there
 (defn- merge-pending!
   "Merges pending-events with the PriorityQueue of known events. Adjusts start times of events to *tempo*."
   [^EventList evtlst]
@@ -113,13 +110,10 @@
     (try 
       (when (not-empty @pending) 
         (let [new-events (drain-atom! pending)
-              cur-buffer (.cur-buffer evtlst)
-              cur-time (/ (double (* (long @cur-buffer) ^long (.buffer-size evtlst))) 
-                          (double (.sr evtlst)))
+              cur-beat (double @(.cur-beat evtlst))
               tempo (double @(.tempo-atom evtlst))
               timed-events 
-              (map (fn [^Event a] (alter-event-time 
-                                    (+ cur-time (* (.start a) (/ 60.0 tempo))) a)) 
+              (map (fn [^Event a] (alter-event-time (+ cur-beat (.start a)) a)) 
                    new-events)] 
           (.addAll ^PriorityQueue (.events evtlst) timed-events))
         )
@@ -127,18 +121,28 @@
         (println "Error: Invalid pending events found!") 
         nil))))
 
+(defn seconds->beats
+  [^double seconds ^double tempo]
+  (* seconds (/ tempo 60.0)))
+
+(defn beats->seconds
+  [^double beats ^double tempo]
+  (* beats (/ 60.0 tempo)))
+
 (defn event-list-tick!
   [^EventList evtlst] 
   (merge-pending! evtlst)
-  (let [cur-buffer (.cur-buffer evtlst)
-        cur-time (/ (* (+ 1 (long @cur-buffer)) (long *buffer-size*)) (double *sr*))
+  (let [cur-beat (double @(.cur-beat evtlst))
+        tempo (double @(.tempo-atom evtlst))
+        time-adj (seconds->beats (/ (.buffer-size evtlst) (.sr evtlst)) tempo)
+        end-time (+ cur-beat time-adj)
         events ^PriorityQueue (.events evtlst)]
-    (binding [*tempo* @(.tempo-atom evtlst)]    
+    (binding [*tempo* tempo]    
       (loop [evt ^Event (.peek events)]
-        (when (and evt (< (.start evt) cur-time)) 
+        (when (and evt (< (.start evt) end-time)) 
           (fire-event (.poll events))
           (recur (.peek events)))))
-    (swap! cur-buffer inc)))
+    (reset! (.cur-beat evtlst) end-time)))
 
 (defn event-list-processor 
   "Returns a control-function that ticks through an event list"
