@@ -3,7 +3,7 @@
    :author "Steven Yi"}
   pink.simple
   (:require [pink.engine :refer :all]
-            [pink.util :refer [with-duration]]
+            [pink.util :refer [with-duration apply!*!]]
             [pink.event :refer [event]]
             ))
 
@@ -91,7 +91,7 @@
   "Applies an afunc to args, wrapping results with (with-duration dur)."
   [afunc dur & args]  
   (with-duration dur
-    (apply afunc args)))
+    (apply!*! afunc args)))
 
 (defn i
   "Csound style note events: audio-func, start, dur, & args. 

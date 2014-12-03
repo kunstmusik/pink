@@ -1,5 +1,5 @@
 (ns pink.event
-  (:require [pink.util :refer [create-buffer drain-atom! try-func]]
+  (:require [pink.util :refer [create-buffer drain-atom! try-func apply!*!]]
             [pink.config :refer [*tempo*]]  )
   (:import [java.util Collection PriorityQueue]))
 
@@ -100,7 +100,7 @@
   "Evaluates event as delayed function application. Swallows exceptions and
   returns nil."
   [evt]
-  (try-func (apply (.event-func ^Event evt) 
+  (try-func (apply!*! (.event-func ^Event evt) 
                  (.event-args ^Event evt))))
 
 (defn- merge-pending!

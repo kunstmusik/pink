@@ -6,6 +6,28 @@
            [pink Operator]
            [clojure.lang IFn]))
 
+;; Dynamic argument resolution
+(deftype DynamicArg [func args])
+
+(defn !*! 
+  [func & args]
+  (DynamicArg. func args))
+
+(defn apply!*!
+  ([func] (func))
+  ([func args]
+   (->> (if (sequential? args) args [args])
+        (map #(if (instance? DynamicArg %)
+                (let [f (.func ^DynamicArg %)
+                      a (.args ^DynamicArg %)] 
+                  (if a
+                    (apply!*! f a)
+                    (f)))
+                %))
+        (apply func)))
+  ([func arg & args]
+   (apply!*! func (list* arg args))))
+
 ;; utility for running audio-funcs and control-funcs
 
 (defmacro try-func
