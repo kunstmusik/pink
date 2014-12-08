@@ -4,29 +4,27 @@
             [primitive-math :refer [not==]])
   (:import [java.util Arrays]
            [pink Operator]
-           [clojure.lang IFn]))
+           [clojure.lang IFn IDeref]))
 
 ;; Dynamic argument resolution
 (deftype DynamicArg [func args])
-
-(defn !*! 
-  [func & args]
-  (DynamicArg. func args))
 
 (defn apply!*!
   ([func] (func))
   ([func args]
    (->> (if (sequential? args) args [args])
-        (map #(if (instance? DynamicArg %)
-                (let [f (.func ^DynamicArg %)
-                      a (.args ^DynamicArg %)] 
-                  (if a
-                    (apply!*! f a)
-                    (f)))
+        (map #(if (instance? IDeref %)
+                (deref %)
                 %))
         (apply func)))
   ([func arg & args]
    (apply!*! func (list* arg args))))
+
+(defn !*! 
+  [func & args]
+  (reify IDeref
+    (deref [_] (apply!*! func args))))
+
 
 ;; utility for running audio-funcs and control-funcs
 
