@@ -1,5 +1,7 @@
 # Pink
 
+[![Clojars Project](http://clojars.org/kunstmusik/pink/latest-version.svg)](http://clojars.org/kunstmusik/pink)
+
 A library for music systems development, written in Clojure.
 
 ## Introduction

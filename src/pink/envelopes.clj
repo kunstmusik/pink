@@ -131,6 +131,27 @@
                 out)))
           nil)))))
 
+;; Transeg
+
+(defn transeg 
+  "Line segment generator using formula for each segment:
+  
+  ibeg +  (ivalue - ibeg) * (1 - exp( i*itype/(n-1) )) / 
+      (1 - exp(itype))
+  
+  for n steps. Points are given in format of:
+
+  ia, idur, itype, ib, idur2, itype2, ic...
+
+  where i_ is a value, dur is time in seconds, and itype affects the curve of the segment (0 = straight line, < 0 = conve, > 0 = concave))"
+  [[start & segments]] 
+  {:pre (zero? (mod (count segments) 3))}
+  (let [out (create-buffer)]
+    (fn []
+
+      )  
+    ))
+
 
 ;; Simple Envs
 
