@@ -109,4 +109,10 @@
   ([afunc note & notes]
   (with-afunc afunc (list* note notes))))
 
+(defn sco->events 
+  "Convert SCO formatted note lists into events by applying i to all notes.
+  SCO format follows Csound style note events: audio-func, start, dur, & args."
+  [notes]
+  (map #(apply i %) notes))
+
 
