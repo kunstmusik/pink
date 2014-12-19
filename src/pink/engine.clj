@@ -5,7 +5,7 @@
             [pink.event :refer :all]
             [pink.io.audio :refer :all]
             [pink.node :refer :all])
-  (:import [java.io ByteArrayInputStream ByteArrayOutputStream File] 
+  (:import [java.io ByteArrayInputStream ByteArrayOutputStream File FileOutputStream DataOutputStream] 
            [java.nio ByteBuffer]
            [java.util Arrays]
            [javax.sound.sampled AudioFormat AudioSystem SourceDataLine
@@ -215,6 +215,23 @@
 
 ;; Non-Realtime Engine functions
 
+;(defn write-aiff-header 
+;  [fos nchnls] 
+;  (doto (DataOutputStream. fos) 
+;    ;; FORM CHUNK
+;    (.writeBytes "FORM")
+;    (.writeLong 0) ;; fill in later
+;    (.writeBytes "AIFF")
+;    ;; COMM CHUNK
+;    (.writeBytes "COMM")
+;    (.writeLong 18)
+;    (.writeShort nchnls)
+;    (.writeInt 0) ;; fill in later
+;    (.writeShort 16) ;; try this as doubles later
+;    (.write)
+;    )
+;  )
+
 (defn engine->disk 
   "Runs engine and writes output to disk.  This will run the engine until all
   audio functions added to it are complete.  
@@ -238,6 +255,7 @@
         run-pre-control-funcs (control-node-processor pre-control)
         run-audio-funcs (node-processor root-audio-node)
         run-post-control-funcs (control-node-processor post-control) 
+        ;fos (FileOutputStream. filename)
         ]
 
     (reset! (.status engine) :running)
@@ -272,7 +290,7 @@
                 bais (ByteArrayInputStream. data)
                 af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)
                 aftype AudioFileFormat$Type/WAVE 
-                ais (AudioInputStream. bais af (alength data))
+                ais (AudioInputStream. bais af (* buffer-count buffer-size))
                 f (File. filename)]
             (println "Writing output to " (.getAbsolutePath f))
             (AudioSystem/write ais aftype f)
