@@ -1,6 +1,6 @@
 # Unit Generators
 
-Unit Generators are composable units of signal processing. The term comes from Max Matthews and was introduced in Music 3. In a 2011 interview with Geeta Dayal[1], Matthews says:
+Unit Generators are composable units of signal processing. The term comes from Max Matthews and was introduced in Music 3. In a 2011 [interview with Geeta Dayal](http://blog.frieze.com/max-mathews), Matthews says:
 
 "MUSIC 3 was my big breakthrough, because it was what was called a block diagram compiler, so that we could have little blocks of code that could do various things. One was a generalized oscillator … other blocks were filters, and mixers, and noise generators."
 
