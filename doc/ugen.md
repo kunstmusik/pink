@@ -46,8 +46,47 @@ Memory for a unit generator is freed, generally when an audio sub-graph is expir
 
 ## Pink Unit Generators
 
-The following discusses the implementation of Pink Unit Generators using higher order functions.  
+In Pink, Unit Generators are implemented as higher order functions.  In general, Pink Unit Generators follow the same coding practices as found in unit generators in other systems, such as Csound and SuperCollider. The use of higher order functions follows closely to what is done in those systems, offering the same lifecycle with which to design UGens.  
 
-...
+The basic shape of a Pink Unit generator is:
 
-[1](http://blog.frieze.com/max-mathews)
+```clojure
+(defn some-ugen
+  [arg0 arg1 arg2]
+  (let [x (some-calculation arg1)
+        out (create-buffer)]
+    (fn []
+      (do-processing x arg0 arg1 out)
+      out))
+```
+
+In Pink, a Unit Generator is built as function that returns a function.  The outer function is where allocation and initialization is done, and the returned function is used for performance.  At performance time, the audio function will return either a buffer of audio or nil.  Returning nil signifies that the audio function is done processing.  
+
+In the let-block above, on can see where initialization work is generally done. Code there will be used to pre-calculate some constants as well create state variables for use between calls to the audio function. The return function will close over both the arguments to the outer function as well as the let-bindings. 
+
+A Unit Generator in Pink must be sure to check that if any Unit Generators it depends on is done (returns nil).  If a nil is found, the unit generator must short-circuit and return nil itself.  In turn, an audio processing node will in turn check if a sub-graph is done and if so, remove that sub-graph to prevent further processing.
+  
+To note, most Unit Generators yield stateful functions. State is generally used only for storing and restoring values that are used in the processing loop, and are scoped only to the function which closes over it.  This state should therefore not be allowed to escape its scope and thus shared outside of the function. Because the state is privately scoped, it is safe to use by the function.  (This follows the same logic as to how transient collections are safe.)
+ 
+### Example: Phasor
+
+The following is the source for the Phasor unit generator:
+
+```clojure
+(defn phasor 
+  "Phasor with fixed frequency and starting phase"
+  [^double freq ^double phase]
+  (let [phase-incr ^double (/ freq (double *sr*))
+        out ^doubles (create-buffer)]
+    (generator 
+      [cur-phase phase]
+      []
+      (do
+        (aset out int-indx cur-phase)
+        (recur (unchecked-inc indx) (rem (+ phase-incr cur-phase) 1.0)))
+      (yield out))))
+```
+
+The phasor will, given a frequency and starting phase, return a function that will generate audio signals from 0.0 to 1.0 over and over again, repeating at the given frequency and offset by the given phase. 
+
+The phasor uses the generator macro to simplify unit generator writing... 
