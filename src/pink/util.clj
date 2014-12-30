@@ -21,9 +21,22 @@
    (apply!*! func (list* arg args))))
 
 (defn !*! 
+  "Returns a reference (instance of IDeref) that when deref'd, will call the 
+  given function and args. Note that apply!*! is used to call the function
+  with the arguments, so arguments that are instances of IDeref (i.e. atoms)
+  will first be derefenced before the function is applied."
   [func & args]
   (reify IDeref
     (deref [_] (apply!*! func args))))
+
+(defn !r! 
+  "Returns an IDeref that when derefed, returns the r-argument.  Used for
+  passing atoms and other references as arguments for events, so that the event
+  function will receive the atom/ref itself and not its value.  (This is due to
+  events using apply!*!, which derefs any args before applying its function.)"
+  [r]
+  (reify IDeref
+    (deref [_] r)))
 
 
 ;; utility for running audio-funcs and control-funcs
