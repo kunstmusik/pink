@@ -52,4 +52,10 @@ The value of pitch will be derefed before applying horn each time that event is 
 
 Will always call (env [0.0 440 0.5 880]) and call the horn function with that each time that event is fired.
 
-In general, if one is using higher-order events, it is likely one will want to use the !\*! function.
+
+As a consequence of using apply!\*!, if you want to pass in an atom and want that atom itself to be passed in to the event function, you can use the !r! operator to wrap your atom. (!r! reads as a "reference argument".) For example:
+
+> (def tempo (atom 60.0)
+> (event perf-func 0.0 0.5 (!r! tempo)
+
+In general, if one is using higher-order events, it is likely one will want to use the !\*! function. The use of !r! will most likely come into play when doing temporal recursion with events (where an event performs some action, then schedules another event calling the same function).  In that scenario, it is useful to pass in some kind of reference like a tempo atom or done atom, such that while performing one can affect the recursive event stream. 
