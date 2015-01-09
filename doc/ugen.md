@@ -67,7 +67,54 @@ In the let-block above, on can see where initialization work is generally done. 
 A Unit Generator in Pink must be sure to check that if any Unit Generators it depends on is done (returns nil).  If a nil is found, the unit generator must short-circuit and return nil itself.  In turn, an audio processing node will in turn check if a sub-graph is done and if so, remove that sub-graph to prevent further processing.
   
 To note, most Unit Generators yield stateful functions. State is generally used only for storing and restoring values that are used in the processing loop, and are scoped only to the function which closes over it.  This state should therefore not be allowed to escape its scope and thus shared outside of the function. Because the state is privately scoped, it is safe to use by the function.  (This follows the same logic as to how transient collections are safe.)
- 
+
+### Generator Macro
+
+Because Unit Generator code has a number of common requirements, the generator macro was developed to ease writing of unit generators.  The generator macro has the following shape, using four parts:
+
+```clojure
+(generator
+  [cur-state state] ; 1. State pairs 
+  [sig sig-fn] ; 2. Signal in sig function
+  (let [some-value (calculation cur-state sig)] ; 3. Calculation for current sample
+    (aset out int-index some-value)
+    (recur (unchecked-inc indx) (update cur-state)))
+  (yield out)) ; 4. Value to yield
+```
+
+The above reads as "For the cur-state in state, and sig in the result of calling sig-fn, process with loop until \*buffer-size\*, and yield out".  The expanded macro would create a function that will:
+
+1. Restore cur-state from the last value of stat
+2. Call sig-fn and assign the value to a temporary value. If the value is nil, immediately short-circuit and return nil.  
+3. In a loop, using the values from the state and signals sections (sections 1 and 2), call the section 3 body until indx is >= \*buffer-size\*. 
+4. When index is >= \*buffer-size\*, save cur-state to state, then return out.
+
+The above generator would macroexpand out to the following:
+
+```clojure
+(let* [state1890 (double-array 1 state) 
+       buffer-size1891 (clojure.core/long pink.config/*buffer-size*)] 
+   (fn* 
+     ([] 
+     (let* [buffer1889 (sig-fn)] 
+       (if buffer1889 
+         (do (loop* [indx 0 cur-state (clojure.core/aget state1890 0)] 
+           (if (clojure.core/< indx buffer-size1891) 
+             (let* [int-indx (clojure.core/int indx) 
+                    sig (aget buffer1 889 indx)] 
+               (let* [some-value (calculation cur-state sig)] 
+                 (aset out int-index some-value) 
+                 (recur (unchecked-inc indx) (update cur-state)))) 
+             (do (clojure.core/aset state1890 0 cur-state) out)))))))))
+```
+
+It is recommended to use the generator macro where possible, as it can 
+lead to easier to read as well as safer code (due to its handling of state). 
+However, the generator macro does not currently work for all unit generator 
+use cases, as some Unit Generators require more logic per-sample than the
+above gives (i.e. envelope generators).  
+
+
 ### Example: Phasor
 
 The following is the source for the Phasor unit generator:
@@ -89,4 +136,6 @@ The following is the source for the Phasor unit generator:
 
 The phasor will, given a frequency and starting phase, return a function that will generate audio signals from 0.0 to 1.0 over and over again, repeating at the given frequency and offset by the given phase. 
 
-The phasor uses the generator macro to simplify unit generator writing... 
+The phasor uses the generator macro to simplify unit generator writing. Note it does not use the signals section of the macro (section 2). Some unit generators that use the generator macro may not use section 1 or section 2.
+
+From here, it is best to study the existing unit generators to see how the generator macro is used and cases where it is not used.
