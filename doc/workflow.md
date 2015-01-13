@@ -14,8 +14,9 @@ Writing unit generators is useful for expanding the available set of signal proc
 
 For more information on Unit Generators, please see the [Unit Generators](ugen.md) section of this documentation.  
 
-
 ## Creating Instruments and Effects
+
+Using Unit Generators, one can create higher-level constructs, such as instruments, mixer, and effects. 
 
 ## Assembling Graphs
 
