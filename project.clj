@@ -45,6 +45,7 @@
               }
 
   :java-source-paths  ["src"] 
+  :javac-options     ["-target" "1.7" "-source" "1.7"]
   :scm {:name "git"
         :url "https://github.com/kunstmusik/pink.git" }
   ;:main 
