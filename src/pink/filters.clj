@@ -377,6 +377,58 @@
      ) 
     ))
 
+;; TODO - verify lpf18 output matches that of Csound's
+;; TODO - Optimize code below to check if values have changed, if not, 
+;;        don't recompute coefficients (same what Csound does)
+(defn lpf18
+  "Josep Comajuncosas' 18dB/oct resonant 3-pole LPF with tanh dist 
+   Coded in C by John ffitch, 2000 Dec 17, for Csound
+   Translated to Clojure by Steven Yi"
+  [afn cutoff resonance distortion]
+  (let [cutfn (arg cutoff)
+        resfn (arg resonance)
+        distfn (arg distortion)
+        sr (long *sr*)
+        onedsr (/ 1.0 (double *sr*))
+        out (create-buffer)] 
+    (generator
+      [lastin 0.0
+       lastres 0.0
+       lastcut 0.0
+       lastdist 0.0
+       ay1 0.0
+       ay2 0.0
+       aout 0.0]
+      [ain afn
+       cut cutfn
+       res resfn
+       dist distfn]
+      (let [kfcn (* 2.0 cut onedsr)
+            kp (+ (* (+ (* -2.7528 kfcn) 3.0429) 
+                     kfcn)
+                  (* 1.718 kfcn)
+                  -0.9984)
+            kp1 (+ 1.0 kp)
+            kp1h (* 0.5 kp1)
+            kres (* res 
+                    (+ (* -2.7079 kp1) (* 10.963 kp1)
+                       (* -14.934 kp1) 8.4974))
+            value (+ 1.0 (* dist (+ 1.5 
+                                    (* 2.0 kres (- 1.0 kfcn)))))
+
+            curin (- ain (Math/tanh (* kres aout)))
+            curay1 (- (* kp1h (+ lastin lastin)) (* kp ay1))
+            curay2 (- (* kp1h (+ curay1 ay1)) (* kp ay2))
+            curaout (- (* kp1h (+ curay2 ay2)) (* kp aout))
+            outval (Math/tanh (* curaout value))] 
+        (aset out int-indx outval)
+        (recur (unchecked-inc indx)
+               curin res cut dist curay1 curay2 curaout))
+      (yield out)
+      ))
+
+  )
+
 ;; General Filters
 
 ;; Biquad

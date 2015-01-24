@@ -6,7 +6,7 @@
              [pink.envelopes :refer [env xar]]
              [pink.util :refer [mul sum let-s]]
              [pink.node :refer :all]
-             [pink.filters :refer [tone butterlp]]
+             [pink.filters :refer :all]
              [pink.delays :refer [adelay]]
              ))
 
@@ -15,8 +15,16 @@
   (let-s [e (xar 0.01 1.0)] 
     (pan 
       (mul e
-           (butterlp (blit-saw freq) 
-                 (sum 100 (mul e 400))))
+           (lpf18 (sum
+                   (blit-saw freq)
+                   (blit-saw (sum 0.873 freq))
+                   (blit-saw (sum -0.95117 freq)))
+                  (sum 4000 (mul e 2000)) 
+                  0.6 0.1)
+           ;(butterlp (blit-saw freq) 
+           ;      (sum 100 (mul e 400)))
+           
+           )
       loc)))
 
 (defn instr-square
