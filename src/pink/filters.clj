@@ -20,7 +20,7 @@
             c2 (- b (Math/sqrt (- (* b b) 1.0)))
             c1 (- 1.0 c2)
             new-val (+ (* c1 ain) (* c2 last-val))]
-                (aset out indx new-val) 
+                (aset out int-indx new-val) 
                 (recur (unchecked-inc indx) new-val))
       (yield out))))
 
@@ -41,7 +41,7 @@
       (let [ b (- 2.0 (Math/cos (* hp TPIDSR)))
                     c2 (- b (Math/sqrt (- (* b b) 1.0)))
                     new-val (* c2 (+ last-val ain))]
-                (aset out indx new-val) 
+                (aset out int-indx new-val) 
                 (recur (unchecked-inc indx) (- new-val ain)))
       (yield out))))
 
@@ -57,7 +57,7 @@
       [last-val 0.0]
       [ain afn]
        (let [new-val (+ (* c1 ain) (* c2 last-val))]
-                (aset out indx new-val)
+                (aset out int-indx new-val)
                 (recur (unchecked-inc indx) new-val))
       (yield out))))
 
@@ -91,7 +91,7 @@
       (cond 
         (<= cut 0.0) 
         (do 
-          (aset out indx 0.0)
+          (aset out int-indx 0.0)
           (recur (unchecked-inc indx) cut old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (not== last-cut cut)
@@ -128,7 +128,7 @@
       (cond
         (<= cut 0.0) 
         (do 
-          (aset out indx 0.0)
+          (aset out int-indx 0.0)
           (recur (unchecked-inc indx) cut old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (not== last-cut cut)
@@ -178,7 +178,7 @@
       (cond 
         (or (<= cf 0.0) (<= bw 0.0))
         (do 
-          (aset out indx 0.0)
+          (aset out int-indx 0.0)
           (recur (unchecked-inc indx) cf bw old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (or (not== last-cf cf) (not== last-bw bw))
@@ -217,7 +217,7 @@
       (cond
         (or (<= cf 0.0) (<= bw 0.0))
         (do 
-          (aset out indx 0.0)
+          (aset out int-indx 0.0)
           (recur (unchecked-inc indx) cf bw old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (or (not== last-cf cf) (not== last-bw bw))
@@ -272,7 +272,7 @@
 ;         _new-del5 (* 0.5 (+ _stg3 _del4))
 ;         _new-del4 _stg3]
 
-;     (aset out indx _new-del5)
+;     (aset out int-indx _new-del5)
 ;     (recur _stg0 _stg1 _stg3 _stg3 _new-del4 _new-del5 
 ;            _new-tanhstg0 _new-tanhstg1 _new-tanhstg2
 ;            cut res acr tune))
@@ -331,7 +331,7 @@
                _new-del5 (* 0.5 (+ _stg3 new-del4))
                _new-del4 _stg3]
 
-           (aset out indx _new-del5)
+           (aset out int-indx _new-del5)
            (recur (unchecked-inc indx) 
                   _stg0 _stg1 _stg2 _stg3 _new-del4 _new-del5 
                   _new-tanhstg0 _new-tanhstg1 _new-tanhstg2
@@ -366,7 +366,7 @@
                _new-del5 (* 0.5 (+ _stg3 new-del4))
                _new-del4 _stg3]
 
-           (aset out indx _new-del5)
+           (aset out int-indx _new-del5)
            (recur (unchecked-inc indx) 
                   _stg0 _stg1 _stg2 _stg3 _new-del4 _new-del5 
                   _new-tanhstg0 _new-tanhstg1 _new-tanhstg2

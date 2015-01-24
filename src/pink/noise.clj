@@ -10,7 +10,7 @@
       []
       []
       (let [v (-  (* 2  (Math/random) 1))]
-        (aset out indx v)
+        (aset out int-indx v)
         (recur (unchecked-inc indx)))
       (yield out))))
 
