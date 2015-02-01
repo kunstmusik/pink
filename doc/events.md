@@ -4,11 +4,15 @@
 
 In Pink, events are considered timed applications of functions. An event is fired by calling a given function at a given time with given arguments. The event function in pink.events has the following arguments:
 
-> f start & args
+```clojure 
+f start & args
+```
 
 For example, the following:
 
-> (event horn 0.0 0.4 440.0)
+```clojure
+(event horn 0.0 0.4 440.0)
+```
 
 would create an event that calls horn at time 0.0 with arguments 0.4 and 440.0. However, the event processor in Pink is designed only to apply the function, and has no knowledge of what the function does, and does not in and of itself do anything with the results of applying the function. (This may change to check for return values as success/failure; this part of the design is not yet resolved.)  
 
@@ -34,28 +38,38 @@ In Pink, because an event is able to take in other functions, one can design an 
 
 One problem that occurs with higher-order events is if a set of events was fixed and a user wanted to replay that set of events, the function instances that were used as arguments in the event may have already been used.  For example:
 
-> (event horn 0.0 0.5 (env [0.0 440 0.5 880]))
+```clojure
+(event horn 0.0 0.5 (env [0.0 440 0.5 880]))
+```
 
 In this event, and env unit-generator is used to vary the pitch from 440Hz to 880hz over a 0.5 second period.  On the first time an event was called, that env instance would be already created when horn was called. Everything would render fine that first time, but if the event was reused, the env instance would have been in a state where it had already rendered for 0.5 seconds.  
 
 To mitigate this scenario, Pink uses a special apply!\*! operator.  If any IDeref values are given as arguments, Pink will first deref the value before applying the function.  For example, if pitch was an atom that held the value 440, the following:
 
-> (event horn 0.0 0.5 @pitch)
+```clojure
+(event horn 0.0 0.5 @pitch)
+```
 
 Would always render a horn with pitch 440, even if the user reset! pitch to another value. With Pink's events, if you pass in just the IDeref:
 
-> (event horn 0.0 0.5 pitch)
+```clojure
+(event horn 0.0 0.5 pitch)
+```
 
 The value of pitch will be derefed before applying horn each time that event is run.  To solve the problem about the horn above, you can use the !\*! function which will wrap the given code in an IDeref.  So the following:
 
-> (event horn 0.0 0.5 (!\*! env [0.0 440 0.5 880]))
+```clojure
+(event horn 0.0 0.5 (!\*! env [0.0 440 0.5 880]))
+```
 
 Will always call (env [0.0 440 0.5 880]) and call the horn function with that each time that event is fired.
 
 
 As a consequence of using apply!\*!, if you want to pass in an atom and want that atom itself to be passed in to the event function, you can use the !r! operator to wrap your atom. (!r! reads as a "reference argument".) For example:
 
-> (def tempo (atom 60.0)
-> (event perf-func 0.0 0.5 (!r! tempo)
+```clojure
+(def tempo (atom 60.0)
+(event perf-func 0.0 0.5 (!r! tempo)
+```
 
 In general, if one is using higher-order events, it is likely one will want to use the !\*! function. The use of !r! will most likely come into play when doing temporal recursion with events (where an event performs some action, then schedules another event calling the same function).  In that scenario, it is useful to pass in some kind of reference like a tempo atom or done atom, such that while performing one can affect the recursive event stream. 
