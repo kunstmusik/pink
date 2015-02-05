@@ -8,6 +8,7 @@ This manual serves as a guide to understanding and using Pink.  It covers high-l
 * [Workflow](workflow.md)
 * [Terminology](terminology.md)
 * [Architecture](architecture.md)
+* [Unit Generators](ugen.md)
 * [Events](events.md)
 * [Performance](performance.md)
 * [Example Usage](examples.md)

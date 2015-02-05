@@ -1,0 +1,12 @@
+site_name: Pink 
+docs_dir: doc
+pages:
+  - [intro.md, Home]
+  - [workflow.md, Workflow]
+  - [terminology.md, Terminology]
+  - [architecture.md, Architecture]
+  - [ugen.md, Unit Generators]
+  - [events.md, Events]
+  - [performance.md, Performance]
+  - [examples.md, Example Usage]
+theme: readthedocs
