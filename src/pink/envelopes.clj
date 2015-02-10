@@ -161,7 +161,7 @@
               samps)))
 
 (defn- adsr-impl
-  "Linear ADSR that checks for *done* flag before doing release."
+  "ADSR that checks for *done* flag before doing release."
   [^double a ^double d ^double s ^double r]
   (let [^doubles out (create-buffer)
         done *done*
@@ -256,6 +256,83 @@
         (adsr-impl a d s r)) 
  
       )))
+
+
+(defn adsr140
+  "ADSR Envelope generator based on Doepfer A-140. Takes in gate audio
+  function, as well as retrigger audio function (pass in 0 if not using
+  retrigger). 
+ 
+  Based on code by Nigel Redmon at
+  http://www.earlevel.com/main/2013/06/03/envelope-generators-adsr-code/"
+  [gatefn retrigger attack decay sustain release]
+  (let [^doubles out (create-buffer)
+        a (double attack)
+        d (double decay)
+        s (double sustain)
+        r (double release)
+        sr (double *sr*)
+        buffer-size (long *buffer-size*)
+        attack-ratio 0.3
+        decay-ratio 0.0001
+        attack-samps (* a sr) 
+        attack-coef (adsr-calc-coef attack-ratio attack-samps) 
+        attack-base (* (+ 1.0 attack-ratio) (- 1.0 attack-coef))
+        decay-samps (* d sr) 
+        decay-coef (adsr-calc-coef decay-ratio decay-samps)
+        decay-base (* (- s decay-ratio) (- 1.0 decay-coef))
+        release-samps (* r sr) 
+        release-coef (adsr-calc-coef decay-ratio release-samps)
+        release-base (* (- decay-ratio) (- 1.0 release-coef))
+        ^doubles last-val (double-array 1 0.0)
+        retriggerfn (if (number? retrigger) (const 0.0) retrigger)
+        stage (atom :attack)]
+    (fn []
+      (let [^doubles gate (gatefn)
+            ^doubles retrigger (retriggerfn)]
+        (when (and gate retrigger)
+          (loop [indx 0 
+                 last-v (aget last-val 0)
+                 cur-stage @stage]
+            (if (< indx buffer-size) 
+              (let [ gate-val (aget gate indx)
+                    retrigger-val (aget retrigger indx)] 
+                (aset out indx last-v)
+                (if (pos? gate-val)
+                  (let [state (if (pos? retrigger-val) :attack cur-stage)]
+                    (case state 
+
+                      :attack
+                      (let [v (+ attack-base (* last-v attack-coef))]
+                        (if (>= v 1.0)
+                          (do
+                            (recur (unchecked-inc indx) 1.0 :decay)) 
+                          (recur (unchecked-inc indx) v state)
+                          ))
+
+                      :decay
+                      (let [v (+ decay-base (* last-v decay-coef))]
+                        (if (<= v s)
+                          (do
+                            (recur (unchecked-inc indx) s :sustain)) 
+                          (recur (unchecked-inc indx) v state)
+                          ))
+
+                      :sustain
+                      (recur (unchecked-inc indx) s :sustain)))  
+                  (if (zero? last-v) 
+                    (recur (unchecked-inc indx) 0.0 :attack)
+                    (let [v (+ release-base (* last-v release-coef))]
+                      (if (<= v 0.0)
+                        (recur (unchecked-inc indx) 0.0 :attack)
+                        (recur (unchecked-inc indx) v :attack))))
+                  ))
+              (do 
+                (reset! stage cur-stage)
+                (aset last-val 0 last-v)
+                out)
+              )))))))   
+
 
 (defn xar 
   "Exponential Attack-Release Envelope"
