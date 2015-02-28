@@ -2,8 +2,8 @@
  (:require [pink.simple :refer :all]
              [pink.event :refer :all] 
              [pink.space :refer [pan]] 
-             [pink.oscillators :refer [blit-saw blit-square]]
-             [pink.envelopes :refer [env xar]]
+             [pink.oscillators :refer [blit-saw blit-square blit-triangle]]
+             [pink.envelopes :refer [env xar adsr]]
              [pink.util :refer [mul sum let-s]]
              [pink.node :refer :all]
              [pink.filters :refer :all]
@@ -35,6 +35,17 @@
            (butterlp (blit-square freq) 
                  (sum 100 (mul e 400))))
       loc)))
+
+(defn instr-triangle
+  [amp freq loc]
+  (let-s [e (if (fn? amp) 
+              amp
+              (mul amp (env [0.0 0.0 0.1 1.0 3.0 1.0 0.1 0.0])))] 
+    (->
+      (blit-triangle freq) 
+      ;(butterlp (sum 100 (mul e 400)))
+      (mul e) 
+      (pan loc))))
 
 ;(def a (instr-saw 0.1 440 0.0))
 ;(def b (blit-saw 440))
@@ -87,6 +98,36 @@
   (node-add-func
     root-node 
     (instr-square 0.5 (env [0.0 200 0.05 40 0.4 40]) 0.0))
+
+
+  (node-add-func 
+    root-node
+    (instr-square 0.5 440 0.0))
+
+  (node-add-func 
+    root-node
+    (instr-triangle 0.5 1100 0.0))
+
+  (node-add-func 
+    root-node
+    (instr-triangle (mul 0.5 (xar 0.01 4.0)) (env [0.0 200 4.0 800]) 0.0))
+
+  (node-add-func 
+    root-node
+    (instr-triangle (mul 0.5 (xar 0.01 1.0)) (env [0.0 200 0.05 40 0.4 40]) 0.0))
+
+  (def my-score3
+    (let [num-notes 10] 
+      (node-events root-node 
+                   (map #(event instr-triangle (* % 0.5)  
+                                (/ 0.75 (+ 1 %)) 
+                                (* 65 (+ 1 %)) 
+                                (- (* 2 (/ % (- num-notes 1)))  1)) 
+                        (range num-notes)))))
+
+
+
+  (add-events my-score3) 
 
   (stop-engine)
 

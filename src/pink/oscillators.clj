@@ -1,7 +1,7 @@
 (ns pink.oscillators
   "Oscillator Functions"
   (:require [pink.config :refer [*sr* *buffer-size*]]
-            [pink.util :refer [create-buffer arg generator]]
+            [pink.util :refer [create-buffer arg generator shared]]
             [pink.gen :refer [gen-sine]] 
             ))
 
@@ -353,4 +353,46 @@
   (if (number? freq)
     (blit-square-static (double freq) nharmonics)    
     (blit-square-dynamic freq nharmonics) 
+    )))
+
+
+(defn- blit-triangle-static
+  [^double freq ^long nharmonics]
+  (let [out ^doubles (create-buffer)
+        p (/ (double *sr*) freq)
+        gain (/ (* 4.0 freq ) (double *sr*) )
+        square (blit-square freq nharmonics)]
+    (generator 
+      [last-val 0.0]
+      [square-val square]
+      (let [new-val (+ (* 0.999 last-val) (* square-val gain) ) 
+            ]
+        (aset out int-indx new-val) 
+        (recur (unchecked-inc indx) new-val))
+      (yield out))))
+
+(defn- blit-triangle-dynamic
+  [freq ^long nharmonics]
+  (let [out ^doubles (create-buffer)
+        freq-fn (shared freq)
+        sr (double *sr*)
+        square (blit-square freq-fn nharmonics)]
+    (generator 
+      [last-val 0.0]
+      [square-val square
+       f freq-fn]
+      (let [gain (/ (* 4.0 f ) sr )
+            new-val (+ (* 0.999 last-val) (* square-val gain) )]
+        (aset out int-indx new-val) 
+        (recur (unchecked-inc indx) new-val))
+      (yield out))))
+
+(defn blit-triangle
+  "Generates BLIT-based triangle wave, via integration of BLIT square wave."
+  ([freq] (blit-triangle freq 0))
+  ([freq ^long nharmonics]
+   {:pre [(or (and (number? freq) (pos? ^double freq)) (fn? freq))] }
+  (if (number? freq)
+    (blit-triangle-static (double freq) nharmonics)    
+    (blit-triangle-dynamic freq nharmonics) 
     )))
