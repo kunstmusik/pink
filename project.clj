@@ -42,7 +42,13 @@
                                     *unchecked-math* :warn-on-boxed
                                     }
                      }      
+
+              :plotting {
+                     :dependencies [[incanter "1.5.4"]] 
+                     :source-paths ["plotting"]
+                     }
               }
+
 
   :java-source-paths  ["src"] 
   :javac-options     ["-target" "1.7" "-source" "1.7"]
