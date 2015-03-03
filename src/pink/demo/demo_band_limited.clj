@@ -144,8 +144,11 @@
 
   (add-afunc
     (with-duration 8.0
-      (vox-humana (mul 0.5 (adsr 0.453 0.0 1.0 2.242))  0.0)))
-
+      (vox-humana (mul 0.5 (adsr 0.453 0.0 1.0 2.242)) 440 0.0)))
+  
+  (add-afunc
+    (with-duration 8.0
+      (vox-humana (mul 0.5 (adsr 0.453 0.0 1.0 2.242)) 880 0.0)))
 
   (def my-score3
     (let [num-notes 10] 

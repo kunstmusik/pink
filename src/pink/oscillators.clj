@@ -280,7 +280,7 @@
     (generator 
       [phase 0.0
        phase2 (* Math/PI pulse-width)
-       last-val 0.0]
+       last-val -0.5]
       []
       (let [denom (Math/sin phase)
             denom2 (Math/sin phase2)
@@ -295,7 +295,7 @@
             new-val (+ new-blits last-val) 
             new-phs (pi-limit (+ phase rate))
             new-phs2 (pi-limit (+ phase2 rate))]
-        (aset out int-indx (- new-val 0.5)) 
+        (aset out int-indx new-val) 
         (recur (unchecked-inc indx) new-phs new-phs2 new-val ))
       (yield out))))
 
@@ -305,7 +305,7 @@
         sr (double *sr*)]
     (generator
       [phase 0.0
-       last-val 0.0]
+       last-val -0.5]
       [f (arg freq)
        pw (arg pulse-width)]
       (if (<= f 0) 
@@ -328,7 +328,7 @@
               new-blits (- new-blit1 new-blit2)
               new-val (+ new-blits last-val) 
               new-phs (pi-limit (+ phase rate)) ]
-          (aset out int-indx (- new-val 0.5)) 
+          (aset out int-indx new-val) 
           (recur (unchecked-inc indx) new-phs new-val)))
       (yield out))))
 
