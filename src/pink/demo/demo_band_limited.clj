@@ -2,9 +2,9 @@
  (:require [pink.simple :refer :all]
              [pink.event :refer :all] 
              [pink.space :refer [pan]] 
-             [pink.oscillators :refer [blit-saw blit-square blit-triangle]]
+             [pink.oscillators :refer :all]
              [pink.envelopes :refer [env xar adsr]]
-             [pink.util :refer [mul sum let-s]]
+             [pink.util :refer [mul sum let-s with-duration]]
              [pink.node :refer :all]
              [pink.filters :refer :all]
              [pink.delays :refer [adelay]]
@@ -47,6 +47,25 @@
       (mul e) 
       (pan loc))))
 
+;; TODO - implement LFO with :triangle instead of using sines here
+(defn vox-humana 
+  [amp freq loc]
+  (let  [pulse-freq (mul freq (sum 1.0004 (mul 0.013 (sine 3.5)) ))
+         pulse-width (sum 0.625 (mul 0.125 (sine 5.72)))
+         saw-freq (mul freq (sum 1 (mul 0.021 (sine 5.04))))
+         key-follow (+ 1 (Math/exp (/ (- freq 50.0) 10000.0))) ] 
+    (let-s [e (if (fn? amp) 
+                amp
+                (mul amp (env [0.0 0.0 0.1 1.0 3.0 1.0 0.1 0.0])))] 
+      (->
+        (sum (blit-saw saw-freq) 
+          (blit-pulse pulse-freq pulse-width)) 
+
+        (butterlp (* key-follow 1986))
+        (mul e 0.5) 
+        (pan loc)))))
+
+
 ;(def a (instr-saw 0.1 440 0.0))
 ;(def b (blit-saw 440))
 ;(require '[no.disassemble :refer :all])
@@ -81,7 +100,7 @@
 
   (node-add-func
     root-node 
-    (instr-saw 0.25 (env [0.0 220 0.1 200 0.0001 220 0.1 4000]) 0.0))
+    (instr-saw 0.25 (env [0.0 220 0.1 200 0.0001 220 0.1 500]) 0.0))
 
 
   (def my-score2
@@ -108,13 +127,25 @@
     root-node
     (instr-triangle 0.5 1100 0.0))
 
+
+  (add-afunc
+    (with-duration 1.0
+      (mul (adsr 0.01 0.0 1.0 2.0) 0.5
+           (blit-triangle (env [0.0 200 4.0 800]) ))))
+
   (node-add-func 
     root-node
-    (instr-triangle (mul 0.5 (xar 0.01 4.0)) (env [0.0 200 4.0 800]) 0.0))
+    (instr-triangle 0.5 
+                    (env [0.0 200 4.0 800]) 0.0))
 
   (node-add-func 
     root-node
     (instr-triangle (mul 0.5 (xar 0.01 1.0)) (env [0.0 200 0.05 40 0.4 40]) 0.0))
+
+  (add-afunc
+    (with-duration 8.0
+      (vox-humana (mul 0.5 (adsr 0.453 0.0 1.0 2.242))  0.0)))
+
 
   (def my-score3
     (let [num-notes 10] 

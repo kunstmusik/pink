@@ -80,9 +80,8 @@
                 0.04 0.02 0.9 0.15)] 
       (-> 
         (mul e ramp-env 
-(sum         (blit-saw freq)
-             (blit-saw (mul freq 1.002581)))
-             )
+             (sum (blit-saw freq)
+                  (blit-saw (mul freq 1.002581))))
         (moogladder (sum 1000 (mul 500 6 e ramp-env)) 0.6)
         (pan 0.0)
         )))

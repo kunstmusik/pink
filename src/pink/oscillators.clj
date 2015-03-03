@@ -268,82 +268,164 @@
     )))
 
 
+;; BLIT Pulse
 
-;; blit-square
-
-(def ^:const ^:private ^double TOP_LIM 
-  (- TWO_PI 0.1))
-         
-(defn calc-square-harmonics 
-  ^long [^double p ^long nharmonics]
-  (if (<= nharmonics 0)
-    (let [max-harmonics (long (Math/floor (* 0.5 p)))]
-      (* 2 (+ max-harmonics 1)))
-    (* 2 (+ nharmonics 1))))
-
-(defn two-pi-limit
-  ^double [^double v]
-  (if (>= v ^double TWO_PI) (- v ^double TWO_PI) v))
-
-(defn- blit-square-static
-  [^double freq ^long nharmonics]
+(defn- blit-pulse-static
+  [^double freq ^double pulse-width ^long nharmonics]
   (let [out ^doubles (create-buffer)
-        p (/ (* 0.5 (double *sr*)) freq)
+        p (/ (double *sr*) freq)
         rate (/ Math/PI p)
-        m (calc-square-harmonics p nharmonics)
+        m (calc-harmonics p nharmonics)
         a (/ m p) ]
     (generator 
       [phase 0.0
-       last-val 0.0
-       last-blit 0.0]
+       phase2 (* Math/PI pulse-width)
+       last-val 0.0]
       []
       (let [denom (Math/sin phase)
-            new-blit (+ last-blit 
-                        (if (< (Math/abs denom) ^double DOUBLE-EPSILON)
-                          (if (or (< phase 0.1) (> phase ^double TOP_LIM))
-                            a
-                            (- a))
-                          (/ (Math/sin (* m phase)) (* p denom))))
-            new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
-            new-phs (two-pi-limit (+ phase rate))]
-        (aset out int-indx new-val) 
-        (recur (unchecked-inc indx) new-phs new-val new-blit))
+            denom2 (Math/sin phase2)
+            new-blit1 (if (<= ^double (Math/abs denom) ^double DOUBLE-EPSILON)
+                        a
+                        (/ (Math/sin (* m phase)) (* p denom))) 
+
+            new-blit2 (if (<= ^double (Math/abs denom2) ^double DOUBLE-EPSILON)
+                        a
+                        (/ (Math/sin (* m phase2)) (* p denom2))) 
+            new-blits (- new-blit1 new-blit2)
+            new-val (+ new-blits last-val) 
+            new-phs (pi-limit (+ phase rate))
+            new-phs2 (pi-limit (+ phase2 rate))]
+        (aset out int-indx (- new-val 0.5)) 
+        (recur (unchecked-inc indx) new-phs new-phs2 new-val ))
       (yield out))))
 
-(defn- blit-square-dynamic
-  [freq ^long nharmonics]
+(defn- blit-pulse-dynamic
+  [freq pulse-width ^long nharmonics]
   (let [out ^doubles (create-buffer)
         sr (double *sr*)]
     (generator
       [phase 0.0
-       last-val 0.0
-       last-blit 0.0]
-      [f freq]
+       last-val 0.0]
+      [f (arg freq)
+       pw (arg pulse-width)]
       (if (<= f 0) 
         (do 
           (aset out int-indx 0.0)
-          (recur (unchecked-inc indx) phase last-val last-blit))
-        (let [p (/ (* 0.5 sr) f)
+          (recur (unchecked-inc indx) phase last-val))
+        (let [p (/ sr f)
               rate (/ Math/PI p)
-              m (calc-square-harmonics p nharmonics)
+              m (calc-harmonics p nharmonics)
               a (/ m p) 
+              phase2 (pi-limit (+ phase (* Math/PI pw)))
               denom (Math/sin phase)
-              new-blit (+ last-blit 
-                          (if (< (Math/abs denom) ^double DOUBLE-EPSILON)
-                            (if (or (< phase 0.1) (> phase ^double TOP_LIM))
-                              a
-                              (- a))
-                            (/ (Math/sin (* m phase)) (* p denom))))
-              new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
-              new-phs (two-pi-limit (+ phase rate))]
-          (aset out int-indx new-val) 
-          (recur (unchecked-inc indx) new-phs new-val new-blit)))
+              denom2 (Math/sin phase2)
+              new-blit1 (if (<= ^double (Math/abs denom) ^double DOUBLE-EPSILON)
+                          a
+                          (/ (Math/sin (* m phase)) (* p denom))) 
+              new-blit2 (if (<= ^double (Math/abs denom2) ^double DOUBLE-EPSILON)
+                          a
+                          (/ (Math/sin (* m phase2)) (* p denom2))) 
+              new-blits (- new-blit1 new-blit2)
+              new-val (+ new-blits last-val) 
+              new-phs (pi-limit (+ phase rate)) ]
+          (aset out int-indx (- new-val 0.5)) 
+          (recur (unchecked-inc indx) new-phs new-val)))
       (yield out))))
+
+
+(defn blit-pulse
+  "Implementation of BLIT algorithm by Stilson and Smith for band-limited
+  pulse waveform. 
+ 
+  Returns an optimized audio-function if freq is a number, or a slower
+  version if freq is itself an audio-function."
+  ([freq pulse-width] (blit-pulse freq pulse-width 0))
+  ([freq pulse-width ^long nharmonics]
+   {:pre [(or (and (number? freq) (pos? ^double freq)) 
+              (fn? freq)
+              (and (number? pulse-width) (>= 0.0 ^double pulse-width 1.0)) 
+              (fn? pulse-width))] }
+  (if (and (number? freq) (number? pulse-width))
+    (blit-pulse-static (double freq) (double pulse-width) nharmonics)    
+    (blit-pulse-dynamic freq pulse-width nharmonics))))
+ 
+
+
+;; blit-square
+
+;(def ^:const ^:private ^double TOP_LIM 
+;  (- TWO_PI 0.1))
+         
+;(defn calc-square-harmonics 
+;  ^long [^double p ^long nharmonics]
+;  (if (<= nharmonics 0)
+;    (let [max-harmonics (long (Math/floor (* 0.5 p)))]
+;      (* 2 (+ max-harmonics 1)))
+;    (* 2 (+ nharmonics 1))))
+
+;(defn two-pi-limit
+;  ^double [^double v]
+;  (if (>= v ^double TWO_PI) (- v ^double TWO_PI) v))
+
+;(defn- blit-square-static
+;  [^double freq ^long nharmonics]
+;  (let [out ^doubles (create-buffer)
+;        p (/ (* 0.5 (double *sr*)) freq)
+;        rate (/ Math/PI p)
+;        m (calc-square-harmonics p nharmonics)
+;        a (/ m p) ]
+;    (generator 
+;      [phase 0.0
+;       last-val 0.0
+;       last-blit 0.0]
+;      []
+;      (let [denom (Math/sin phase)
+;            new-blit (+ last-blit 
+;                        (if (< (Math/abs denom) ^double DOUBLE-EPSILON)
+;                          (if (or (< phase 0.1) (> phase ^double TOP_LIM))
+;                            a
+;                            (- a))
+;                          (/ (Math/sin (* m phase)) (* p denom))))
+;            new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
+;            new-phs (two-pi-limit (+ phase rate))]
+;        (aset out int-indx new-val) 
+;        (recur (unchecked-inc indx) new-phs new-val new-blit))
+;      (yield out))))
+
+;(defn- blit-square-dynamic
+;  [freq ^long nharmonics]
+;  (let [out ^doubles (create-buffer)
+;        sr (double *sr*)]
+;    (generator
+;      [phase 0.0
+;       last-val 0.0
+;       last-blit 0.0]
+;      [f freq]
+;      (if (<= f 0) 
+;        (do 
+;          (aset out int-indx 0.0)
+;          (recur (unchecked-inc indx) phase last-val last-blit))
+;        (let [p (/ (* 0.5 sr) f)
+;              rate (/ Math/PI p)
+;              m (calc-square-harmonics p nharmonics)
+;              a (/ m p) 
+;              denom (Math/sin phase)
+;              new-blit (+ last-blit 
+;                          (if (< (Math/abs denom) ^double DOUBLE-EPSILON)
+;                            (if (or (< phase 0.1) (> phase ^double TOP_LIM))
+;                              a
+;                              (- a))
+;                            (/ (Math/sin (* m phase)) (* p denom))))
+;              new-val (+ new-blit (- last-blit) (* 0.999 last-val)) ; dc blocked
+;              new-phs (two-pi-limit (+ phase rate))]
+;          (aset out int-indx new-val) 
+;          (recur (unchecked-inc indx) new-phs new-val new-blit)))
+;      (yield out))))
 
 
 (defn blit-square
   "Implementation of BLIT algorithm by Stilson and Smith for band-limited
-  square waveform. Based on the C++ implementation from STK.
+  square waveform. 
  
   Returns an optimized audio-function if freq is a number, or a slower
   version if freq is itself an audio-function."
@@ -351,22 +433,21 @@
   ([freq ^long nharmonics]
    {:pre [(or (and (number? freq) (pos? ^double freq)) (fn? freq))] }
   (if (number? freq)
-    (blit-square-static (double freq) nharmonics)    
-    (blit-square-dynamic freq nharmonics) 
+    (blit-pulse-static (double freq) 0.5 nharmonics)    
+    (blit-pulse-dynamic freq 0.5 nharmonics) 
     )))
 
 
+;; BLIT Triangle
 (defn- blit-triangle-static
   [^double freq ^long nharmonics]
   (let [out ^doubles (create-buffer)
-        p (/ (double *sr*) freq)
         gain (/ (* 4.0 freq ) (double *sr*) )
         square (blit-square freq nharmonics)]
     (generator 
-      [last-val 0.0]
+      [last-val (- 0.5)]
       [square-val square]
-      (let [new-val (+ (* 0.999 last-val) (* square-val gain) ) 
-            ]
+      (let [new-val (+ (* 0.999 last-val) (* square-val gain))]
         (aset out int-indx new-val) 
         (recur (unchecked-inc indx) new-val))
       (yield out))))
@@ -378,11 +459,11 @@
         sr (double *sr*)
         square (blit-square freq-fn nharmonics)]
     (generator 
-      [last-val 0.0]
+      [last-val (- 0.5)]
       [square-val square
        f freq-fn]
       (let [gain (/ (* 4.0 f ) sr )
-            new-val (+ (* 0.999 last-val) (* square-val gain) )]
+            new-val (+ (* 0.999 last-val) (* square-val gain))]
         (aset out int-indx new-val) 
         (recur (unchecked-inc indx) new-val))
       (yield out))))
