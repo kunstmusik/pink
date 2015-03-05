@@ -50,9 +50,9 @@
 ;; TODO - implement LFO with :triangle instead of using sines here
 (defn vox-humana 
   [amp freq loc]
-  (let  [pulse-freq (mul freq (sum 1.0004 (mul 0.013 (sine 3.5)) ))
-         pulse-width (sum 0.625 (mul 0.125 (sine 5.72)))
-         saw-freq (mul freq (sum 1 (mul 0.021 (sine 5.04))))
+  (let  [pulse-freq (mul freq (sum 1.0004 (lfo 0.013 3.5 :triangle)))
+         pulse-width (sum 0.625 (lfo 0.125 5.72 :triangle))
+         saw-freq (mul freq (sum 1 (lfo 0.021 5.04 :triangle)))
          key-follow (+ 1 (Math/exp (/ (- freq 50.0) 10000.0))) ] 
     (let-s [e (if (fn? amp) 
                 amp

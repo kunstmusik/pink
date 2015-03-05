@@ -8,36 +8,6 @@
 (def ^:const PI Math/PI)
 (def ^:const TWO_PI (* 2 PI))
 
-(defn phasor 
-  "Phasor with fixed frequency and starting phase"
-  [^double freq ^double phase]
-  (let [phase-incr ^double (/ freq (double *sr*))
-        out ^doubles (create-buffer)]
-    (generator 
-      [cur-phase phase]
-      []
-      (do
-        (aset out int-indx cur-phase)
-        (recur (unchecked-inc indx) (rem (+ phase-incr cur-phase) 1.0)))
-      (yield out))))
-
-(defn sine 
-  "Sine generator with fixed frequency and starting phase"
-  ([^double freq]
-   (sine freq 0.0))
-  ([^double freq ^double phase]
-   (let [phsr (phasor freq phase)
-         out ^doubles (create-buffer)]
-     (generator 
-       [] [phs phsr]
-       (do
-         (aset out int-indx (Math/sin (* TWO_PI phs))) 
-         (recur (unchecked-inc indx)))          
-       (yield out)))))
-
-;(require '[no.disassemble :refer :all])
-;(println (disassemble sine))
-
 (defn vphasor 
   "Phasor with variable frequency and variable starting phase."
   [freq phase]
@@ -57,7 +27,46 @@
         (let [incr (/ f sr)]
           (aset out int-indx (rem (+ cur-phase phs) 1.0))
           (recur (unchecked-inc indx) (+ cur-phase incr))))
-      (yield out))))
+      (yield out)))) 
+
+(defn phasor-fixed
+  "Phasor with fixed frequency and starting phase"
+  [freq phase]
+  (let [phase-incr ^double (/ freq (double *sr*))
+          out ^doubles (create-buffer)]
+      (generator 
+        [cur-phase phase]
+        []
+        (do
+          (aset out int-indx cur-phase)
+          (recur (unchecked-inc indx) (rem (+ phase-incr cur-phase) 1.0)))
+        (yield out))))
+
+(defn phasor 
+  "Phasor with frequency and starting phase"
+  [freq phase]
+  (if (and (number? freq) (number? phase))
+    (phasor-fixed (double freq) (double phase)) 
+    (vphasor freq phase)))
+
+(defn sine 
+  "Sine generator with fixed frequency and starting phase"
+  ([^double freq]
+   (sine freq 0.0))
+  ([^double freq ^double phase]
+   (let [phsr (phasor freq phase)
+         out ^doubles (create-buffer)]
+     (generator 
+       [] [phs phsr]
+       (do
+         (aset out int-indx (Math/sin (* TWO_PI phs))) 
+         (recur (unchecked-inc indx)))          
+       (yield out)))))
+
+;(require '[no.disassemble :refer :all])
+;(println (disassemble sine))
+
+
 
 (defn sine2 
   "Sine generator with variable frequency and fixed starting phase."
@@ -477,3 +486,59 @@
     (blit-triangle-static (double freq) nharmonics)    
     (blit-triangle-dynamic freq nharmonics) 
     )))
+
+;; LFO
+
+(defn- lfo-ugen
+  [freq phase-calc]
+  (let [out (create-buffer)
+        phsr (phasor freq 0.0)] 
+     (generator
+       []
+       [phs phsr]
+       (do
+         (aset out int-indx ^double (phase-calc phs))
+         (recur (unchecked-inc indx))) 
+       (yield out))))
+
+(defn lfo 
+  "Low-Frequency Oscillator with various types. Based on Csound's LFO opcode by
+  John ffitch.  Accepted lfo-types are:
+ 
+  TYPE              RANGE
+  :sine             [-amp,amp]
+  :triangle         [-amp,amp]
+  :square           [-amp,amp]
+  :square-unipolar  [0.0, amp] 
+  :saw              [0.0, amp]
+  :saw-down         [0.0, amp]
+  
+  Note: This is not a bandlimited oscillator and should be used only for
+  parameter modulation. Also, unlike Csound's lfo, does not allow switching
+  the lfo-type at performance time."
+  ([amp freq]
+   (lfo amp freq :sine))
+  ([amp freq lfo-type]
+   (case lfo-type
+     :sine
+     (oscil amp freq) 
+     :triangle
+     (mul amp
+          (lfo-ugen freq
+               #(* 4.0 
+                   (cond 
+                     (< % 0.25) %
+                     (< % 0.5) (- 0.5 %)
+                     (< % 0.75) (- (- % 0.5))
+                     :else (- % 1.0) 
+                     ))))
+     :square
+     (mul amp (lfo-ugen freq #(if (< % 0.5) 1.0 -1.0)))
+     :square-unipolar
+     (mul amp (lfo-ugen freq #(if (< % 0.5) 1.0 0.0)))
+     :saw
+     (mul amp (phasor freq 0.0))
+     :saw-down
+     (mul amp (sub 1.0 (phasor freq 0.0))) 
+     (throw (Exception. (str "Unknown LFO type: " lfo-type))) 
+     )))
