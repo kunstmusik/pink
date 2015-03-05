@@ -1,7 +1,7 @@
 (ns pink.oscillators
   "Oscillator Functions"
   (:require [pink.config :refer [*sr* *buffer-size*]]
-            [pink.util :refer [create-buffer arg generator shared]]
+            [pink.util :refer [create-buffer arg generator shared mul sub]]
             [pink.gen :refer [gen-sine]] 
             ))
 
