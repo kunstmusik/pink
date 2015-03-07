@@ -1,17 +1,16 @@
 (ns pink.instruments.piano
   "Translation of Scott Van Duyne's Piano Model from Common Lisp Music"
-  (:require [clojure.math.numeric-tower :refer [expt]]
-            [pink.util :refer :all]
+  (:require [pink.util :refer :all]
             [pink.config :refer :all]))
 
 (def number-of-stiffness-allpasses 8)
 (def longitudinal-mode-cutoff-keynum 29)
 (def longitudinal-mode-stiffness-coefficient -0.5)
-(def golden-mean 0.618)
+(def ^:const golden-mean 0.618)
 (def loop-gain-env-t60 0.05)
 (def loop-gain-default 0.9999)
 (def nstrings 3)
-(def TWO-PI (* 2 Math/PI))
+(def ^:const TWO-PI ^double (* 2.0 Math/PI))
 
 ;;keynum indexed parameter tables
 ;;these should all be &key variable defaults for p instrument
@@ -83,8 +82,9 @@
 
 
 ;; converts t60 values to suitable :rate values for expseg
-(defn in-t60 [t60] 
-  (- 1.0 (expt 0.001 (/ 1.0 t60 *sr*))))
+(defn in-t60 
+  ^double [^double t60] 
+  (- 1.0 (Math/pow 0.001 (/ 1.0 t60 (double *sr*)))))
 
 ;;; expseg (like musickit asymp)
 ;(def-clm-struct expsegstr currentvalue targetvalue rate)
@@ -185,17 +185,17 @@
 ;  `(let ((input ,input))
 ;     (if ,f (delay ,f input) input)))
 
-(defn apphase [a1 wt]
+(defn apphase ^double [^double a1 ^double wt]
   (Math/atan2 (* (- (* a1 a1) 1.0) (Math/sin wt))
         (+ (* 2.0 a1) (*(+ (* a1 a1) 1.0) (Math/cos wt)))))
 
-(defn opozphase [b0 b1 a1 wt] 
+(defn opozphase ^double [^double b0 ^double b1 ^double a1 ^double wt] 
   (let [s (Math/sin wt)
         c (Math/cos wt)] 
     (Math/atan2 (- (* a1 s (+ b0 (* b1 c))) (* b1 s (+ 1 (* a1 c))))
           (+ (* (+ b0 (* b1 c)) (+ 1 (* a1 c))) (* b1 s a1 s)))))
 
-(defn get-allpass-coef [samp-frac wt]
+(defn get-allpass-coef ^double [^double samp-frac ^double wt]
   (let [ta (Math/tan (- (* samp-frac wt)))
         c (Math/cos wt)
         s (Math/sin wt)]
@@ -203,20 +203,27 @@
                     (Math/sqrt (* (+ 1 (* ta ta)) (* s s)))))
        (- (* c ta) s))))
 
-(defn apfloor [len wt]
-;  (multiple-value-bind
-;    (len-int len-frac) (floor len)
-;    (if (< len-frac golden-mean)
-;      (let () (decf len-int)(incf len-frac)))
-;    (and (< len-frac golden-mean)
-;         (> len-int 0)
-;         (let () (decf len-int)(incf len-frac)))
-;    (values len-int (get-allpass-coef len-frac wt)))
-)
+(defn apfloor [^double len ^double wt]
+  (let [len-int (atom (Math/floor len))
+        len-frac (atom (- len ^double @len-int))]
+    (when (< ^double @len-frac golden-mean)
+      (swap! len-int dec)
+      (swap! len-frac inc))
+    (when (and (< ^double @len-frac golden-mean)
+               (> ^double @len-int 0))
+      (swap! len-int dec)
+      (swap! len-frac inc))
+    [@len-int (get-allpass-coef @len-frac wt)]))
 
 (defn tune-piano
   [frequency stiffnesscoefficient numallpasses b0 b1 a1] 
-  (let [wt (/ (* frequency TWO-PI) *sr*)
+  (let [frequency (double frequency) 
+        stiffnesscoefficient (double stiffnesscoefficient) 
+        numallpasses (double numallpasses) 
+        b0 (double b0) 
+        b1 (double b1) 
+        a1 (double a1)
+        wt (/ (* frequency TWO-PI) (double *sr*))
         len (/ (+ TWO-PI 
                 (* numallpasses
                    (apphase stiffnesscoefficient wt))
