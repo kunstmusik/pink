@@ -424,10 +424,11 @@
           afn-indexing] (process-afn-bindings afn-bindings)
         [state new-bindings save-bindings] (process-bindings bindings) 
         yield-body (handle-yield save-bindings (second yield-form))
-        bsize-sym (gensym "buffer-size")]
+        bsize-sym (gensym "buffer-size")
+        fnarg (with-meta [] {:tag doubles})]
     `(let [~@state
            ~bsize-sym (long *buffer-size*)] 
-       (fn []  
+       (fn ~fnarg  
          (let [~@new-afn-bindings] 
            (when (and ~@afn-results)
              (loop [~indx-sym 0 
@@ -465,7 +466,7 @@
 (defmacro with-duration 
   [dur body]
   `(let [done-arr# (boolean-array 1 false)
-         adjusted-dur# (* ~dur (/ 60.0 pink.config/*tempo*))] 
+         adjusted-dur# (* ~dur (/ 60.0 (double pink.config/*tempo*)))] 
      (binding [pink.config/*duration* adjusted-dur#
              pink.config/*done* done-arr#]
       (let [afn# ~body]
@@ -534,7 +535,7 @@
     (if-let [b (afn)]
       b
       (locking atm
-        (swap! atm #(if (pos? %) (dec %) 0))
+        (swap! atm (fn [^long a] (if (pos? a) (dec a) 0)))
         nil))))
 
 ;; This might not be the best use of protocol/reify... revisit this later, could always be
@@ -542,13 +543,13 @@
 (defn create-max-allocator
   "Keeps track of current allocations for limiting max-number. Warning: Depends on audio functions
   exiting by returning nil to keep track of deallocations. ."
-  [max-allocs]
+  [^long max-allocs]
   (let [allocs (atom 0)]
     (reify Allocator
       (num-allocs [x] @allocs)
       (acquire-alloc! [x] 
         (locking allocs
-          (let [v @allocs]
+          (let [^long v @allocs]
             (if (< v max-allocs)
               (do 
                 (swap! allocs inc)

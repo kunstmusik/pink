@@ -241,7 +241,7 @@
   Based on code by Nigel Redmon at http://www.earlevel.com/main/2013/06/03/envelope-generators-adsr-code/
   "
   [^double a ^double d ^double s ^double r ]
-  (let [dur *duration*
+  (let [dur (double *duration*)
         done *done*]
     (cond 
       done

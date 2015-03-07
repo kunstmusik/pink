@@ -37,7 +37,7 @@
 
 (defn table-max
   "Finds max absolute value within a table"
-[^doubles tbl]
+  ^double [^doubles tbl]
   (areduce tbl indx ret 0.0 
          (Math/max ret (Math/abs (aget tbl indx)))))
 

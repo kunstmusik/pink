@@ -31,7 +31,7 @@
 
 (defn phasor-fixed
   "Phasor with fixed frequency and starting phase"
-  [freq phase]
+  [^double freq ^double phase]
   (let [phase-incr ^double (/ freq (double *sr*))
           out ^doubles (create-buffer)]
       (generator 
@@ -525,17 +525,19 @@
      :triangle
      (mul amp
           (lfo-ugen freq
-               #(* 4.0 
-                   (cond 
-                     (< % 0.25) %
-                     (< % 0.5) (- 0.5 %)
-                     (< % 0.75) (- (- % 0.5))
-                     :else (- % 1.0) 
-                     ))))
+                    (fn ^double [^double p] 
+                      (* 4.0 
+                         (double
+                           (cond 
+                             (< p 0.25) p
+                             (< p 0.5) (- 0.5 p)
+                             (< p 0.75) (- (- p 0.5))
+                             :else (- p 1.0) 
+                             ))))))
      :square
-     (mul amp (lfo-ugen freq #(if (< % 0.5) 1.0 -1.0)))
+     (mul amp (lfo-ugen freq (fn ^double [^double p] (if (< p 0.5) 1.0 -1.0))))
      :square-unipolar
-     (mul amp (lfo-ugen freq #(if (< % 0.5) 1.0 0.0)))
+     (mul amp (lfo-ugen freq (fn ^double [^double p] (if (< p 0.5) 1.0 0.0))))
      :saw
      (mul amp (phasor freq 0.0))
      :saw-down

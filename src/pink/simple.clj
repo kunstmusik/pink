@@ -90,7 +90,7 @@
 (defn apply-afunc-with-dur
   "Applies an afunc to args, wrapping results with (with-duration dur)."
   [afunc dur & args]  
-  (with-duration dur
+  (with-duration (double dur)
     (apply!*! afunc args)))
 
 (defn i
