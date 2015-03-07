@@ -3,7 +3,9 @@
   (:require [pink.config :refer [*sr* *buffer-size*]]
             [pink.util :refer [create-buffer arg generator shared mul sub]]
             [pink.gen :refer [gen-sine]] 
-            ))
+            )
+  (:import [clojure.lang IFn$DD])
+  )
 
 (def ^:const PI Math/PI)
 (def ^:const TWO_PI (* 2 PI))
@@ -490,14 +492,14 @@
 ;; LFO
 
 (defn- lfo-ugen
-  [freq phase-calc]
+  [freq ^IFn$DD phase-calc]
   (let [out (create-buffer)
         phsr (phasor freq 0.0)] 
      (generator
        []
        [phs phsr]
        (do
-         (aset out int-indx ^double (phase-calc phs))
+         (aset out int-indx ^double (.invokePrim phase-calc phs))
          (recur (unchecked-inc indx))) 
        (yield out))))
 
@@ -544,3 +546,4 @@
      (mul amp (sub 1.0 (phasor freq 0.0))) 
      (throw (Exception. (str "Unknown LFO type: " lfo-type))) 
      )))
+

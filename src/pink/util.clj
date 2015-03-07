@@ -424,11 +424,10 @@
           afn-indexing] (process-afn-bindings afn-bindings)
         [state new-bindings save-bindings] (process-bindings bindings) 
         yield-body (handle-yield save-bindings (second yield-form))
-        bsize-sym (gensym "buffer-size")
-        fnarg (with-meta [] {:tag doubles})]
+        bsize-sym (gensym "buffer-size")]
     `(let [~@state
            ~bsize-sym (long *buffer-size*)] 
-       (fn ~fnarg  
+       (fn [] 
          (let [~@new-afn-bindings] 
            (when (and ~@afn-results)
              (loop [~indx-sym 0 
