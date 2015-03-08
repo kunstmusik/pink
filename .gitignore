@@ -2,6 +2,7 @@
 /lib
 /classes
 /checkouts
+/site
 /docs/**
 pom.xml
 *.jar
