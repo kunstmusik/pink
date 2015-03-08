@@ -242,6 +242,8 @@
     (envelope-interp keynum table)))
 
 (defn piano 
+  "Physically-modelled piano instrument. Based on Scott Van Duyne's Piano Model
+  from Common Lisp Music.  (Note: translation not yet done, please don't use.)"
   [& {:keys 
       [ duration keynum strike-velocity 
        pedal-down release-time-margin amp 
