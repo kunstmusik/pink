@@ -1,6 +1,7 @@
 (ns pink.event-test
   (:require [pink.event :refer :all]
-            [clojure.test :refer :all])
+            [clojure.test :refer :all]
+            [pink.config :refer :all])
   (:import [java.util PriorityQueue]
            [pink.event Event EventList])
   )
@@ -26,7 +27,7 @@
 
 (deftest event-list-test
   (let [test-note (event test-audio-func 0.0 1.0 440.0)
-        evtlst ^EventList (event-list [test-note])
+        evtlst ^EventList (event-list [test-note] *buffer-size* *sr*)
         events ^PriorityQueue (.events evtlst)]
     (is (= 1 (.size events))) 
     (is (= test-note (.peek events)))
@@ -57,7 +58,7 @@
         test-note-dupe (event test-audio-func 0.0 1.0 440.0)
         test-note2 (event test-audio-func 0.1 1.1 880.0)
         test-note3 (event test-audio-func 0.2 1.0 220.0)
-        evtlst (event-list [test-note2])
+        evtlst (event-list [test-note2] *buffer-size* *sr*)
         events ^PriorityQueue (.events evtlst)]
 
     (event-list-add evtlst test-note3)
