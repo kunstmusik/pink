@@ -1,4 +1,4 @@
-(defproject kunstmusik/pink "0.1.0-SNAPSHOT"
+(defproject kunstmusik/pink "0.1.0"
   :jvm-opts ;["-server" "-Xmx2g" "-XX:-UseParallelGC"]
   ^:replace
   ["-server"
@@ -26,7 +26,6 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/math.numeric-tower "0.0.4"]
                  [primitive-math "0.1.4"]]
 
   :profiles  { 
