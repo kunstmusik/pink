@@ -565,7 +565,7 @@
         (if @init-done 
           empty-buf 
           (do 
-            (reset! init-done )
+            (reset! init-done true)
             initial))))
     (let [out (create-buffer) 
           phsr (phasor freq 0.0)] 
