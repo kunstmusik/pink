@@ -123,7 +123,7 @@
   ([amp freq table]
    (oscili amp freq table 0))
   ([amp freq ^doubles table phase]
-   (let [phsr (vphasor (arg freq) phase)
+   (let [phsr (phasor (arg freq) phase)
          out ^doubles (create-buffer)
          tbl-len (alength table)
          ampfn (arg amp)]
@@ -547,3 +547,32 @@
      (throw (Exception. (str "Unknown LFO type: " lfo-type))) 
      )))
 
+
+;; Impulse
+
+(defn pulse 
+  "Pulse generator. If freq is number and <= 0.0, will return a single
+  impulse.  Otherwise returns impulses at given frequency. Freq may be 
+  time-vary function."
+  [freq]
+  (if (and (number? freq) (<= ^double freq 0.0))
+    (let [initial (let [b (create-buffer)]
+                    (aset b 0 1.0)
+                    b)
+          empty-buf (create-buffer)
+          init-done (atom false)]
+      (fn []
+        (if @init-done 
+          empty-buf 
+          (do 
+            (reset! init-done )
+            initial))))
+    (let [out (create-buffer) 
+          phsr (phasor freq 0.0)] 
+      (generator
+        [previous 100]
+        [p phsr]
+        (let [v (if (> previous p) 1.0 0.0)]
+          (aset out int-indx v)
+          (recur (unchecked-inc indx) p))
+        (yield out)))))
