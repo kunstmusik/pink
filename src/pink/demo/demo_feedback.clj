@@ -22,31 +22,31 @@
         lfeedback (create-buffer 0.0)
         rfeedback (create-buffer 0.0)
         ldelay (feedback-write  
-                 (adelay (sum ain 
+                 (fdelay (sum ain 
                               (mul left-amp-mod (feedback-read rfeedback)))
                          left-delay-time)
                  lfeedback)
         rdelay (feedback-write 
-                 (adelay (sum ain
+                 (fdelay (sum ain
                               (mul right-amp-mod (feedback-read lfeedback))) 
                          right-delay-time) 
                  rfeedback )] 
     (fn []
       (let [aleft (ldelay)
             aright (rdelay)]
-          (when (and aleft aright)
-            (aset out 0 aleft) 
-            (aset out 1 aright) 
-            out)))))
+        (when (and aleft aright)
+          (aset out 0 aleft) 
+          (aset out 1 aright) 
+          out)))))
 
 (defn instr-saw
   [amp freq]
   (let-s [e (adsr 0.01 1.0 0.0 0.0)] 
-    (mul e
-         (moogladder (blit-saw freq) 
-                   (sum 800 (mul e 800))
-                   0.45
-                   ))))
+    (-> (blit-saw freq)
+        (moogladder (sum 800 (mul e 800)) 0.5)
+        (mul e amp)) 
+    ))
+
 
 (comment
 
@@ -59,7 +59,9 @@
 
   (start-engine)
 
-  (node-add-func saw-node (instr-saw 0.25 (+ 200 (* 200 (rand)))))  
+  (node-add-func saw-node (instr-saw 0.50 (+ 200 (* 200 (rand)))))  
 
+  (clear-engine)
+  (stop-engine)
 
   )
