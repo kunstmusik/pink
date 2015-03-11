@@ -241,22 +241,19 @@
   Based on code by Nigel Redmon at http://www.earlevel.com/main/2013/06/03/envelope-generators-adsr-code/
   "
   [^double a ^double d ^double s ^double r ]
-  (let [dur (double *duration*)
-        done *done*]
-    (cond 
-      done
-      (adsr-impl a d s r)     
+  (cond 
+    *done* 
+    (adsr-impl a d s r)     
 
-      dur
-      (with-duration dur
-        (adsr-impl a d s r)) 
+    *duration* 
+    (with-duration (double *duration*)
+      (adsr-impl a d s r)) 
 
-      :else
-     (with-duration 1.0 
-        (adsr-impl a d s r)) 
- 
-      )))
+    :else
+    (with-duration 1.0 
+      (adsr-impl a d s r)) 
 
+    ))
 
 (defn adsr140
   "ADSR Envelope generator based on Doepfer A-140. Takes in gate audio
