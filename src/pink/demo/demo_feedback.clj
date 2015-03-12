@@ -41,12 +41,30 @@
 
 (defn instr-saw
   [amp freq]
-  (let-s [e (adsr 0.01 1.0 0.0 0.0)] 
+  (let-s [e (adsr 0.5 0.0 1.0 4.0)] 
     (-> (blit-saw freq)
-        (moogladder (sum 800 (mul e 800)) 0.5)
+        (moogladder (sum 800 (mul e 4000)) 0.5)
         (mul e amp)) 
     ))
 
+(comment
+  (defn get-samples 
+    ^doubles [afn ^long num-samples]
+    (let [out ^doubles (double-array num-samples)]
+      (loop [^doubles vs (afn) index 0 buffer 0]
+        (let [q (quot index (long *buffer-size*))
+              r (rem index (long *buffer-size*))] 
+          (if (< index num-samples)
+            (if (> q buffer)
+              (recur (afn) index q)
+              (do 
+                (aset out index (* 16384 (aget vs r)))
+                (recur vs (inc index) buffer)))
+            out)))))
+
+  (def samps (get-samples (with-duration 10.0 (instr-saw 0.5 440)) 40000))
+
+  (spectrogram samps))
 
 (comment
 
@@ -59,7 +77,9 @@
 
   (start-engine)
 
-  (node-add-func saw-node (instr-saw 0.50 (+ 200 (* 200 (rand)))))  
+  (node-add-func saw-node (with-duration 5.0 (instr-saw 0.25 (env [0.0 40 5.0 1000]))))  
+  (node-add-func saw-node (with-duration 5.0 (instr-saw 0.25 (env [0.0 80 5.0 2000]))))  
+  (node-add-func saw-node (with-duration 5.0 (instr-saw 0.25 (env [0.0 120 5.0 3000]))))  
 
   (clear-engine)
   (stop-engine)

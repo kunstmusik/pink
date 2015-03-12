@@ -47,9 +47,8 @@
       (mul e) 
       (pan loc))))
 
-;; TODO - implement LFO with :triangle instead of using sines here
 (defn vox-humana 
-  [amp freq loc]
+  [amp ^double freq ^double loc]
   (let  [pulse-freq (mul freq (sum 1.0004 (lfo 0.013 3.5 :triangle)))
          pulse-width (sum 0.625 (lfo 0.125 5.72 :triangle))
          saw-freq (mul freq (sum 1 (lfo 0.021 5.04 :triangle)))
