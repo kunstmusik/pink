@@ -4,6 +4,61 @@
             [primitive-math :refer [not==]]
             ))
 
+(defn one-zero 
+  "One-zero filter.
+
+  z = location of zero along real axis in z-plane
+  Difference equation: y(n) = x(n) - z * x(n-1)
+  Reference: https://ccrma.stanford.edu/~jos/filters/One_Zero.html
+
+  Based on code from Faust's filter.lib by Julius O. Smith"
+  [afn z]
+  (if (number? z)
+    (let [out (create-buffer)
+          coef (double z)] 
+      (generator
+        [xn_1 0.0] [sig afn]
+        (let [v (- sig (* coef xn_1))] 
+          (aset out int-indx v)
+          (recur (unchecked-inc indx) sig))
+        (yield out)))
+    (let [out (create-buffer)] 
+      (generator
+        [xn_1 0.0] [sig afn
+                    coef z]
+        (let [v (- sig (* coef xn_1))] 
+          (aset out int-indx v)
+          (recur (unchecked-inc indx) sig))
+        (yield out)))))
+
+(defn one-pole
+  "One-pole filter (aka \"leaky integrator\").
+
+  p = pole location = feedback coefficient
+  Difference equation: y(n) = x(n) + p * y(n-1)
+  Reference: https://ccrma.stanford.edu/~jos/filters/One_Pole.html
+
+  Based on code from Faust's filter.lib by Julius O. Smith"
+  [afn p]
+  (if (number? p)
+    (let [out (create-buffer)
+          coef (double p)] 
+      (generator
+        [yn_1 0.0] [sig afn]
+        (let [v (+ sig (* coef yn_1))] 
+          (aset out int-indx v)
+          (recur (unchecked-inc indx) v))
+        (yield out))
+      )
+    (let [out (create-buffer)] 
+      (generator
+        [yn_1 0.0] [sig afn
+                        coef p]
+        (let [v (+ sig (* coef yn_1))] 
+          (aset out int-indx v)
+          (recur (unchecked-inc indx) v))
+        (yield out)))))
+
 (defn tone 
   "A first-order recursive low-pass filter with variable frequency response. (based on Csound's tone opcode). 
   
