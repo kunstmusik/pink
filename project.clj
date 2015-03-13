@@ -28,11 +28,14 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [primitive-math "0.1.4"]]
 
+
   :profiles  { 
               :dev  {
                      :global-vars  {*warn-on-reflection* true}
                      :dependencies [[criterium "0.4.2"]] 
-                     :plugins [[codox "0.8.8"]] } 
+                     :plugins [[codox "0.8.8"]] 
+                     :source-paths ["src/demo"]
+                     } 
 
               :profiling {
                      :plugins [[lein-nodisassemble "0.1.3"]] 
@@ -42,14 +45,21 @@
                                     }
                      }      
 
+              :benchmarking {
+                             :source-paths ["src/benchmarks"]
+                             }      
+
               :plotting {
-                     :dependencies [[incanter "1.5.4"]] 
-                     :source-paths ["plotting"]
+                     :dependencies [[incanter "1.5.4"]
+                                    ;[kunstmusik/pink-viz "0.1.0-SNAPSHOT"]
+                                    ] 
+                     :source-paths ["src/plotting"]
                      }
               }
 
 
-  :java-source-paths  ["src"] 
+  :source-paths  ["src/main"] 
+  :java-source-paths  ["src/main"] 
   :javac-options     ["-target" "1.7" "-source" "1.7"]
   :scm {:name "git"
         :url "https://github.com/kunstmusik/pink.git" }

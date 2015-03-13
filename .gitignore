@@ -5,6 +5,7 @@
 /site
 /docs/**
 pom.xml
+pom.xml.asc
 *.jar
 *.class
 *.swp
