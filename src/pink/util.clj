@@ -439,6 +439,11 @@
                  ~yield-body 
                  ))))))))
 
+(defmacro gen-recur
+  [& args]
+  (let [indx-sym 'indx]
+  `(recur (unchecked-inc ~indx-sym) ~@args)))
+
 ;(generator 
 ;  [a (long 4)
 ;   b 3.5]

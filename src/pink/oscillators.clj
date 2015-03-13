@@ -1,11 +1,9 @@
 (ns pink.oscillators
   "Oscillator Functions"
   (:require [pink.config :refer [*sr* *buffer-size*]]
-            [pink.util :refer [create-buffer arg generator shared mul sub]]
-            [pink.gen :refer [gen-sine]] 
-            )
-  (:import [clojure.lang IFn$DD])
-  )
+            [pink.util :refer [create-buffer arg generator shared mul sub gen-recur]]
+            [pink.gen :refer [gen-sine]])
+  (:import [clojure.lang IFn$DD]))
 
 (def ^:const PI Math/PI)
 (def ^:const TWO_PI (* 2 PI))
@@ -25,10 +23,10 @@
       (if (<= f 0.0) 
         (do 
           (aset out int-indx Double/NEGATIVE_INFINITY)
-          (recur (unchecked-inc indx) cur-phase))
+          (gen-recur cur-phase))
         (let [incr (/ f sr)]
           (aset out int-indx (rem (+ cur-phase phs) 1.0))
-          (recur (unchecked-inc indx) (+ cur-phase incr))))
+          (gen-recur (+ cur-phase incr))))
       (yield out)))) 
 
 (defn phasor-fixed
@@ -41,7 +39,7 @@
         []
         (do
           (aset out int-indx cur-phase)
-          (recur (unchecked-inc indx) (rem (+ phase-incr cur-phase) 1.0)))
+          (gen-recur (rem (+ phase-incr cur-phase) 1.0)))
         (yield out))))
 
 (defn phasor 
@@ -62,7 +60,7 @@
        [] [phs phsr]
        (do
          (aset out int-indx (Math/sin (* TWO_PI phs))) 
-         (recur (unchecked-inc indx)))          
+         (gen-recur))          
        (yield out)))))
 
 ;(require '[no.disassemble :refer :all])
@@ -83,10 +81,10 @@
        (if (= phase Double/NEGATIVE_INFINITY) 
          (do 
            (aset out int-indx 0.0)
-           (recur (unchecked-inc indx)))
+           (gen-recur))
          (let [v (Math/sin (* TWO_PI phase))]
            (aset out int-indx v)
-           (recur (unchecked-inc indx)) ))
+           (gen-recur) ))
        (yield out)))))
 
 (def sine-table (gen-sine))
@@ -109,10 +107,10 @@
        (if (= phase Double/NEGATIVE_INFINITY)
          (do 
            (aset out int-indx 0.0)
-           (recur (unchecked-inc indx)))
+           (gen-recur))
          (let [v (* amp (aget table (int (* phase tbl-len))))]
            (aset out int-indx v)
-           (recur (unchecked-inc indx))))
+           (gen-recur)))
        (yield out)))))
 
 
@@ -134,7 +132,7 @@
        (if (= p Double/NEGATIVE_INFINITY) 
          (do 
            (aset out int-indx 0.0)
-           (recur (unchecked-inc indx)))
+           (gen-recur))
          (let [phs (* p tbl-len)
                pt0 (int phs)
                pt1 (mod (inc pt0) tbl-len)  
@@ -145,7 +143,7 @@
                v1  (aget table pt1)
                v (* amp (+ v0 (* frac (- v1 v0))))]
            (aset out int-indx v)
-           (recur (unchecked-inc indx))))
+           (gen-recur)))
        (yield out)))))
 
 
@@ -167,7 +165,7 @@
        (if (= p Double/NEGATIVE_INFINITY) 
          (do 
            (aset out int-indx 0.0)
-           (recur (unchecked-inc indx)))
+           (gen-recur))
          (let [phs (* p tbl-len)
                pt1 (int phs)
                pt0 (if (zero? pt1) (- tbl-len 1) (- pt1 1))  
@@ -188,7 +186,7 @@
                d p1 
                v (* amp (+ (* a x3) (* b x2) (* c x) d))]
            (aset out int-indx v)
-           (recur (unchecked-inc indx))))
+           (gen-recur)))
        (yield out)))))
 
 ;; Implementation of Bandlimited Impulse Train (BLIT) functions by Stilson and
@@ -233,7 +231,7 @@
             new-st (* tmp 0.995)
             new-phs (pi-limit (+ phase rate))]
         (aset out int-indx tmp) 
-        (recur (unchecked-inc indx) new-phs new-st)) 
+        (gen-recur new-phs new-st)) 
       (yield out))))
 
 (defn- blit-saw-dynamic
@@ -248,7 +246,7 @@
       (if (<= f 0.0)
         (do 
           (aset out int-indx 0.0)
-          (recur (unchecked-inc indx) phase st))
+          (gen-recur phase st))
         (let [p (/ sr f)
               c2 (/ 1.0 p)
               rate (* Math/PI c2)
@@ -262,7 +260,7 @@
               new-st (* tmp 0.995)
               new-phs (pi-limit (+ phase rate))]
           (aset out int-indx tmp) 
-          (recur (unchecked-inc indx) new-phs new-st)))
+          (gen-recur new-phs new-st)))
       (yield out))))
 
 (defn blit-saw
@@ -299,11 +297,11 @@
             new-blit1 (blit phase a m p)
             new-blit2 (blit phase2 a m p) 
             new-blits (- new-blit1 new-blit2)
-            new-val (+ new-blits last-val) 
+            new-val (+ new-blits (* 0.999 last-val)) 
             new-phs (pi-limit (+ phase rate))
             new-phs2 (pi-limit (+ phase2 rate))]
         (aset out int-indx new-val) 
-        (recur (unchecked-inc indx) new-phs new-phs2 new-val ))
+        (gen-recur new-phs new-phs2 new-val ))
       (yield out))))
 
 (defn- blit-pulse-dynamic
@@ -318,7 +316,7 @@
       (if (<= f 0) 
         (do 
           (aset out int-indx 0.0)
-          (recur (unchecked-inc indx) phase last-val))
+          (gen-recur phase last-val))
         (let [p (/ sr f)
               rate (/ Math/PI p)
               m (calc-harmonics p nharmonics)
@@ -329,10 +327,10 @@
               new-blit1 (blit phase a m p)
               new-blit2 (blit phase2 a m p) 
               new-blits (- new-blit1 new-blit2)
-              new-val (+ new-blits last-val) 
+              new-val (+ new-blits (* 0.999 last-val)) 
               new-phs (pi-limit (+ phase rate)) ]
           (aset out int-indx new-val) 
-          (recur (unchecked-inc indx) new-phs new-val)))
+          (gen-recur new-phs new-val)))
       (yield out))))
 
 
@@ -378,7 +376,7 @@
       [square-val square]
       (let [new-val (+ (* 0.999 last-val) (* square-val gain))]
         (aset out int-indx new-val) 
-        (recur (unchecked-inc indx) new-val))
+        (gen-recur new-val))
       (yield out))))
 
 (defn- blit-triangle-dynamic
@@ -394,7 +392,7 @@
       (let [gain (/ (* 4.0 f ) sr )
             new-val (+ (* 0.999 last-val) (* square-val gain))]
         (aset out int-indx new-val) 
-        (recur (unchecked-inc indx) new-val))
+        (gen-recur new-val))
       (yield out))))
 
 (defn blit-triangle
@@ -418,7 +416,7 @@
        [phs phsr]
        (do
          (aset out int-indx ^double (.invokePrim phase-calc phs))
-         (recur (unchecked-inc indx))) 
+         (gen-recur)) 
        (yield out))))
 
 (defn lfo 
@@ -492,5 +490,5 @@
         [p phsr]
         (let [v (if (> previous p) 1.0 0.0)]
           (aset out int-indx v)
-          (recur (unchecked-inc indx) p))
+          (gen-recur p))
         (yield out)))))

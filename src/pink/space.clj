@@ -1,7 +1,7 @@
 (ns pink.space
   "Functions for processing spatial qualities of sound"
   (:require [pink.config :refer :all]
-            [pink.util :refer [create-buffer arg generator]]
+            [pink.util :refer [create-buffer arg generator gen-recur]]
             [pink.dynamics :refer [db->amp]]
             [primitive-math :refer [not==]]
             ))
@@ -37,9 +37,9 @@
                new-r (db->amp (* 20 (Math/log (Math/sin (* PI2 new-loc-v )))))]
             (aset left int-indx (* new-l ain)) 
             (aset right int-indx (* new-r ain)) 
-            (recur (unchecked-inc indx) loc new-loc-v new-l new-r))
+            (gen-recur loc new-loc-v new-l new-r))
          (do
            (aset left int-indx (* last-l ain)) 
            (aset right int-indx (* last-r ain)) 
-           (recur (unchecked-inc indx) loc last-loc-v last-l last-r)))
+           (gen-recur loc last-loc-v last-l last-r)))
        (yield out))))

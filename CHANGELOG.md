@@ -11,6 +11,9 @@ New
     samples.
   * frac-delay,fdelay - interpolating (fractional) delay lines with fixed
     delay-time in samples/seconds.
+* pink.util
+  * gen-recur - macro for generator recur statements that takes care of
+    incrementing indx
 
 Fixed
 

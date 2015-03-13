@@ -20,7 +20,7 @@
         [xn_1 0.0] [sig afn]
         (let [v (- sig (* coef xn_1))] 
           (aset out int-indx v)
-          (recur (unchecked-inc indx) sig))
+          (gen-recur sig))
         (yield out)))
     (let [out (create-buffer)] 
       (generator
@@ -28,7 +28,7 @@
                     coef z]
         (let [v (- sig (* coef xn_1))] 
           (aset out int-indx v)
-          (recur (unchecked-inc indx) sig))
+          (gen-recur sig))
         (yield out)))))
 
 (defn one-pole
@@ -47,7 +47,7 @@
         [yn_1 0.0] [sig afn]
         (let [v (+ sig (* coef yn_1))] 
           (aset out int-indx v)
-          (recur (unchecked-inc indx) v))
+          (gen-recur v))
         (yield out))
       )
     (let [out (create-buffer)] 
@@ -56,7 +56,7 @@
                         coef p]
         (let [v (+ sig (* coef yn_1))] 
           (aset out int-indx v)
-          (recur (unchecked-inc indx) v))
+          (gen-recur v))
         (yield out)))))
 
 (defn tone 
@@ -76,7 +76,7 @@
             c1 (- 1.0 c2)
             new-val (+ (* c1 ain) (* c2 last-val))]
                 (aset out int-indx new-val) 
-                (recur (unchecked-inc indx) new-val))
+                (gen-recur new-val))
       (yield out))))
 
 ;(println (disassemble tone))
@@ -97,7 +97,7 @@
                     c2 (- b (Math/sqrt (- (* b b) 1.0)))
                     new-val (* c2 (+ last-val ain))]
                 (aset out int-indx new-val) 
-                (recur (unchecked-inc indx) (- new-val ain)))
+                (gen-recur (- new-val ain)))
       (yield out))))
 
 (defn port
@@ -113,7 +113,7 @@
       [ain afn]
        (let [new-val (+ (* c1 ain) (* c2 last-val))]
                 (aset out int-indx new-val)
-                (recur (unchecked-inc indx) new-val))
+                (gen-recur new-val))
       (yield out))))
 
 ;; Butterworth Filters
@@ -147,7 +147,7 @@
         (<= cut 0.0) 
         (do 
           (aset out int-indx 0.0)
-          (recur (unchecked-inc indx) cut old-a1 old-a2 old-a3 old-a4
+          (gen-recur cut old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (not== last-cut cut)
         (let [c (Math/tan (* PIDSR cut)) 
@@ -184,7 +184,7 @@
         (<= cut 0.0) 
         (do 
           (aset out int-indx 0.0)
-          (recur (unchecked-inc indx) cut old-a1 old-a2 old-a3 old-a4
+          (gen-recur cut old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (not== last-cut cut)
         (let [c (/ 1.0 (Math/tan (* PIDSR cut)))
@@ -234,7 +234,7 @@
         (or (<= cf 0.0) (<= bw 0.0))
         (do 
           (aset out int-indx 0.0)
-          (recur (unchecked-inc indx) cf bw old-a1 old-a2 old-a3 old-a4
+          (gen-recur cf bw old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (or (not== last-cf cf) (not== last-bw bw))
         (let [c (/ 1.0 (Math/tan (* PIDSR bw)))
@@ -273,7 +273,7 @@
         (or (<= cf 0.0) (<= bw 0.0))
         (do 
           (aset out int-indx 0.0)
-          (recur (unchecked-inc indx) cf bw old-a1 old-a2 old-a3 old-a4
+          (gen-recur cf bw old-a1 old-a2 old-a3 old-a4
                  old-a5 old-a6 old-a7))
         (or (not== last-cf cf) (not== last-bw bw))
         (let [c (Math/tan (* PIDSR bw)) 
@@ -387,7 +387,7 @@
                _new-del4 _stg3]
 
            (aset out int-indx _new-del5)
-           (recur (unchecked-inc indx) 
+           (gen-recur 
                   _stg0 _stg1 _stg2 _stg3 _new-del4 _new-del5 
                   _new-tanhstg0 _new-tanhstg1 _new-tanhstg2
                   cut res acr tune))) 
@@ -422,7 +422,7 @@
                _new-del4 _stg3]
 
            (aset out int-indx _new-del5)
-           (recur (unchecked-inc indx) 
+           (gen-recur 
                   _stg0 _stg1 _stg2 _stg3 _new-del4 _new-del5 
                   _new-tanhstg0 _new-tanhstg1 _new-tanhstg2
                   cut res acr tune)))
@@ -477,8 +477,7 @@
             curaout (- (* kp1h (+ curay2 ay2)) (* kp aout))
             outval (Math/tanh (* curaout value))] 
         (aset out int-indx outval)
-        (recur (unchecked-inc indx)
-               curin res cut dist curay1 curay2 curaout))
+        (gen-recur curin res cut dist curay1 curay2 curaout))
       (yield out)
       ))
 
@@ -503,7 +502,7 @@
 ;     (let [yn (- (+ (* _b0 xn) (* b1 x-1) (* b2 x-2))
 ;                 (* _a1 y-1) (* _a2 y-2))]
 ;       (aset out int-indx yn)
-;       (recur (unchecked-inc indx) xn x-1 yn y-1))
+;       (gen-recur xn x-1 yn y-1))
 ;     (yield out)
 ;     )))
 

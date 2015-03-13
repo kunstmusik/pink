@@ -1,6 +1,6 @@
 (ns pink.dynamics
   "Functions for dealing with dynamics/amplitude of audio"
-  (:require [pink.util :refer [create-buffer getd generator]]
+  (:require [pink.util :refer [create-buffer getd generator gen-recur]]
             [pink.config :refer [*buffer-size* *sr*]]))
 
 (def ^:const ^double LOG10D20

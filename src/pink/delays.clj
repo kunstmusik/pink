@@ -1,6 +1,6 @@
 (ns pink.delays
   (:require [pink.config :refer :all]
-            [pink.util :refer [create-buffer mix-buffers generator]]
+            [pink.util :refer [create-buffer mix-buffers generator gen-recur]]
             ))
 
 ;; feedback functions
@@ -67,8 +67,7 @@
       (let [v (aget delay-buffer rw-ptr)]
         (aset delay-buffer rw-ptr sig)
         (aset out int-indx v)
-        (recur (unchecked-inc indx) 
-               (rem (unchecked-inc rw-ptr) delay-time)))
+        (gen-recur (rem (unchecked-inc rw-ptr) delay-time)))
       (yield out))))
 
 (defn frac-delay
@@ -93,8 +92,7 @@
             v (+ (* delay-frac0 v0) (* delay-frac1 v1))]
         (aset delay-buffer rw-ptr sig)
         (aset out int-indx v)
-        (recur (unchecked-inc indx) 
-               (rem (unchecked-inc rw-ptr) delay-length)))
+        (gen-recur (rem (unchecked-inc rw-ptr) delay-length)))
       (yield out))))
 
 (defn adelay

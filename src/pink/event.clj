@@ -122,11 +122,11 @@
         nil))))
 
 (defn seconds->beats
-  [^double seconds ^double tempo]
+  ^double [^double seconds ^double tempo]
   (* seconds (/ tempo 60.0)))
 
 (defn beats->seconds
-  [^double beats ^double tempo]
+  ^double [^double beats ^double tempo]
   (* beats (/ 60.0 tempo)))
 
 (defn event-list-tick!
@@ -134,7 +134,10 @@
   (merge-pending! evtlst)
   (let [cur-beat (double @(.cur-beat evtlst))
         tempo (double @(.tempo-atom evtlst))
-        time-adj (seconds->beats (/ (.buffer-size evtlst) (.sr evtlst)) tempo)
+        time-adj (seconds->beats 
+                   (/ ^double (.buffer-size evtlst) 
+                      ^double (.sr evtlst)) 
+                   tempo)
         end-time (+ cur-beat time-adj)
         events ^PriorityQueue (.events evtlst)]
     (binding [*tempo* tempo]    
