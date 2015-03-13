@@ -297,11 +297,11 @@
             new-blit1 (blit phase a m p)
             new-blit2 (blit phase2 a m p) 
             new-blits (- new-blit1 new-blit2)
-            new-val (+ new-blits (* 0.999 last-val)) 
+            new-val (+ new-blits last-val) 
             new-phs (pi-limit (+ phase rate))
             new-phs2 (pi-limit (+ phase2 rate))]
         (aset out int-indx new-val) 
-        (gen-recur new-phs new-phs2 new-val ))
+        (gen-recur new-phs new-phs2 (* 0.999 new-val) ))
       (yield out))))
 
 (defn- blit-pulse-dynamic
@@ -327,10 +327,10 @@
               new-blit1 (blit phase a m p)
               new-blit2 (blit phase2 a m p) 
               new-blits (- new-blit1 new-blit2)
-              new-val (+ new-blits (* 0.999 last-val)) 
+              new-val (+ new-blits last-val) 
               new-phs (pi-limit (+ phase rate)) ]
           (aset out int-indx new-val) 
-          (gen-recur new-phs new-val)))
+          (gen-recur new-phs (* 0.999 new-val))))
       (yield out))))
 
 
