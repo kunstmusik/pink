@@ -3,7 +3,7 @@
   (:require [pink.util :refer [create-buffer getd generator gen-recur]]
             [pink.config :refer [*buffer-size* *sr*]]))
 
-(def ^:const ^double LOG10D20
+(def ^:const ^{:tag 'double} LOG10D20
     (/  (Math/log 10) 20))
 
 (defn db->amp

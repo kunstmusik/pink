@@ -24,8 +24,7 @@
         (yield out)))
     (let [out (create-buffer)] 
       (generator
-        [xn_1 0.0] [sig afn
-                    coef z]
+        [xn_1 0.0] [sig afn, coef z]
         (let [v (- sig (* coef xn_1))] 
           (aset out int-indx v)
           (gen-recur sig))
@@ -52,8 +51,7 @@
       )
     (let [out (create-buffer)] 
       (generator
-        [yn_1 0.0] [sig afn
-                        coef p]
+        [yn_1 0.0] [sig afn, coef p]
         (let [v (+ sig (* coef yn_1))] 
           (aset out int-indx v)
           (gen-recur v))
@@ -90,9 +88,7 @@
         cutoff-fn (arg cutoff)
         out ^doubles (create-buffer)]
     (generator 
-      [last-val 0.0]
-      [ain afn
-       hp cutoff-fn]
+      [last-val 0.0] [ain afn, hp cutoff-fn]
       (let [ b (- 2.0 (Math/cos (* hp TPIDSR)))
                     c2 (- b (Math/sqrt (- (* b b) 1.0)))
                     new-val (* c2 (+ last-val ain))]
@@ -101,16 +97,15 @@
       (yield out))))
 
 (defn port
-  [afn ^double half-time] 
   "Apply portamento to step-wise signal via low-pass filtering."
+  [afn ^double half-time] 
   (let [out ^doubles (create-buffer) 
         onedsr (/ 1.0 (long *sr*))
         c2 (Math/pow 0.5 (/ onedsr half-time))
         c1 (- 1.0 c2)
         last-val ^doubles (double-array 1 0.0)]
     (generator
-      [last-val 0.0]
-      [ain afn]
+      [last-val 0.0] [ain afn]
        (let [new-val (+ (* c1 ain) (* c2 last-val))]
                 (aset out int-indx new-val)
                 (gen-recur new-val))

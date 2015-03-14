@@ -170,7 +170,7 @@
     (into-array 
       (for [_ (range nchnls)] (create-buffer)))))
 
-(def ^:const ^doubles EMPTY-BUFFER (create-buffer 0)) 
+(def ^{:tag 'doubles} EMPTY-BUFFER (create-buffer 0)) 
 
 (def MULTI-CHANNEL-TYPE 
   (type (into-array [(double-array 1) (double-array 1)])))
@@ -307,15 +307,15 @@
   ;          (when  (not-any? nil? buffers)
   ;            (apply map-d out f buffers)))))
   ;    (nth args 0)))
-  (let [out (with-meta (gensym "out") {:tag doubles})
-        buf (with-meta (gensym "out") {:tag doubles})]
+  (let [out (with-meta (gensym "out") {:tag 'doubles})
+        buf (with-meta (gensym "out") {:tag 'doubles})]
    `(if (> (count ~a) 1)
     (let [~out (create-buffer)
           args# (map arg ~a)
           buffer-size# (unchecked-int *buffer-size*)
           fns# ^"[Lclojure.lang.IFn;" (into-array IFn args#)
           fun_len# (alength fns#)]
-      (fn []
+      (fn ^{:tag 'doubles} []
         (when-let [first-buf# ((aget fns# 0))]
           (System/arraycopy first-buf# 0 ~out 0 buffer-size#)
           (loop [i# 1]
@@ -324,14 +324,12 @@
                 (loop [j# (unchecked-int 0)]
                   (when (< j# buffer-size#)
                     (aset ~(tag-doubles out) j# 
-                          (~f (aget ~(tag-doubles out) j#) 
-                              (aget ~(tag-doubles buf) j#)))
+                          (~f (aget ~out j#) 
+                              (aget ~buf j#)))
                     (recur (unchecked-inc j#))))
                 (recur (unchecked-inc i#)))  
               ~out)))))
-    (nth ~a 0)))
-  
-  )
+    (nth ~a 0))))
 
 (defn mul2 [& a] (operator * a))
 (defn div2 [& a] (operator / a))
@@ -410,6 +408,14 @@
            )]))
     [[] [] []] (partition 2 afn-bindings)))
 
+(defn ^:private gen-outer-body
+  [new-afn-bindings afn-results inner-body]
+  (if (pos? (count new-afn-bindings))
+    `(let [~@new-afn-bindings]
+       (when (and ~@afn-results)
+         ~inner-body))
+    inner-body))
+
 (defmacro generator 
   "Creates an audio-function. 
   * Bindings are for values that will be automatically saved and loaded between calls
@@ -418,26 +424,25 @@
   * body should do processing and recur with newly calculated values
   * yield-form should be (yield value-to-return)"
   [bindings afn-bindings body yield-form] 
-  (let [indx-sym (with-meta 'indx {:tag long})
-        int-indx-sym (with-meta 'int-indx {:tag int})
+  (let [indx-sym 'indx
+        int-indx-sym 'int-indx 
         [new-afn-bindings afn-results
           afn-indexing] (process-afn-bindings afn-bindings)
         [state new-bindings save-bindings] (process-bindings bindings) 
         yield-body (handle-yield save-bindings (second yield-form))
-        bsize-sym (gensym "buffer-size")]
+        bsize-sym (gensym "buffer-size")
+        inner-body `(loop [~indx-sym 0 
+                           ~@new-bindings]
+                      (if (< ~indx-sym ~bsize-sym)
+                        (let [~int-indx-sym (int ~indx-sym) 
+                              ~@afn-indexing] 
+                          ~body )          
+                        ~yield-body 
+                        ))
+        generator-body (gen-outer-body new-afn-bindings afn-results inner-body)]
     `(let [~@state
            ~bsize-sym (long *buffer-size*)] 
-       (fn [] 
-         (let [~@new-afn-bindings] 
-           (when (and ~@afn-results)
-             (loop [~indx-sym 0 
-                    ~@new-bindings]
-               (if (< ~indx-sym ~bsize-sym)
-                 (let [~int-indx-sym (int ~indx-sym) 
-                       ~@afn-indexing] 
-                   ~body )          
-                 ~yield-body 
-                 ))))))))
+       (fn [] ~generator-body))))
 
 (defmacro gen-recur
   [& args]

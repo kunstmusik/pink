@@ -203,7 +203,7 @@
   ^double [^double v]
   (if (>= v Math/PI) (- v Math/PI) v))
 
-(def ^:const ^:private ^double DOUBLE-EPSILON
+(def ^:const ^:private ^{:tag 'double} DOUBLE-EPSILON
   (Math/ulp 1.0))
 
 ;; blit-saw
