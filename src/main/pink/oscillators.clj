@@ -5,8 +5,8 @@
             [pink.gen :refer [gen-sine]])
   (:import [clojure.lang IFn$DD]))
 
-(def ^:const PI Math/PI)
-(def ^:const TWO_PI (* 2 PI))
+(def ^:const ^{:tag 'double} PI Math/PI)
+(def ^:const ^{:tag 'double} TWO_PI (* 2 PI))
 
 (defn vphasor 
   "Phasor with variable frequency and variable starting phase."
