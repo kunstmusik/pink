@@ -1,8 +1,8 @@
 (ns pink.filters
   (:require [pink.config :refer [*sr* *buffer-size*]]
             [pink.util :refer :all]
-            [primitive-math :refer [not==]]
-            ))
+            [primitive-math :refer [not==]])
+  (:import [clojure.lang IFn$DDDLO]))
 
 (defn one-zero 
   "One-zero filter.
@@ -47,8 +47,7 @@
         (let [v (+ sig (* coef yn_1))] 
           (aset out int-indx v)
           (gen-recur v))
-        (yield out))
-      )
+        (yield out)))
     (let [out (create-buffer)] 
       (generator
         [yn_1 0.0] [sig afn, coef p]
@@ -473,10 +472,64 @@
             outval (Math/tanh (* curaout value))] 
         (aset out int-indx outval)
         (gen-recur curin res cut dist curay1 curay2 curaout))
-      (yield out)
-      ))
+      (yield out))))
 
-  )
+;; State Variable Filter
+
+(defmacro write-filt-state
+  [filt-state & values]
+  `(do ~@(map (fn [a b] `(aset ~filt-state ~a ~b))
+       (range (count values)) values)))
+
+(defn- proc-statevar-fn
+  [^doubles filt-state]
+  (fn ^doubles 
+    [^double ain ^double freq ^double q ^long oversampling]
+    (loop [indx 0
+           hp (aget filt-state 0) 
+           lp (aget filt-state 1) 
+           bp (aget filt-state 2)
+           br (aget filt-state 3)]
+      (if (< indx oversampling)
+        (let [new-hp (- ain (* q bp) lp) 
+              new-bp (+ (* new-hp freq) bp)     
+              new-lp (+ (* bp freq) lp)
+              new-br (+ new-lp new-hp)]
+          (recur (unchecked-inc indx) new-hp new-lp new-bp new-br)) 
+        (do 
+          (write-filt-state filt-state hp lp bp br)
+          filt-state)))))
+
+(defn statevar 
+  ([afn freq res]
+   (statevar afn freq res 3))
+  ([afn freq res ^long oversampling]
+   (let [hp-out (create-buffer)
+         lp-out (create-buffer)
+         bp-out (create-buffer)
+         br-out (create-buffer)
+         out (into-array [hp-out lp-out bp-out br-out])
+         freqfn (arg freq)
+         resfn (arg res)
+         mul-val (double (/ (/ Math/PI (double *sr*)) oversampling))
+         filt-state (double-array 4)
+         process ^IFn$DDDLO (proc-statevar-fn filt-state)]
+     (generator
+       [] 
+       [sig afn
+        f freqfn
+        q resfn]
+       (let [fval (* 2.0 (Math/sin (* f mul-val)))
+             qval (/ 1.0 q)
+             lim (/ (* (- 2.0 fval) 0.05) oversampling)
+             qval (if (< qval lim) lim qval)]
+         (process sig fval qval oversampling)
+         (aset hp-out int-indx (aget filt-state 0))  
+         (aset lp-out int-indx (aget filt-state 1))  
+         (aset bp-out int-indx (aget filt-state 2))  
+         (aset br-out int-indx (aget filt-state 3))  
+         (gen-recur)) 
+       (yield out)))))
 
 ;; General Filters
 

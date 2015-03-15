@@ -5,15 +5,22 @@
 New 
 
 * pink.oscillators
-  * pulse - pulse generator
+  * pulse - unipolar pulse generator 
 * pink.delays
   * samp-delay - non-interpolating delay line with fixed delay-time in
     samples.
   * frac-delay,fdelay - interpolating (fractional) delay lines with fixed
     delay-time in samples/seconds.
+* pink.filters
+  * statevar - state-variable filter: returns multi-channel audio with
+    high-pass, low-pass, band-pass, and band-reject versions of input signal
 * pink.util
   * gen-recur - macro for generator recur statements that takes care of
     incrementing indx
+  * get-channel - Audio Function that gets a channel of audio from a
+    multi-channel generating audio function
+  * with-signals - macro that destructures multi-channel audio function signal
+    into separate single-channel audio function signls
 
 Fixed
 

@@ -4,7 +4,7 @@
              [pink.space :refer [pan]] 
              [pink.oscillators :refer :all]
              [pink.envelopes :refer [env xar adsr140]]
-             [pink.util :refer [mul sum let-s with-duration]]
+             [pink.util :refer :all]
              [pink.noise :refer :all]
              [pink.filters :refer :all]
              [pink.delays :refer [adelay]]
@@ -72,6 +72,7 @@
 
   ;(add-afunc (mul 0.5 (butterlp (white-noise) (env [0.0 20 5 20000]))))
 
+
   (defn example [freq] 
     (let-s [ramp-env (env [0.0 0.0 5.0 1.0 10.0 0.0])
             e (adsr140 
@@ -79,9 +80,9 @@
                 0 
                 0.04 0.02 0.9 0.15)] 
       (-> 
-        (mul e ramp-env 
-             (sum (blit-saw freq)
-                  (blit-saw (mul freq 1.002581))))
+        (sum (blit-saw freq)
+                  (blit-saw (mul freq 1.002581)))
+        (mul e ramp-env)
         (moogladder (sum 1000 (mul 500 6 e ramp-env)) 0.6)
         (pan 0.0)
         )))
@@ -93,4 +94,22 @@
   (add-afunc (example 1320.0))
   (add-afunc (example 1000.0))
 
-  )
+  (defn example2 [freq] 
+    (let-s [ramp-env (env [0.0 0.0 5.0 1.0 10.0 0.0])
+            e (adsr140 
+                (sine2 (sum 3.0 (mul ramp-env 15.0))) 
+                0 
+                0.04 0.02 0.9 0.15)] 
+      (let [s (sum (blit-saw freq) (blit-saw (mul freq 1.002581)))
+            source (mul e ramp-env s)
+            filtered (statevar source (sum 400 (mul 500 6 e ramp-env)) 0.8)]
+        (with-signals [[hp lp _ _] filtered] 
+          (->
+            (sum (mul (sub 1.0 ramp-env) lp) 
+                 (mul ramp-env hp))
+            (pan 0.0))))))
+
+  (add-afunc (example2 1000.0))
+  (add-afunc (example2 2000.0))
+
+)
