@@ -50,8 +50,6 @@
   (add-audio-events 
     (event test-filter 0.0 moogladder (env [0.0 20 10 20000]) 0.1 ))
 
-
-
   (doseq [_ (range 5)] 
     (add-afunc
       (let [pch (+ 60 (rand-int 400))] 
@@ -71,6 +69,22 @@
                (- 1 (/ (rand-int 200) 100.0))))))) 
 
   ;(add-afunc (mul 0.5 (butterlp (white-noise) (env [0.0 20 5 20000]))))
+
+  (add-afunc
+    (with-signals [[hp _ _ _] (statevar (white-noise) (env [0.0 20 5 10000]) 0.8)]
+      (pan hp 0.0)))
+
+  (add-afunc
+    (with-signals [[_ lp _ _] (statevar (white-noise) (env [0.0 20 5 10000]) 0.8)]
+      (pan lp 0.0)))
+
+  (add-afunc
+    (with-signals [[_ _ bp _] (statevar (white-noise) (env [0.0 20 5 10000]) 0.8)]
+      (pan bp 0.0)))
+
+  (add-afunc
+    (with-signals [[_ _ _ br] (statevar (white-noise) (env [0.0 20 5 10000]) 0.8)]
+      (pan br 0.0)))
 
 
   (defn example [freq] 
