@@ -328,6 +328,15 @@
 ;  )
 
 (defn moogladder
+  "Moogladder is a digital implementation of the Moog ladder filter based on
+  the work of Antti Huovilainen, described in the paper \"Non-Linear Digital
+  Implementation of the Moog Ladder Filter\" (Proceedings of DaFX04, Univ of
+  Napoli). This implementation is probably a more accurate digital
+  representation of the original analogue filter.  
+  
+  Translation of Csound moogladder opcode, written by Victor Lazzarini.
+ 
+  http://csound.github.io/docs/manual/moogladder.html"
   [afn cutoff resonance]
   (let [out ^doubles (create-buffer)
         cfn (arg cutoff)
@@ -430,9 +439,11 @@
 ;; TODO - Optimize code below to check if values have changed, if not, 
 ;;        don't recompute coefficients (same what Csound does)
 (defn lpf18
-  "Josep Comajuncosas' 18dB/oct resonant 3-pole LPF with tanh dist 
-   Coded in C by John ffitch, 2000 Dec 17, for Csound
-   Translated to Clojure by Steven Yi"
+  "Josep Comajuncosas' 18dB/oct resonant 3-pole LPF with tanh dist.
+  Coded in C by John ffitch, 2000 Dec 17, for Csound 
+  Translated to Clojure by Steven Yi.
+ 
+  http://csound.github.io/docs/manual/lpf18.html"
   [afn cutoff resonance distortion]
   (let [cutfn (arg cutoff)
         resfn (arg resonance)
@@ -476,7 +487,7 @@
 
 ;; State Variable Filter
 
-(defmacro write-filt-state
+(defmacro ^:private write-filt-state
   [filt-state & values]
   `(do ~@(map (fn [a b] `(aset ~filt-state ~a ~b))
        (range (count values)) values)))
@@ -501,6 +512,15 @@
           filt-state)))))
 
 (defn statevar 
+  "Statevar is a digital implementation of the analogue state-variable
+  filter. This filter has four simultaneous outputs: high-pass, low-pass,
+  band-pass and band-reject. This filter uses oversampling for sharper
+  resonance (default: 3 times oversampling). It includes a resonance limiter
+  that prevents the filter from getting unstable.
+  
+  Translation of Csound statevar opcode, written by Victor Lazzarini.
+ 
+  http://csound.github.io/docs/manual/statevar.html"
   ([afn freq res]
    (statevar afn freq res 3))
   ([afn freq res ^long oversampling]
