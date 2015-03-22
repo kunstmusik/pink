@@ -116,14 +116,18 @@
                 0.04 0.02 0.9 0.15)] 
       (let [s (sum (blit-saw freq) (blit-saw (mul freq 1.002581)))
             source (mul e ramp-env s)
-            filtered (statevar source (sum 400 (mul 500 6 e ramp-env)) 0.8)]
+            filtered (statevar source (sum 400 (mul 400 6 e ramp-env)) 0.5)]
         (with-signals [[hp lp _ _] filtered] 
           (->
             (sum (mul (sub 1.0 ramp-env) lp) 
                  (mul ramp-env hp))
             (pan 0.0))))))
 
-  (add-afunc (example2 1000.0))
-  (add-afunc (example2 2000.0))
+  (add-afunc (example2 100.0))
+  (add-afunc (example2 400.0))
+  (add-afunc (example2 600.0))
+  (add-afunc (example2 900.0))
+  (add-afunc (example2 1200.0))
+  (add-afunc (example2 1800.0))
 
 )
