@@ -59,6 +59,7 @@
 
 
   :source-paths  ["src/main"] 
+  :test-paths  ["src/test"]
   :java-source-paths  ["src/main"] 
   :javac-options     ["-target" "1.7" "-source" "1.7"]
   :scm {:name "git"
