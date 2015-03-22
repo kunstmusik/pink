@@ -11,9 +11,12 @@ New
     samples.
   * frac-delay,fdelay - interpolating (fractional) delay lines with fixed
     delay-time in samples/seconds.
+  * delay-read,delay-readi - higher order function for creating indexed and
+    interpolated delay line reader functions
 * pink.filters
   * statevar - state-variable filter: returns multi-channel audio with
     high-pass, low-pass, band-pass, and band-reject versions of input signal
+  * comb - feedback comb filter
 * pink.util
   * gen-recur - macro for generator recur statements that takes care of
     incrementing indx

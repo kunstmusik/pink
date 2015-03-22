@@ -3,7 +3,7 @@
              [pink.event :refer :all] 
              [pink.space :refer [pan]] 
              [pink.oscillators :refer :all]
-             [pink.envelopes :refer [env xar adsr140]]
+             [pink.envelopes :refer :all]
              [pink.util :refer :all]
              [pink.noise :refer :all]
              [pink.filters :refer :all]
@@ -129,5 +129,17 @@
   (add-afunc (example2 900.0))
   (add-afunc (example2 1200.0))
   (add-afunc (example2 1800.0))
+
+  (add-afunc
+    (let [asig (shared (blit-saw (exp-env [0.0 2000 3.0 20])))
+            l (comb asig 3.5 0.1)
+            r (comb asig 3.5 0.02)
+            ^"[[D" out (create-buffers 2)]
+      (fn []
+        (let [a (l) b (r)]
+          (when (and a b)
+            (aset out 0 a)
+            (aset out 1 b)
+            out)))))
 
 )

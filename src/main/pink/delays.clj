@@ -30,8 +30,12 @@
   (double-array (int (+ 0.5 (* delay-time-max (double *sr*))))))
 
 (defn delay-read
-  [delay-buffer read-time]
-  )
+  ^IFn$LD [^doubles delay-buffer ^long delay-time]
+  (let [delay-length (long (alength delay-buffer))]
+   (fn ^double [^long write-ptr]
+      (let [indx (let [temp-indx (- write-ptr delay-time)]
+                    (if (< temp-indx 0) (+ temp-indx delay-length) temp-indx))]
+        (aget delay-buffer indx)))))
 
 (defn delay-readi
   ^IFn$LD [^doubles delay-buffer ^double delay-time]
