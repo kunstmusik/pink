@@ -142,4 +142,15 @@
             (aset out 1 b)
             out)))))
 
+(add-afunc
+    (let [asig (shared (blit-saw (exp-env [0.0 2000 3.0 20])))
+            l (combinv asig 3.5 0.1)
+            r (combinv asig 3.5 0.02)
+            ^"[[D" out (create-buffers 2)]
+      (fn []
+        (let [a (l) b (r)]
+          (when (and a b)
+            (aset out 0 a)
+            (aset out 1 b)
+            out)))))
 )

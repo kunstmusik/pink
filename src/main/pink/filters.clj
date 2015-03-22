@@ -79,8 +79,33 @@
           coef (double (Math/exp (* LOG001 (/ loop-time reverb-time))))]
       (generator
         [write-ptr (long 0)] [sig afn]
-        (let [v (- sig (* coef (.invokePrim del-read write-ptr)))]
+        (let [v (+ sig (* coef (.invokePrim del-read write-ptr)))]
           (aset delay-buffer write-ptr v)
+          (aset out int-indx v)
+          (gen-recur (rem (unchecked-inc write-ptr) delay-length))) 
+        (yield out)))))
+
+
+(defn combinv
+  "Feedforward Comb filter using fractional delay-line. reverb-time is time in
+  seconds to decay 60db. loop-time is the length of the delay in seconds, which
+  creates peaks at loop-time * sr/2, from 0 to sr/2 (Nyquist). loop-time is a
+  static value, but reverb-time can be static or dynamic. 
+  
+  (NOTE: Only static reverb-time supported at the moment...)"
+  [afn reverb-time ^double loop-time]
+  (if (number? reverb-time)
+    (let [out (create-buffer)
+          reverb-time (double reverb-time)
+          delay-time (* loop-time (double *sr*))
+          delay-length (+ (long delay-time) 1)
+          ^doubles delay-buffer (double-array delay-length)
+          ^IFn$LD del-read (delay-readi delay-buffer delay-time)
+          coef (double (Math/exp (* LOG001 (/ loop-time reverb-time))))]
+      (generator
+        [write-ptr (long 0)] [sig afn]
+        (let [v (- sig (* coef (.invokePrim del-read write-ptr)))]
+          (aset delay-buffer write-ptr sig)
           (aset out int-indx v)
           (gen-recur (rem (unchecked-inc write-ptr) delay-length))) 
         (yield out)))))

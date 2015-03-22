@@ -17,6 +17,7 @@ New
   * statevar - state-variable filter: returns multi-channel audio with
     high-pass, low-pass, band-pass, and band-reject versions of input signal
   * comb - feedback comb filter
+  * combinv - feedforward comb filter
 * pink.util
   * gen-recur - macro for generator recur statements that takes care of
     incrementing indx
