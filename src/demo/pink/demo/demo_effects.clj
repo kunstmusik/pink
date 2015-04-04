@@ -78,69 +78,22 @@
   (start-engine)
 
   (def root-node (create-node :channels 2))
-  (add-afunc (chorus (node-processor root-node) 0.9))
-
-  ;(def root-node (create-node :channels 1))
-  ;(def delayed-audio-node
-  ;  (let-s [afn (node-processor root-node)]
-  ;    (sum afn (adelay afn 0.25))))
-
-  ;(engine-add-afunc e delayed-audio-node)
-
-  (def my-score 
-    (let [num-notes 10] 
-      (node-events root-node 
-                   (map #(event instr-saw (* % 0.25)  
-                                (/ 0.75 (+ 1 %)) 
-                                (* 220 (+ 1 %)) 
-                                (- (* 2 (/ % (- num-notes 1))) 1)) 
-                        (range num-notes)))))
-
-  (add-events my-score) 
+  (add-afunc (chorus (node-processor root-node) 0.8))
 
   (node-add-func
-    root-node 
-    (instr-saw 0.25 (env [0.0 220 0.1 200 0.0001 220 0.1 500]) 0.0))
-
-
-  (def my-score2
-    (let [num-notes 10] 
-      (node-events root-node 
-                   (map #(event instr-square (* % 0.5)  
-                                (/ 0.75 (+ 1 %)) 
-                                (* 65 (+ 1 %)) 
-                                (- (* 2 (/ % (- num-notes 1)))  1)) 
-                        (range num-notes)))))
-
-  (add-events my-score2) 
-
-  (node-add-func
-    root-node 
-    (instr-square 0.5 (env [0.0 200 0.05 40 0.4 40]) 0.0))
-
-
-  (node-add-func 
     root-node
-    (instr-square 0.5 440 0.0))
-
-  (node-add-func 
-    root-node
-    (instr-triangle 0.5 1100 0.0))
-
+    (with-duration 4.0
+      (-> 
+        (sum (blit-saw 200)
+             (blit-saw 300))
+        (moogladder 600 0.2)
+        (mul (adsr 0.4 0.1 0.9 2.0) 0.5)
+        (pan 0.05) 
+        )))
 
   (add-afunc
-    (with-duration 1.0
-      (mul (adsr 0.01 0.0 1.0 2.0) 0.5
-           (blit-triangle (env [0.0 200 4.0 800]) ))))
-
-  (node-add-func 
-    root-node
-    (instr-triangle 0.5 
-                    (env [0.0 200 4.0 800]) 0.0))
-
-  (node-add-func 
-    root-node
-    (instr-triangle (mul 0.5 (xar 0.01 1.0)) (env [0.0 200 0.05 40 0.4 40]) 0.0))
+    (with-duration 8.0
+      (vox-humana (mul 0.5 (adsr 0.453 0.0 1.0 2.242)) 440 0.0)))
 
   (node-add-func
     root-node
