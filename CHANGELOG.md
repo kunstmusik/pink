@@ -24,7 +24,9 @@ New
   * get-channel - Audio Function that gets a channel of audio from a
     multi-channel generating audio function
   * with-signals - macro that destructures multi-channel audio function signal
-    into separate single-channel audio function signls
+    into separate single-channel audio function signals
+* pink.effects.chorus
+  * chorus - added stereo chorus effect
 
 Fixed
 

@@ -23,6 +23,23 @@
       (System/arraycopy b 0 buffer 0 buffer-size) 
       b))))
 
+;; sample read function
+
+(defn delay-read-samp-i
+  ^double [^doubles delay-buffer ^long write-ptr ^double delay-time]
+  (let [delay-int (long delay-time)
+        delay-frac1 (- delay-time delay-int)
+        delay-frac0 (- 1.0 delay-frac1)
+        delay-length (long (alength delay-buffer))]
+    (let [indx0 (let [temp-indx (- write-ptr delay-int)]
+                  (if (< temp-indx 0) (+ temp-indx delay-length) temp-indx))
+          v0 (aget delay-buffer indx0)
+          indx1 (let [temp-indx (- indx0 1)]
+                  (if (< temp-indx 0) (+ temp-indx delay-length) temp-indx))
+          v1 (aget delay-buffer indx1)
+          v (+ (* delay-frac0 v0) (* delay-frac1 v1))]
+      v)))
+
 ;; Delay utility functions
 
 (defn create-delay
