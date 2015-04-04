@@ -394,7 +394,7 @@
   [afn-bindings]
   (reduce
     (fn [[x y z] [b c]]
-      (let [bsym (gensym "buffer")] 
+      (let [bsym ^{:tag 'double} (gensym "buffer")] 
         [(conj x bsym (with-meta (list c) {:tag "doubles"}))
          (conj y bsym)
          (if (vector? b)
@@ -404,7 +404,7 @@
              (if sig
                (recur (conj out sig (list 'aget (with-meta bsym {:tag "[[D"}) channel 'int-indx)) sigs (inc channel))
                out))
-           (conj z b (list 'aget (tag-doubles bsym) 'indx))   
+           (conj z b (list 'aget (tag-doubles bsym) 'int-indx))   
            )]))
     [[] [] []] (partition 2 afn-bindings)))
 
