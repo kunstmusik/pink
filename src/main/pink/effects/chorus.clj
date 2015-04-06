@@ -23,7 +23,9 @@
   (oscil DEPTH-MS (+ (double (rand LFO-MAX)) LFO-MIN) SINE-TABLE phs))
 
 (defn chorus
-  "Adds stereo chorus to a stereo-signal audio-function."
+  "Adds stereo chorus to a stereo-signal audio-function. 
+  
+  Based on a Csound-coded design by Atte Andre Jenson"
   [afn ^double wet-dry]
   (let [out ^"[[D" (create-buffers 2)
         left ^doubles (aget out 0)
