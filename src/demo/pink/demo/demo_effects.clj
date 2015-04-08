@@ -4,6 +4,7 @@
              [pink.space :refer [pan]] 
              [pink.oscillators :refer :all]
              [pink.effects.chorus :refer [chorus]]
+             [pink.effects.ringmod :refer [ringmod]]
              [pink.envelopes :refer [env xar adsr]]
              [pink.util :refer [mul sum let-s with-duration]]
              [pink.node :refer :all]
@@ -80,6 +81,7 @@
   (def root-node (create-node :channels 2))
   (add-afunc (chorus (node-processor root-node) 0.8))
 
+  ;; chorus
   (node-add-func
     root-node
     (with-duration 4.0
@@ -87,6 +89,30 @@
         (sum (blit-saw 200)
              (blit-saw 300))
         (moogladder 600 0.2)
+        (mul (adsr 0.4 0.1 0.9 2.0) 0.5)
+        (pan 0.05) 
+        )))
+
+  ;; circuit modeled ringmod
+  (add-afunc
+    (with-duration 4.0
+      (-> 
+        (sum (blit-saw 200)
+             (blit-saw 300))
+        (ringmod (sine 400) 1.1)
+        (moogladder 1200 0.2)
+        (mul (adsr 0.4 0.1 0.9 2.0) 0.5)
+        (pan 0.05) 
+        )))
+
+  ;; digital ringmod using mul
+  (add-afunc
+    (with-duration 4.0
+      (-> 
+        (sum (blit-saw 200)
+             (blit-saw 300))
+        (mul (sine 400))
+        (moogladder 1200 0.2)
         (mul (adsr 0.4 0.1 0.9 2.0) 0.5)
         (pan 0.05) 
         )))
