@@ -5,6 +5,7 @@
              [pink.oscillators :refer :all]
              [pink.effects.chorus :refer [chorus]]
              [pink.effects.ringmod :refer [ringmod]]
+             [pink.effects.reverb :refer [freeverb]]
              [pink.envelopes :refer [env xar adsr]]
              [pink.util :refer [mul sum let-s with-duration]]
              [pink.node :refer :all]
@@ -81,6 +82,9 @@
   (def root-node (create-node :channels 2))
   (add-afunc (chorus (node-processor root-node) 0.8))
 
+  (def reverb-node (create-node :channels 2))
+  (add-afunc (freeverb (node-processor reverb-node) 0.90 0.5))
+
   ;; chorus
   (node-add-func
     root-node
@@ -117,6 +121,39 @@
         (pan 0.05) 
         )))
 
+  ;; freeverb
+
+  (defn sawz
+    [^double dur freq freq2 amp]
+    (with-duration dur 
+      (-> 
+        (sum (blit-saw freq)
+             (blit-saw freq2))
+        (moogladder 2000 0.2)
+        (mul (adsr 0.4 0.1 0.9 2.0) amp)
+        (pan 0.0) 
+        )))
+
+  (node-add-func
+    reverb-node
+    (sawz 2.0 400 600 0.2))
+
+  (node-add-func
+    reverb-node
+    (sawz 2.0 700 1200 0.2))
+
+  (node-add-func
+    reverb-node
+    (sawz 2.0 100 150 0.2))
+
+  (node-add-func
+    reverb-node
+    (sawz 2.0 60 80 0.2))
+
+  (add-afunc
+    (sawz 2.0 100 150 0.2))
+
+  ;;
   (add-afunc
     (with-duration 8.0
       (vox-humana (mul 0.5 (adsr 0.453 0.0 1.0 2.242)) 440 0.0)))
