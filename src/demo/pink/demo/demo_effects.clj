@@ -68,6 +68,17 @@
         (pan loc)))))
 
 
+(defn sawz
+  [^double dur freq freq2 amp]
+  (with-duration dur 
+    (-> 
+      (sum (blit-saw freq)
+           (blit-saw freq2))
+      (moogladder 2000 0.3)
+      (mul (adsr 0.01 0.01 0.9 0.3) amp)
+      (pan 0.0) 
+      )))
+
 ;(def a (instr-saw 0.1 440 0.0))
 ;(def b (blit-saw 440))
 ;(require '[no.disassemble :refer :all])
@@ -123,17 +134,6 @@
 
   ;; freeverb
 
-  (defn sawz
-    [^double dur freq freq2 amp]
-    (with-duration dur 
-      (-> 
-        (sum (blit-saw freq)
-             (blit-saw freq2))
-        (moogladder 2000 0.2)
-        (mul (adsr 0.4 0.1 0.9 2.0) amp)
-        (pan 0.0) 
-        )))
-
   (node-add-func
     reverb-node
     (sawz 2.0 400 600 0.2))
@@ -148,7 +148,7 @@
 
   (node-add-func
     reverb-node
-    (sawz 2.0 60 80 0.2))
+    (sawz 1.0 60 90 0.251))
 
   (add-afunc
     (sawz 2.0 100 150 0.2))
