@@ -24,7 +24,6 @@
         ^doubles last-filt (double-array 1)
         ^ints indx (int-array 1 0)
         damp2 (- 1.0 damp)]
-    ;(println "Comb Tuning: " del-time " " feedback " " damp " " damp2)
     (fn ^double [^double input]
       (let [i (aget indx 0)
             output (aget buffer i)
@@ -39,7 +38,6 @@
   ^IFn$DD [^long del-time ^double feedback] 
   (let [^doubles buffer (double-array del-time)
         ^ints indx (int-array 1 0)]
-    ;(println "Allpass Tuning: " del-time " " feedback)
     (fn ^double [^double input]
       (let [i (aget indx 0)
             bufout (aget buffer i)
@@ -67,7 +65,6 @@
 
 (defn freeverbm "Freeverb (mono) for single channel audio function."
   [afn ^double room ^double damp ^long spread]
-  ;(println "Freeverbm " room " " damp " " spread)
   (let [^doubles out (create-buffer)
         ^"[Lclojure.lang.IFn$DD;"
         combs (into-array 
@@ -93,9 +90,16 @@
         (gen-recur))
       (yield out))))
 
-;;todo - add wet/dry balance
+;; todo - add wet/dry balance (maybe? not sure if it's better to just let 
+;; user adjust with mul before passing into freeverb. that would allow different
+;; balances per input. if wet/dry added later, can add another arity to function
+;; with last arg defaulting to 1.0 for wet signal
 (defn freeverb
-  "Freeverb (stereo) for two-channel audio function."
+  "Freeverb (stereo) for two-channel audio function. Based on Faust implementation.
+  
+  For more information, see:
+  
+  https://ccrma.stanford.edu/~jos/pasp/Freeverb.html"
   [afn ^double room-size ^double hf-damping]
   (with-signals [[left right] afn]
     (let [out ^"[[D" (create-buffers 2) 
@@ -116,15 +120,3 @@
             (aset out 1 b))
             out)))))
 
-;(let [c (frvb-allpass 556 0.5)]
-;  (loop [i 0]
-;    (println i ": " (c 0.5))
-;    (when (< i (* 20 556))
-;      (recur (unchecked-inc i)))))
-
-;(require '[pink.oscillators :refer [pulse]])
-;(require '[clojure.pprint :refer [pprint]])
-;(let [f (freeverbm (pulse 0) 0.7 0.2 0)]
-;  (doseq [x (range 100)] 
-;    (pprint (f)))  
-;  )
