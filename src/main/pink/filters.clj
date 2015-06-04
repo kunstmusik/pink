@@ -611,24 +611,88 @@
 
 ;; Biquad
 
-;(defn biquad 
+;(defn biquad
+;  "Direct Form I version of biquad filter. a0 must be accounted for in the
+;  coefficients."
 ;  [afn b0 b1 b2 a1 a2]
 ;  (let [^doubles out (create-buffer)
-;        _a1 (double a1) 
-;        _a2 (double a2) 
-;        _b0 (double b0) 
-;        _b1 (double b1) 
-;        _b2 (double b2) 
-;        ]
+;        a1 (arg a1) 
+;        a2 (arg a2) 
+;        b0 (arg b0) 
+;        b1 (arg b1) 
+;        b2 (arg b2)]
 ;   (generator
 ;     [x-1 0.0 x-2 0.0 y-1 0.0 y-2 0.0]
-;     [xn afn]
-;     (let [yn (- (+ (* _b0 xn) (* b1 x-1) (* b2 x-2))
+;     [xn afn
+;      _a1 a1
+;      _a2 a2
+;      _b0 b0
+;      _b1 b1
+;      _b2 b2 ]
+;     (let [yn (- (+ (* _b0 xn) (* _b1 x-1) (* _b2 x-2))
 ;                 (* _a1 y-1) (* _a2 y-2))]
 ;       (aset out int-indx yn)
 ;       (gen-recur xn x-1 yn y-1))
 ;     (yield out)
 ;     )))
 
+;(defn- calc-w0
+;  ^double [^double f0]
+;  (/ (* 2 Math/PI (double f0) 
+;                 (double *sr*))))
 
+;(defn- w0 
+;  [f0]
+;  (if (number? f0)
+;    (const (calc-w0 f0))
+;    (let [out (create-buffer)] 
+;      (generator
+;        [last-f0 Double/NEGATIVE_INFINITY
+;         last-w0 Double/NEGATIVE_INFINITY]
+;        [f f0]
+;        (if (not= f last-f0)
+;          (let [new-w0 (calc-w0 f)]
+;            (aset out int-indx new-w0)
+;            (gen-recur f new-w0))
+;          (do 
+;            (aset out int-indx last-w0)
+;            (gen-recur f last-w0)))
+;        (yield out)))))
 
+;(defn biquad-lpf 
+;  "Biquad-based lowpass filter."
+;  [afn cutoff-freq ]
+
+;"LPF: H(s) = 1 / (s^2 + s/Q + 1) 
+;b0 = (1 - cos(w0))/2 
+;b1 = 1 - cos(w0) 
+;b2 = (1 - cos(w0))/2 
+;a0 = 1 + alpha 
+;a1 = -2*cos(w0) 
+;a2 = 1 - alpha  "
+;  )
+
+;(defn biquad-hpf 
+;  [afn]
+;  )
+
+;(defn biquad-bpf
+;  [afn bpf-type center-freq q]
+;  )
+
+;(defn biquad-notch
+;  [afn center-freq q] 
+;  )
+
+;(defn biquad-peaking
+;  [afn center-freq q]
+
+;)
+
+;(defn biquad-low-self
+;  [afn center-freq db-gain s]
+;)
+
+;(defn biquad-high-self
+;  [afn center-freq db-gain s]
+;)
