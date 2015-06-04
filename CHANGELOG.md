@@ -25,6 +25,10 @@ New
     multi-channel generating audio function
   * with-signals - macro that destructures multi-channel audio function signal
     into separate single-channel audio function signals
+  * merge-signals - function that merges output of two separate audio function
+    signals ino a single stereo audio function signal
+  * apply-stereo - destructures a stereo audio signal, applies func to each 
+    channel, and merges back into a stereo audio function signal
 * pink.effects.chorus
   * chorus - added stereo chorus effect
 

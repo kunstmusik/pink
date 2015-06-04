@@ -491,6 +491,28 @@
            ~@sigs] 
        ~@body)))
 
+(defn merge-signals
+  "Merge output of two audio functions into a single stereo signal."
+  [afn1 afn2]
+  (let [^"[[D" out (create-buffers 2)] 
+    (fn []
+      (let [l (afn1) 
+            r (afn2)]
+        (when (and l r)
+          (aset out 0 l)
+          (aset out 1 r)
+          out)))))
+
+(defn apply-stereo
+  "Applies function func individually to each channel of a stereo audio function. 
+  Merges result back into a stereo audio function signal."
+  [func afn & args]
+  (let [out (create-buffers 2)] 
+    (with-signals [[l r] afn]
+      (merge-signals
+        (apply func l args)
+        (apply func r args)))))
+
 ;; functions for processing
 
 (defn duration-processor
