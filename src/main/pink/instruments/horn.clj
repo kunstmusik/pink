@@ -13,8 +13,10 @@
           ))
 
 
-(def hwt-size 4096)
-(def horn-cutoff 2560)
+(def ^:const ^:private ^{:tag 'long} 
+  hwt-size 4096)
+(def ^:const ^:private ^{:tag 'long} 
+  horn-cutoff 2560)
 
 ;; TABLES 
 

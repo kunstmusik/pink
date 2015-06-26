@@ -7,11 +7,11 @@
             [pink.delays :refer :all]
             [pink.util :refer :all]))
 
-(def ^:private ^{:tag 'double} LEVEL 0.3)
-(def ^:private ^{:tag 'double} DELAY-MS 0.01)
-(def ^:private ^{:tag 'double} DEPTH-MS 0.002)
-(def ^:private ^{:tag 'double} LFO-MIN 0.5)
-(def ^:private ^{:tag 'double} LFO-MAX 0.25)
+(def ^:private ^:const ^{:tag 'double} LEVEL 0.3)
+(def ^:private ^:const ^{:tag 'double} DELAY-MS 0.01)
+(def ^:private ^:const ^{:tag 'double} DEPTH-MS 0.002)
+(def ^:private ^:const ^{:tag 'double} LFO-MIN 0.5)
+(def ^:private ^:const ^{:tag 'double} LFO-MAX 0.25)
 (def ^:private SINE-TABLE (pink.gen/gen-sine))
 
 (def ^:private PHASES 

@@ -2,7 +2,7 @@
   "Table generator Functions"
   (:import [java.util Arrays]))
 
-(def TWO_PI (* 2.0 Math/PI))
+(def ^:const ^:private ^{:tag 'double} TWO_PI (* 2.0 Math/PI))
 
 (defn get-sine-value
   [^double phase]

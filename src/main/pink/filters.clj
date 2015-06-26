@@ -59,7 +59,7 @@
 
 ;; Comb Filters
 
-(def ^:const LOG001 (Math/log 0.001))
+(def ^:const ^:private ^{:tag 'double} LOG001 (Math/log 0.001))
 
 (defn comb
   "Feedback Comb filter using fractional delay-line. reverb-time is time in
@@ -168,7 +168,7 @@
 
 ;; Butterworth Filters
 
-(def ROOT2 (Math/sqrt 2))
+(def ^:const ^:private ^{:tag 'double} ROOT2 (Math/sqrt 2.0))
 
 (defmacro butter-filter
   [cut asig out indx a1 a2 a3 a4 a5 a6 a7]
@@ -342,8 +342,8 @@
 ;; Moog Ladder Filter
 
 ; transistor thermal voltage
-(def ^:const THERMAL (/ 1.0 40000.0))
-(def ^:private ^:const TWO_PI (* 2.0 Math/PI))
+(def ^:const ^:const ^{:tag 'double} THERMAL (/ 1.0 40000.0))
+(def ^:private ^:const ^{:tag 'double} TWO_PI (* 2.0 Math/PI))
 
 ;(defn ladder-section)
 
