@@ -31,6 +31,7 @@ New
     channel, and merges back into a stereo audio function signal
 * pink.effects.chorus
   * chorus - added stereo chorus effect
+* Updated to Clojure 1.7.0
 
 Fixed
 
