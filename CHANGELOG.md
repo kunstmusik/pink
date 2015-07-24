@@ -31,6 +31,11 @@ New
     channel, and merges back into a stereo audio function signal
 * pink.effects.chorus
   * chorus - added stereo chorus effect
+* pink.effects.reverb
+  * freeverb - implementation of freeverb reverb processor
+* pink.effects.ringmod
+  * ringmod - Implementation of Julian Parker's digital model of a 
+    diode-based ring modulator
 * Updated to Clojure 1.7.0
 
 Fixed
