@@ -4,8 +4,7 @@
   (:import [java.awt MouseInfo Toolkit]
            [java.util Arrays])
   (:require [pink.config :refer :all]
-            [pink.util :refer [shared create-buffer]]
-            [primitive-math :refer [not==]]))
+            [pink.util :refer [shared create-buffer not==]]))
 
 
 (def mouse-x-val (atom 0.0))

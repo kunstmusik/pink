@@ -1,5 +1,10 @@
 # CHANGELOG for Pink
 
+## 0.2.1
+
+* removed use of Zach Tellman's primitive-math and added implementation of
+  not== to pink.util based on his work
+
 ## 0.2.0
 
 New 

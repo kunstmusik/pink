@@ -1,8 +1,7 @@
 (ns pink.filters
   (:require [pink.config :refer [*sr* *buffer-size*]]
             [pink.util :refer :all]
-            [pink.delays :refer :all]
-            [primitive-math :refer [not==]])
+            [pink.delays :refer :all])
   (:import [clojure.lang IFn$DDDLO IFn$LD]))
 
 (defn one-zero 

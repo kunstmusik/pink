@@ -2,8 +2,7 @@
   "Envelope Generator Functions"
   (:require [clojure.pprint :refer [pprint]]
             [pink.config :refer :all]
-            [pink.util :refer :all]
-            [primitive-math :refer [not==]])
+            [pink.util :refer :all])
   (:import [java.util Arrays])
   )
 

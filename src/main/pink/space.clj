@@ -1,10 +1,8 @@
 (ns pink.space
   "Functions for processing spatial qualities of sound"
   (:require [pink.config :refer :all]
-            [pink.util :refer [create-buffer arg generator gen-recur]]
-            [pink.dynamics :refer [db->amp]]
-            [primitive-math :refer [not==]]
-            ))
+            [pink.util :refer [create-buffer arg generator gen-recur not==]]
+            [pink.dynamics :refer [db->amp]]))
 
 (defn pan 
   "Stereo panning using formula from MIDI GM-2 Default Pan Curve (RP-036)

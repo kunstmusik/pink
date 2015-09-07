@@ -1,7 +1,6 @@
 (ns pink.util
   "Audio utility code for working with buffers (double[])"
-  (:require [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]]
-            [primitive-math :refer [not==]])
+  (:require [pink.config :refer [*buffer-size* *current-buffer-num* *sr*]])
   (:import [java.util Arrays]
            [pink Operator]
            [clojure.lang IFn IDeref]))
@@ -51,6 +50,13 @@
       (.printStackTrace e#)
       nil)))
 
+
+;; not== macro for fast != comparison of doubles
+
+(defmacro not== [a b]
+  "Use for fast comparison of double != double, or long != long. 
+  Based on Zach Tellman's primitive-math not=="
+  `(pink.Utils/neq ~a ~b))
 
 ;; utility functions for tagging vars (useful for macros)
 
