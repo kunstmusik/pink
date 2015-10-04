@@ -89,12 +89,14 @@
 (defn find-midi-device [^String device-name device-type]
   (let [devices (list-midi-devices)
         found (filter 
-                #(and (or (>= (.indexOf ^String (:description %) device-name) 0)
-                          (>= (.indexOf ^String (:name %) device-name) 0)) 
-                      (if (= :in device-type)  
-                        (>= (.getMaxReceivers ^MidiDevice (:device %) ) 0)
-                        (>= (.getMaxTransmitters ^MidiDevice (:device %) ) 0)
-                        ))
+                (fn [{:keys [^String description 
+                             ^String name 
+                             ^MidiDevice device]}] 
+                  (and (or (>= (.indexOf description device-name) 0)
+                           (>= (.indexOf name device-name) 0)) 
+                       (if (= :in device-type)
+                         (>= (.getMaxReceivers device) 0)
+                         (>= (.getMaxTransmitters device) 0))))
                 devices)
 
         num-found (count found)]
