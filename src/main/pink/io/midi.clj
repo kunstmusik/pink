@@ -102,9 +102,13 @@
         num-found (count found)]
     (cond
       (<= num-found 0) 
-      (throw (Exception. "No devices found"))
+      (throw (Exception. (str "No MIDI devices found matching name: " device-name)))
       (> num-found 1) 
-      (throw (Exception. (format "Multiple devices found (%d)." num-found)))
+      (throw (->> found
+                  (map #(str "\t" (:name %) ": " (:description %) "\n"))
+                  (apply str "Multiple devices found (" num-found 
+                         ") matching name: " device-name "\n")
+                  Exception.)
       :else (first found))))
 
 
