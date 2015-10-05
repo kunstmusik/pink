@@ -96,17 +96,17 @@
                          (midi-input-device? device)
                          (midi-output-device? device))))
                 devices)
-
         num-found (count found)]
     (cond
       (<= num-found 0) 
-      (throw (Exception. (str "No MIDI devices found matching name: " device-name)))
+      (throw (Exception. (str "No MIDI " 
+                              ({:in "input" :out "output"} device-type) 
+                              " devices found matching name: " device-name)))
       (> num-found 1) 
-      (throw (->> found
-                  (map #(str "\t" (:name %) ": " (:description %) "\n"))
-                  (apply str "Multiple devices found (" num-found 
-                         ") matching name: " device-name "\n")
-                  Exception.))
+      (let [names (map #(str "\t" (:name %) ": " (:description %) "\n") found)
+            msg ^String (apply str "Multiple devices found (" num-found 
+                               ") matching name: " device-name "\n" names)] 
+        (throw (Exception. msg)))
       :else (first found))))
 
 
