@@ -18,24 +18,23 @@
       :author "Steven Yi"}
   pink.io.midi
   (:import [javax.sound.midi MidiSystem MidiDevice MidiDevice$Info
-
                              Receiver ShortMessage]
            [clojure.lang IFn]))
 
-
 ;; functions for listing registered MIDI devices
 
+(defn- device-info->device
+  "Parses out information about a MIDI connection from a MidiDevice$Info object
+  and returns it and the MidiDevice it describes in a map."
+  [^MidiDevice$Info info]
+  {:name (.getName info)
+   :description (.getDescription info)
+   :device-info info
+   :device (MidiSystem/getMidiDevice info)})
+
 (defn list-devices []
-  (let [infos (MidiSystem/getMidiDeviceInfo)]
-    (loop [[^MidiDevice$Info x & xs] infos 
-           retval []]
-      (if x 
-        (recur xs 
-               (conj retval {:name (.getName x) 
-                             :description (.getDescription x) 
-                             :device-info x
-                             :device (MidiSystem/getMidiDevice x)}))
-        retval))))
+  "Fetches list of available MIDI devices."
+  (map device-info->device (MidiSystem/getMidiDeviceInfo)))
 
 (defn input-device?
   [d] 
