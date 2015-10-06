@@ -37,19 +37,22 @@
   (map device-info->device (MidiSystem/getMidiDeviceInfo)))
 
 (defn input-device?
-  [d] 
-  (not (zero? (.getMaxTransmitters ^MidiDevice (:device d)))))
+  "True when device can act as MIDI input. False otherwise."
+  [{:keys [^MidiDevice device]}] 
+  (not (zero? (.getMaxTransmitters device))))
 
 (defn output-device?
-  [d] 
-  (not (zero? (.getMaxReceivers ^MidiDevice (:device d)))))
+  "True when device can act as MIDI output. False otherwise."
+  [{:keys [^MidiDevice device]}] 
+  (not (zero? (.getMaxReceivers device))))
 
 (defn list-input-devices []
+  "Lists all MIDI input devices."
   (filter input-device? (list-devices)))
 
-
 (defn list-output-devices []
-  (filter output-device?  (list-devices)))
+  "Lists all MIDI output devices."
+  (filter output-device? (list-devices)))
 
 ;; Pink MIDI Manager
 
