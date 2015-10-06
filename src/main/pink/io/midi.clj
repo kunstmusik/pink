@@ -84,7 +84,7 @@
   (let [f (create-manager)]
     (add-virtual-device f "slider/knobs 1") 
     (add-virtual-device f "keyboard 1") 
-    (println (list-devices f))))
+    (println (list-virtual-devices f))))
 
 ;; Binding
 
