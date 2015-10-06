@@ -1,6 +1,6 @@
 (ns pink.demo.midi-keys
   (:require [pink.simple :refer :all] 
-            [pink.io.midi :refer :all]
+            [pink.io.midi :as midi]
             [pink.config :refer :all]
             [pink.space :refer :all]
             [pink.oscillators :refer :all]
@@ -11,7 +11,7 @@
            [clojure.lang IFn]))
 
 
-(def midim (create-midi-manager))
+(def midim (midi/create-manager))
 (def keyboard (add-virtual-device midim "keyboard 1")) 
 
 (defn saw
@@ -31,9 +31,9 @@
 
 (comment
   ;(bind-device midim "nanoKEY KEYBOARD" "keyboard 1")
-  (bind-device midim "MPKmini2" "keyboard 1")
+  (midi/bind-device midim "VMidi 1" "keyboard 1")
 
-  (bind-key-func
+  (midi/bind-key-func
     keyboard 0
 
     (let  [allocator (create-max-allocator 8) 

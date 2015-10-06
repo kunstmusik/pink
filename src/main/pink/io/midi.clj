@@ -25,7 +25,7 @@
 
 ;; functions for listing registered MIDI devices
 
-(defn list-midi-devices []
+(defn list-devices []
   (let [infos (MidiSystem/getMidiDeviceInfo)]
     (loop [[^MidiDevice$Info x & xs] infos 
            retval []]
@@ -37,24 +37,24 @@
                              :device (MidiSystem/getMidiDevice x)}))
         retval))))
 
-(defn midi-input-device?
+(defn input-device?
   [d] 
   (not (zero? (.getMaxTransmitters ^MidiDevice (:device d)))))
 
-(defn midi-output-device?
+(defn output-device?
   [d] 
   (not (zero? (.getMaxReceivers ^MidiDevice (:device d)))))
 
-(defn list-midi-input-devices []
-  (filter midi-input-device? (list-midi-devices)))
+(defn list-input-devices []
+  (filter input-device? (list-devices)))
 
 
-(defn list-midi-output-devices []
-  (filter midi-output-device?  (list-midi-devices)))
+(defn list-output-devices []
+  (filter output-device?  (list-devices)))
 
 ;; Pink MIDI Manager
 
-(defn create-midi-manager []
+(defn create-manager []
   (atom {}))
 
 ;; processors set per channel
@@ -74,27 +74,27 @@
     vd
     ))
 
-(defn list-devices 
+(defn list-virtual-devices 
   [midi-manager]
   @midi-manager)
 
 (comment
-  (let [f (create-midi-manager)]
+  (let [f (create-manager)]
     (add-virtual-device f "slider/knobs 1") 
     (add-virtual-device f "keyboard 1") 
     (println (list-devices f))))
 
 ;; Binding
 
-(defn find-midi-device [^String device-name device-type]
-  (let [devices (list-midi-devices)
+(defn find-device [^String device-name device-type]
+  (let [devices (list-devices)
         found (filter 
                 (fn [{:keys [^String description ^String name] :as device}] 
                   (and (or (>= (.indexOf description device-name) 0)
                            (>= (.indexOf name device-name) 0)) 
                        (if (= :in device-type)
-                         (midi-input-device? device)
-                         (midi-output-device? device))))
+                         (input-device? device)
+                         (output-device? device))))
                 devices)
         num-found (count found)]
     (cond
@@ -144,7 +144,7 @@
   [midi-manager ^String hardware-id ^String virtual-device-name]
   {:pre [midi-manager hardware-id virtual-device-name]}
   (println (format "Connecting %s to %s" hardware-id virtual-device-name))
-  (let [device ^MidiDevice (:device (find-midi-device hardware-id :in)) 
+  (let [device ^MidiDevice (:device (find-device hardware-id :in)) 
         virtual-device (@midi-manager virtual-device-name)]
     (when (nil? virtual-device)
       (throw (Exception. (format "Unknown virtual device: %s" virtual-device-name))))
@@ -159,19 +159,19 @@
   (aset ^"[Lclojure.lang.IFn;" ( :event-processors virtual-device) 
         channel afn))
 
-(defn get-midi-cc-atom
+(defn get-cc-atom
   [virtual-device channel cc-num]
   (aget (:cc-processors virtual-device)
         channel cc-num))
 
-;(defn midi-cc-trigger 
+;(defn cc-trigger 
 ;  [trigfn]
 ;  (fn [key atm old-v new-v]
 ;    (when (and (< old-v 127) (= new-v 127))
 ;      (trigfn) 
 ;      )))
 
-(defn set-midi-event-processor
+(defn set-event-processor
   [virtual-device channel midi-event-func]
 
   )
@@ -189,9 +189,9 @@
               data2 (.getData2 smsg)] 
           (println (format "%d %d %d %d" cmd channel data1 data2)))))))
 
-(defn midi-device-debug 
+(defn device-debug 
   [^String hardware-id]
-  (let [device ^MidiDevice (:device (find-midi-device hardware-id :in))]
+  (let [device ^MidiDevice (:device (find-device hardware-id :in))]
     (when (not (.isOpen device)) 
       (.open device))
     (.setReceiver (.getTransmitter device) (create-debug-receiver))
