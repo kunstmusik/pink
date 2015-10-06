@@ -62,7 +62,6 @@
 ;; processors set per channel
 (defn add-virtual-device
   [midi-manager device-name] 
-
   (let [vd {:name device-name
             :keys (boolean-array 128 false)
             :event-processors (make-array IFn 16) 
@@ -73,8 +72,7 @@
             :listener nil
             }] 
     (swap! midi-manager assoc device-name vd)
-    vd
-    ))
+    vd))
 
 (defn list-virtual-devices 
   [midi-manager]
@@ -88,16 +86,19 @@
 
 ;; Binding
 
-(defn find-device [^String device-name device-type]
-  (let [devices (list-devices)
-        found (filter 
-                (fn [{:keys [^String description ^String name] :as device}] 
-                  (and (or (>= (.indexOf description device-name) 0)
-                           (>= (.indexOf name device-name) 0)) 
-                       (if (= :in device-type)
-                         (input-device? device)
-                         (output-device? device))))
-                devices)
+(defn device-is-named?
+  "true when device-name is part of device's description or name."
+  [^String device-name {:keys [^String description ^String name]}]
+  (or (>= (.indexOf description device-name) 0)
+      (>= (.indexOf name device-name) 0)))
+
+(defn find-device 
+  "Finds device with device-name of device-type :in (input) or :out (output).
+  Throws exception when multiple or zero matching devices are found."
+  [device-name device-type]
+  (let [found (filter (partial device-is-named? device-name) 
+                      (device-type {:in (list-input-devices) 
+                                    :out (list-output-devices)}))
         num-found (count found)]
     (cond
       (<= num-found 0) 
@@ -110,7 +111,6 @@
                                ") matching name: " device-name "\n" names)] 
         (throw (Exception. msg)))
       :else (first found))))
-
 
 (defn create-receiver [virtual-device]
   (let [^"[[Lclojure.lang.Atom;" cc-processors 
