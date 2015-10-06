@@ -97,8 +97,8 @@
   Throws exception when multiple or zero matching devices are found."
   [device-name device-type]
   (let [found (filter (partial device-is-named? device-name) 
-                      (device-type {:in (list-input-devices) 
-                                    :out (list-output-devices)}))
+                      ((device-type {:in list-input-devices 
+                                     :out list-output-devices})))
         num-found (count found)]
     (cond
       (<= num-found 0) 
