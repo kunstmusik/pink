@@ -1,6 +1,6 @@
 (ns pink.demo.midi
   (:require [pink.simple :refer :all] 
-            [pink.io.midi :refer :all]
+            [pink.io.midi :as midi]
             [pink.config :refer :all]
             [pink.space :refer :all]
             [pink.oscillators :refer [oscili]]
@@ -12,15 +12,15 @@
 
 (comment
 
-  (def midim (create-midi-manager))
-  (def sliders (add-virtual-device midim "slider/knobs 1")) 
-  (def keyboard (add-virtual-device midim "keyboard 1")) 
+  (def midim (midi/create-manager))
+  (def sliders (midi/add-virtual-device midim "slider/knobs 1")) 
+  (def keyboard (midi/add-virtual-device midim "keyboard 1")) 
 
-  (bind-device midim "nanoKONTROL SLIDER/KNOB" "slider/knobs 1")
+  (midi/bind-device midim "nanoKONTROL SLIDER/KNOB" "slider/knobs 1")
 
   ;(midi-device-debug "nanoKONTROL SLIDER/KNOB")
 
-  (def get-cc (partial get-midi-cc-atom sliders 0))
+  (def get-cc (partial midi/get-cc-atom sliders 0))
 
 
   (defn midi-atom-reader
