@@ -18,39 +18,41 @@
       :author "Steven Yi"}
   pink.io.midi
   (:import [javax.sound.midi MidiSystem MidiDevice MidiDevice$Info
-
                              Receiver ShortMessage]
            [clojure.lang IFn]))
 
-
 ;; functions for listing registered MIDI devices
 
+(defn- device-info->device
+  "Parses out information about a MIDI connection from a MidiDevice$Info object
+  and returns it and the MidiDevice it describes in a map."
+  [^MidiDevice$Info info]
+  {:name (.getName info)
+   :description (.getDescription info)
+   :device-info info
+   :device (MidiSystem/getMidiDevice info)})
+
 (defn list-devices []
-  (let [infos (MidiSystem/getMidiDeviceInfo)]
-    (loop [[^MidiDevice$Info x & xs] infos 
-           retval []]
-      (if x 
-        (recur xs 
-               (conj retval {:name (.getName x) 
-                             :description (.getDescription x) 
-                             :device-info x
-                             :device (MidiSystem/getMidiDevice x)}))
-        retval))))
+  "Fetches list of available MIDI devices."
+  (map device-info->device (MidiSystem/getMidiDeviceInfo)))
 
 (defn input-device?
-  [d] 
-  (not (zero? (.getMaxTransmitters ^MidiDevice (:device d)))))
+  "True when device can act as MIDI input. False otherwise."
+  [{:keys [^MidiDevice device]}] 
+  (not (zero? (.getMaxTransmitters device))))
 
 (defn output-device?
-  [d] 
-  (not (zero? (.getMaxReceivers ^MidiDevice (:device d)))))
+  "True when device can act as MIDI output. False otherwise."
+  [{:keys [^MidiDevice device]}] 
+  (not (zero? (.getMaxReceivers device))))
 
 (defn list-input-devices []
+  "Lists all MIDI input devices."
   (filter input-device? (list-devices)))
 
-
 (defn list-output-devices []
-  (filter output-device?  (list-devices)))
+  "Lists all MIDI output devices."
+  (filter output-device? (list-devices)))
 
 ;; Pink MIDI Manager
 
@@ -60,7 +62,6 @@
 ;; processors set per channel
 (defn add-virtual-device
   [midi-manager device-name] 
-
   (let [vd {:name device-name
             :keys (boolean-array 128 false)
             :event-processors (make-array IFn 16) 
@@ -71,8 +72,7 @@
             :listener nil
             }] 
     (swap! midi-manager assoc device-name vd)
-    vd
-    ))
+    vd))
 
 (defn list-virtual-devices 
   [midi-manager]
@@ -82,20 +82,23 @@
   (let [f (create-manager)]
     (add-virtual-device f "slider/knobs 1") 
     (add-virtual-device f "keyboard 1") 
-    (println (list-devices f))))
+    (println (list-virtual-devices f))))
 
 ;; Binding
 
-(defn find-device [^String device-name device-type]
-  (let [devices (list-devices)
-        found (filter 
-                (fn [{:keys [^String description ^String name] :as device}] 
-                  (and (or (>= (.indexOf description device-name) 0)
-                           (>= (.indexOf name device-name) 0)) 
-                       (if (= :in device-type)
-                         (input-device? device)
-                         (output-device? device))))
-                devices)
+(defn device-is-named?
+  "true when device-name is part of device's description or name."
+  [^String device-name {:keys [^String description ^String name]}]
+  (or (>= (.indexOf description device-name) 0)
+      (>= (.indexOf name device-name) 0)))
+
+(defn find-device 
+  "Finds device with device-name of device-type :in (input) or :out (output).
+  Throws exception when multiple or zero matching devices are found."
+  [device-name device-type]
+  (let [found (filter (partial device-is-named? device-name) 
+                      ((device-type {:in list-input-devices 
+                                     :out list-output-devices})))
         num-found (count found)]
     (cond
       (<= num-found 0) 
@@ -108,7 +111,6 @@
                                ") matching name: " device-name "\n" names)] 
         (throw (Exception. msg)))
       :else (first found))))
-
 
 (defn create-receiver [virtual-device]
   (let [^"[[Lclojure.lang.Atom;" cc-processors 
