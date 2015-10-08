@@ -1,5 +1,15 @@
 # CHANGELOG for Pink
 
+## NEXT
+
+Updated
+
+* pink.io.midi
+  * namespace redesigned for use with :as syntax when requiring [Issue #5,
+    changes contributed by @triss]
+  * find-device fixed to work on Windows [Issue # 3, fix contributed by @triss]
+
+
 ## 0.2.1
 
 * removed use of Zach Tellman's primitive-math and added implementation of
