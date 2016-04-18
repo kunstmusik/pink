@@ -610,30 +610,34 @@
 
 ;; Biquad
 
-;(defn biquad
-;  "Direct Form I version of biquad filter. a0 must be accounted for in the
-;  coefficients."
-;  [afn b0 b1 b2 a1 a2]
-;  (let [^doubles out (create-buffer)
-;        a1 (arg a1) 
-;        a2 (arg a2) 
-;        b0 (arg b0) 
-;        b1 (arg b1) 
-;        b2 (arg b2)]
-;   (generator
-;     [x-1 0.0 x-2 0.0 y-1 0.0 y-2 0.0]
-;     [xn afn
-;      _a1 a1
-;      _a2 a2
-;      _b0 b0
-;      _b1 b1
-;      _b2 b2 ]
-;     (let [yn (- (+ (* _b0 xn) (* _b1 x-1) (* _b2 x-2))
-;                 (* _a1 y-1) (* _a2 y-2))]
-;       (aset out int-indx yn)
-;       (gen-recur xn x-1 yn y-1))
-;     (yield out)
-;     )))
+(defn tdf2 
+  "Transposed Direct Form II version of biquad filter. 
+  
+  Based on C++ version by Nigel Redmon:
+  http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
+  "
+  [afn a0 a1 a2 b1 b2]
+  (let [^doubles out (create-buffer)
+        a0 (arg a0) 
+        a1 (arg a1) 
+        a2 (arg a2) 
+        b1 (arg b1) 
+        b2 (arg b2)]
+   (generator
+     [z1 0.0 z2 0.0]
+     [xn afn
+      _a0 a0
+      _a1 a1
+      _a2 a2
+      _b1 b1
+      _b2 b2 ]
+     (let [samp (+ (* xn _a0) z1)
+           z1 (- (+ (* xn _a1) z2) (* _b1 samp)) 
+           z2 (- (* xn _a2) (* _b2 samp))]
+       (aset out int-indx samp)
+       (gen-recur z1 z2))
+     (yield out)
+     )))
 
 ;(defn- calc-w0
 ;  ^double [^double f0]
@@ -658,22 +662,70 @@
 ;            (gen-recur f last-w0)))
 ;        (yield out)))))
 
-;(defn biquad-lpf 
-;  "Biquad-based lowpass filter."
-;  [afn cutoff-freq ]
+(defn- calc-K
+  ^double [^double freq]
+  (Math/tan 
+    (* Math/PI (/ (double freq) (double *sr*)))))
 
-;"LPF: H(s) = 1 / (s^2 + s/Q + 1) 
-;b0 = (1 - cos(w0))/2 
-;b1 = 1 - cos(w0) 
-;b2 = (1 - cos(w0))/2 
-;a0 = 1 + alpha 
-;a1 = -2*cos(w0) 
-;a2 = 1 - alpha  "
-;  )
+(defn- K 
+  [freq]
+  (if (number? freq)
+    (const (calc-K freq))
+    (let [out (create-buffer)] 
+      (generator
+        [last-f0 Double/NEGATIVE_INFINITY
+         last-K Double/NEGATIVE_INFINITY]
+        [f freq]
+        (if (not= f last-f0)
+          (let [new-K (calc-K f)]
+            (aset out int-indx new-K)
+            (gen-recur f new-K))
+          (do 
+            (aset out int-indx last-K)
+            (gen-recur f last-K)))
+        (yield out)))))
 
-;(defn biquad-hpf 
-;  [afn]
-;  )
+(defn biquad-lpf 
+  "tdf2 Biquad-based lowpass filter. 
+
+  afn - audio function signal to filter
+  cutoff-freq - frequency in Hz for cutoff
+  Q - q of filter"
+  [afn cutoff-freq Q]
+  (let [cutoff (shared (K cutoff-freq))
+        q (shared (arg Q))
+        ;; calculate coefficients
+        norm (shared (div
+                       1 (sum 1.0 (div cutoff q) 
+                            (mul cutoff cutoff))))
+        a0 (shared (mul cutoff cutoff norm)) 
+        a1 (mul 2.0 a0)
+        a2 a0
+        b1 (mul 2.0 (sub (mul cutoff cutoff) 1) norm)
+        b2 (mul (sum (sub 1 (div cutoff q)) 
+                          (mul cutoff cutoff)) norm)]
+    (tdf2 afn a0 a1 a2 b1 b2)))
+
+(defn biquad-hpf 
+  "tdf2 Biquad-based highpass filter. 
+
+  afn - audio function signal to filter
+  cutoff-freq - frequency in Hz for cutoff
+  Q - q of filter"
+  [afn cutoff-freq Q]
+  (let [cutoff (shared (K cutoff-freq))
+        q (shared (arg Q))
+        ;; calculate coefficients
+        norm (shared (div
+                       1 (sum 1.0 (div cutoff q) 
+                            (mul cutoff cutoff))))
+        a0 norm 
+        a1 (mul -2.0 a0)
+        a2 a0
+        b1 (mul 2.0 (sub (mul cutoff cutoff) 1) norm)
+        b2 (mul (sum (sub 1 (div cutoff q)) 
+                          (mul cutoff cutoff)) norm)]
+    (tdf2 afn a0 a1 a2 b1 b2)))
 
 ;(defn biquad-bpf
 ;  [afn bpf-type center-freq q]

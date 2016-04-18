@@ -50,6 +50,13 @@
   (add-audio-events 
     (event test-filter 0.0 moogladder (env [0.0 20 10 20000]) 0.1 ))
 
+
+  (add-audio-events 
+    (event test-filter 0.0 biquad-lpf (env [0.0 20 5 20000]) 0.1 ))
+
+  (add-audio-events 
+    (event test-filter 0.0 biquad-hpf (env [0.0 20 5 20000]) 0.1 ))
+
   (doseq [_ (range 5)] 
     (add-afunc
       (let [pch (+ 60 (rand-int 400))] 
