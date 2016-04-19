@@ -52,10 +52,16 @@
 
 
   (add-audio-events 
-    (event test-filter 0.0 biquad-lpf (env [0.0 20 5 20000]) 0.1 ))
+    (event test-filter 0.0 biquad-lpf (env [0.0 20 5 20000]) 0.4 ))
 
   (add-audio-events 
     (event test-filter 0.0 biquad-hpf (env [0.0 20 5 20000]) 0.1 ))
+
+  (add-audio-events 
+    (event test-filter 0.0 biquad-bpf (env [0.0 20 5 20000]) 0.9 ))
+
+  (add-audio-events 
+    (event test-filter 0.0 biquad-notch (env [0.0 20 5 20000]) 0.6 ))
 
   (doseq [_ (range 5)] 
     (add-afunc

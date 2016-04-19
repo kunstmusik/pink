@@ -692,18 +692,17 @@
   cutoff-freq - frequency in Hz for cutoff
   Q - q of filter"
   [afn cutoff-freq Q]
-  (let [cutoff (shared (K cutoff-freq))
+  (let [k (shared (K cutoff-freq))
         q (shared (arg Q))
         ;; calculate coefficients
-        norm (shared (div
-                       1 (sum 1.0 (div cutoff q) 
-                            (mul cutoff cutoff))))
-        a0 (shared (mul cutoff cutoff norm)) 
+        norm (shared (div 1 
+                          (sum 1.0 (div k q) (mul k k))))
+        a0 (shared (mul k k norm)) 
         a1 (mul 2.0 a0)
         a2 a0
-        b1 (mul 2.0 (sub (mul cutoff cutoff) 1) norm)
-        b2 (mul (sum (sub 1 (div cutoff q)) 
-                          (mul cutoff cutoff)) norm)]
+        b1 (mul 2.0 (sub (mul k k) 1) norm)
+        b2 (mul (sum (sub 1 (div k q)) 
+                          (mul k k)) norm)]
     (tdf2 afn a0 a1 a2 b1 b2)))
 
 (defn biquad-hpf 
@@ -713,27 +712,56 @@
   cutoff-freq - frequency in Hz for cutoff
   Q - q of filter"
   [afn cutoff-freq Q]
-  (let [cutoff (shared (K cutoff-freq))
+  (let [k (shared (K cutoff-freq))
         q (shared (arg Q))
         ;; calculate coefficients
-        norm (shared (div
-                       1 (sum 1.0 (div cutoff q) 
-                            (mul cutoff cutoff))))
+        norm (shared (div 1 
+                          (sum 1.0 (div k q) (mul k k))))
         a0 norm 
         a1 (mul -2.0 a0)
         a2 a0
-        b1 (mul 2.0 (sub (mul cutoff cutoff) 1) norm)
-        b2 (mul (sum (sub 1 (div cutoff q)) 
-                          (mul cutoff cutoff)) norm)]
+        b1 (mul 2.0 (sub (mul k k) 1) norm)
+        b2 (mul (sum (sub 1 (div k q)) 
+                          (mul k k)) norm)]
     (tdf2 afn a0 a1 a2 b1 b2)))
 
-;(defn biquad-bpf
-;  [afn bpf-type center-freq q]
-;  )
+(defn biquad-bpf
+  "tdf2 Biquad-based bandpass filter. 
 
-;(defn biquad-notch
-;  [afn center-freq q] 
-;  )
+  afn - audio function signal to filter
+  center-freq - frequency in Hz for band pass center 
+  Q - q of filter"
+  [afn center-freq Q]
+  (let [k (shared (K center-freq))
+        q (shared (arg Q))
+        ;; calculate coefficients
+        norm (shared (div 1 
+                          (sum 1.0 (div k q) (mul k k))))
+        a0 (shared (mul (div k q ) norm)) 
+        a1 0.0 
+        a2 (mul -1.0 a0)
+        b1 (mul 2.0 (sub (mul k k) 1) norm)
+        b2 (mul (sum (sub 1 (div k q)) (mul k k)) norm)]
+    (tdf2 afn a0 a1 a2 b1 b2)))
+
+(defn biquad-notch
+  "tdf2 Biquad-based notch filter. 
+
+  afn - audio function signal to filter
+  center-freq - frequency in Hz for notch center 
+  Q - q of filter"
+  [afn center-freq Q] 
+  (let [k (shared (K center-freq))
+        q (shared (arg Q))
+        ;; calculate coefficients
+        norm (shared (div 1 
+                          (sum 1.0 (div k q) (mul k k))))
+        a0 (shared (mul (sum 1.0 (mul k k)) norm)) 
+        a1 (shared (mul 2.0 (sub (mul k k) 1) norm))
+        a2 a0 
+        b1 a1 
+        b2 (mul (sum (sub 1 (div k q)) (mul k k)) norm)]
+    (tdf2 afn a0 a1 a2 b1 b2)))
 
 ;(defn biquad-peaking
 ;  [afn center-freq q]
