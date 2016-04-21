@@ -4,6 +4,8 @@
             [pink.delays :refer :all])
   (:import [clojure.lang IFn$DDDLO IFn$LD]))
 
+(set! *unchecked-math* true)
+
 (defn one-zero 
   "One-zero filter.
 
@@ -639,71 +641,73 @@
      (yield out)
      )))
 
-;(defn- calc-w0
-;  ^double [^double f0]
-;  (/ (* 2 Math/PI (double f0) 
-;                 (double *sr*))))
-
-;(defn- w0 
-;  [f0]
-;  (if (number? f0)
-;    (const (calc-w0 f0))
-;    (let [out (create-buffer)] 
-;      (generator
-;        [last-f0 Double/NEGATIVE_INFINITY
-;         last-w0 Double/NEGATIVE_INFINITY]
-;        [f f0]
-;        (if (not= f last-f0)
-;          (let [new-w0 (calc-w0 f)]
-;            (aset out int-indx new-w0)
-;            (gen-recur f new-w0))
-;          (do 
-;            (aset out int-indx last-w0)
-;            (gen-recur f last-w0)))
-;        (yield out)))))
 
 (defn- calc-K
   ^double [^double freq]
   (Math/tan 
     (* Math/PI (/ (double freq) (double *sr*)))))
 
-(defn- K 
-  [freq]
-  (if (number? freq)
-    (const (calc-K freq))
-    (let [out (create-buffer)] 
-      (generator
-        [last-f0 Double/NEGATIVE_INFINITY
-         last-K Double/NEGATIVE_INFINITY]
-        [f freq]
-        (if (not= f last-f0)
-          (let [new-K (calc-K f)]
-            (aset out int-indx new-K)
-            (gen-recur f new-K))
-          (do 
-            (aset out int-indx last-K)
-            (gen-recur f last-K)))
-        (yield out)))))
+(defn- calc-gain
+  ^double [^double g]
+  (Math/pow 10.0 (/ (Math/abs g) 20.0)))
 
-(defn biquad-lpf 
+
+(defmacro tdf2-macro
+  "Transposed Direct Form II version of biquad filter. 
+  
+  Based on C++ version by Nigel Redmon:
+  http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
+
+  Macro form used for biquad-x filters.  Handles updating of coefficients only
+  when Fc, Q, or db-gain has changed.
+  "
+  [afn fc q db-gain coef-calcs]
+  `(let [^doubles ~'out (create-buffer)]
+   (generator
+     [~'z1 0.0 ~'z2 0.0 ~'a0 1.0 ~'a1 0.0 ~'a2 0.0 ~'b1 0.0 ~'b2 0.0
+      ~'last-fc 0.0 ~'last-q 0.0 ~'last-db 0.0]
+     [~'xn ~afn 
+      fc# ~fc
+      ~'Q ~q
+      db# ~db-gain]
+     (if (or (not= fc# ~'last-fc) 
+             (not= ~'Q ~'last-q) 
+             (not= db# ~'last-db))
+       (let [ ~'V (calc-gain db#)  
+              ~'K (calc-K fc#)  
+             ~@coef-calcs
+             ~'samp (+ (* ~'xn ~'a0) ~'z1)
+             ~'z1 (- (+ (* ~'xn ~'a1) ~'z2) (* ~'b1 ~'samp)) 
+             ~'z2 (- (* ~'xn ~'a2) (* ~'b2 ~'samp))]
+         (aset ~'out ~'int-indx ~'samp)
+         (~'gen-recur ~'z1 ~'z2 ~'a0 ~'a1 ~'a2 ~'b1 ~'b2 fc# ~'Q db#))
+        (let [~'samp (+ (* ~'xn ~'a0) ~'z1)
+             ~'z1 (- (+ (* ~'xn ~'a1) ~'z2) (* ~'b1 ~'samp)) 
+             ~'z2 (- (* ~'xn ~'a2) (* ~'b2 ~'samp))]
+         (aset ~'out ~'int-indx ~'samp)
+         (~'gen-recur ~'z1 ~'z2 ~'a0 ~'a1 ~'a2 ~'b1 ~'b2 fc# ~'Q db#)))
+     (~'yield ~'out)
+     )))
+
+(defn biquad-lpf
   "tdf2 Biquad-based lowpass filter. 
 
   afn - audio function signal to filter
   cutoff-freq - frequency in Hz for cutoff
   Q - q of filter"
   [afn cutoff-freq Q]
-  (let [k (shared (K cutoff-freq))
-        q (shared (arg Q))
-        ;; calculate coefficients
-        norm (shared (div 1 
-                          (sum 1.0 (div k q) (mul k k))))
-        a0 (shared (mul k k norm)) 
-        a1 (mul 2.0 a0)
-        a2 a0
-        b1 (mul 2.0 (sub (mul k k) 1) norm)
-        b2 (mul (sum (sub 1 (div k q)) 
-                          (mul k k)) norm)]
-    (tdf2 afn a0 a1 a2 b1 b2)))
+  (let [_c (arg cutoff-freq)
+        _q (arg Q)
+        _db (const 0.0)]
+    (tdf2-macro afn _c _q _db 
+      [K2 (* K K)
+       norm (/ 1.0 (+ 1.0 (/ K Q) K2) )
+       a0 (* K2 norm) 
+       a1 (* 2.0 a0) 
+       a2 a0
+       b1 (* 2.0 (- K2 1.0) norm)
+       b2 (* (+ (- 1.0 (/ K Q)) K2) norm)])
+    ))
 
 (defn biquad-hpf 
   "tdf2 Biquad-based highpass filter. 
@@ -712,18 +716,17 @@
   cutoff-freq - frequency in Hz for cutoff
   Q - q of filter"
   [afn cutoff-freq Q]
-  (let [k (shared (K cutoff-freq))
-        q (shared (arg Q))
-        ;; calculate coefficients
-        norm (shared (div 1 
-                          (sum 1.0 (div k q) (mul k k))))
-        a0 norm 
-        a1 (mul -2.0 a0)
-        a2 a0
-        b1 (mul 2.0 (sub (mul k k) 1) norm)
-        b2 (mul (sum (sub 1 (div k q)) 
-                          (mul k k)) norm)]
-    (tdf2 afn a0 a1 a2 b1 b2)))
+  (let [_c (arg cutoff-freq)
+        _q (arg Q)
+        _db (const 0.0)]
+    (tdf2-macro afn _c _q _db 
+      [K2 (* K K)
+       norm (/ 1.0 (+ 1.0 (/ K Q) K2) )
+       a0 norm 
+       a1 (* -2.0 a0) 
+       a2 a0
+       b1 (* 2 (- K2 1) norm)
+       b2 (* (+ (- 1 (/ K Q)) K2) norm)])))
 
 (defn biquad-bpf
   "tdf2 Biquad-based bandpass filter. 
@@ -732,17 +735,17 @@
   center-freq - frequency in Hz for band pass center 
   Q - q of filter"
   [afn center-freq Q]
-  (let [k (shared (K center-freq))
-        q (shared (arg Q))
-        ;; calculate coefficients
-        norm (shared (div 1 
-                          (sum 1.0 (div k q) (mul k k))))
-        a0 (shared (mul (div k q ) norm)) 
-        a1 0.0 
-        a2 (mul -1.0 a0)
-        b1 (mul 2.0 (sub (mul k k) 1) norm)
-        b2 (mul (sum (sub 1 (div k q)) (mul k k)) norm)]
-    (tdf2 afn a0 a1 a2 b1 b2)))
+  (let [_c (arg center-freq)
+        _q (arg Q)
+        _db (const 0.0)]
+    (tdf2-macro afn _c _q _db 
+      [K2 (* K K)
+       norm (/ 1.0 (+ 1.0 (/ K Q) K2) )
+       a0 (* (/ K Q) norm) 
+       a1 0.0 
+       a2 (- a0) 
+       b1 (* 2 (- K2 1) norm)
+       b2 (* (+ (- 1 (/ K Q)) K2) norm)])))
 
 (defn biquad-notch
   "tdf2 Biquad-based notch filter. 
@@ -751,21 +754,32 @@
   center-freq - frequency in Hz for notch center 
   Q - q of filter"
   [afn center-freq Q] 
-  (let [k (shared (K center-freq))
-        q (shared (arg Q))
-        ;; calculate coefficients
-        norm (shared (div 1 
-                          (sum 1.0 (div k q) (mul k k))))
-        a0 (shared (mul (sum 1.0 (mul k k)) norm)) 
-        a1 (shared (mul 2.0 (sub (mul k k) 1) norm))
-        a2 a0 
-        b1 a1 
-        b2 (mul (sum (sub 1 (div k q)) (mul k k)) norm)]
-    (tdf2 afn a0 a1 a2 b1 b2)))
+  (let [_c (arg center-freq)
+        _q (arg Q)
+        _db (const 0.0)]
+    (tdf2-macro afn _c _q _db 
+      [K2 (* K K)
+       norm (/ 1.0 (+ 1.0 (/ K Q) K2) )
+       a0 (* (+ 1 K2) norm) 
+       a1 (* 2 (- K2 1) norm)  
+       a2 a0 
+       b1 a1 
+       b2 (* (+ (- 1 (/ K Q)) K2) norm)])))
 
 ;(defn biquad-peaking
-;  [afn center-freq q]
-
+;  [afn center-freq Q db-gain ]
+;  (let [k (shared (K center-freq))
+;        q (shared (arg Q))
+;        g (shared (gain db-gain))
+;        ;; calculate coefficients
+;        norm (shared (div 1 
+;                          (sum 1.0 (div k q) (mul k k))))
+;        a0 (shared (mul (sum 1.0 (mul k k)) norm)) 
+;        a1 (shared (mul 2.0 (sub (mul k k) 1) norm))
+;        a2 a0 
+;        b1 a1 
+;        b2 (mul (sum (sub 1 (div k q)) (mul k k)) norm)]
+;    (tdf2 afn a0 a1 a2 b1 b2))
 ;)
 
 ;(defn biquad-low-self
