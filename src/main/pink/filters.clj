@@ -610,37 +610,36 @@
 
 ;; General Filters
 
-;; Biquad
+;; BIQUAD
 
-(defn tdf2 
-  "Transposed Direct Form II version of biquad filter. 
+;(defn tdf2 
+;  "Transposed Direct Form II version of biquad filter. 
   
-  Based on C++ version by Nigel Redmon:
-  http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
-  "
-  [afn a0 a1 a2 b1 b2]
-  (let [^doubles out (create-buffer)
-        a0 (arg a0) 
-        a1 (arg a1) 
-        a2 (arg a2) 
-        b1 (arg b1) 
-        b2 (arg b2)]
-   (generator
-     [z1 0.0 z2 0.0]
-     [xn afn
-      _a0 a0
-      _a1 a1
-      _a2 a2
-      _b1 b1
-      _b2 b2 ]
-     (let [samp (+ (* xn _a0) z1)
-           z1 (- (+ (* xn _a1) z2) (* _b1 samp)) 
-           z2 (- (* xn _a2) (* _b2 samp))]
-       (aset out int-indx samp)
-       (gen-recur z1 z2))
-     (yield out)
-     )))
-
+;  Based on C++ version by Nigel Redmon:
+;  http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
+;  "
+;  [afn a0 a1 a2 b1 b2]
+;  (let [^doubles out (create-buffer)
+;        a0 (arg a0) 
+;        a1 (arg a1) 
+;        a2 (arg a2) 
+;        b1 (arg b1) 
+;        b2 (arg b2)]
+;   (generator
+;     [z1 0.0 z2 0.0]
+;     [xn afn
+;      _a0 a0
+;      _a1 a1
+;      _a2 a2
+;      _b1 b1
+;      _b2 b2 ]
+;     (let [samp (+ (* xn _a0) z1)
+;           z1 (- (+ (* xn _a1) z2) (* _b1 samp)) 
+;           z2 (- (* xn _a2) (* _b2 samp))]
+;       (aset out int-indx samp)
+;       (gen-recur z1 z2))
+;     (yield out)
+;     )))
 
 (defn- calc-K
   ^double [^double freq]
@@ -669,23 +668,23 @@
      [~'xn ~afn 
       fc# ~fc
       ~'Q ~q
-      db# ~db-gain]
+      ~'db ~db-gain]
      (if (or (not= fc# ~'last-fc) 
              (not= ~'Q ~'last-q) 
-             (not= db# ~'last-db))
-       (let [ ~'V (calc-gain db#)  
+             (not= ~'db~'last-db))
+       (let [ ~'V (calc-gain ~'db)  
               ~'K (calc-K fc#)  
              ~@coef-calcs
              ~'samp (+ (* ~'xn ~'a0) ~'z1)
              ~'z1 (- (+ (* ~'xn ~'a1) ~'z2) (* ~'b1 ~'samp)) 
              ~'z2 (- (* ~'xn ~'a2) (* ~'b2 ~'samp))]
          (aset ~'out ~'int-indx ~'samp)
-         (~'gen-recur ~'z1 ~'z2 ~'a0 ~'a1 ~'a2 ~'b1 ~'b2 fc# ~'Q db#))
+         (~'gen-recur ~'z1 ~'z2 ~'a0 ~'a1 ~'a2 ~'b1 ~'b2 fc# ~'Q ~'db))
         (let [~'samp (+ (* ~'xn ~'a0) ~'z1)
              ~'z1 (- (+ (* ~'xn ~'a1) ~'z2) (* ~'b1 ~'samp)) 
              ~'z2 (- (* ~'xn ~'a2) (* ~'b2 ~'samp))]
          (aset ~'out ~'int-indx ~'samp)
-         (~'gen-recur ~'z1 ~'z2 ~'a0 ~'a1 ~'a2 ~'b1 ~'b2 fc# ~'Q db#)))
+         (~'gen-recur ~'z1 ~'z2 ~'a0 ~'a1 ~'a2 ~'b1 ~'b2 fc# ~'Q ~'db)))
      (~'yield ~'out)
      )))
 
@@ -725,8 +724,8 @@
        a0 norm 
        a1 (* -2.0 a0) 
        a2 a0
-       b1 (* 2 (- K2 1) norm)
-       b2 (* (+ (- 1 (/ K Q)) K2) norm)])))
+       b1 (* 2.0 (- K2 1.0) norm)
+       b2 (* (+ (- 1.0 (/ K Q)) K2) norm)])))
 
 (defn biquad-bpf
   "tdf2 Biquad-based bandpass filter. 
@@ -744,8 +743,8 @@
        a0 (* (/ K Q) norm) 
        a1 0.0 
        a2 (- a0) 
-       b1 (* 2 (- K2 1) norm)
-       b2 (* (+ (- 1 (/ K Q)) K2) norm)])))
+       b1 (* 2.0 (- K2 1.0) norm)
+       b2 (* (+ (- 1.0 (/ K Q)) K2) norm)])))
 
 (defn biquad-notch
   "tdf2 Biquad-based notch filter. 
@@ -761,31 +760,108 @@
       [K2 (* K K)
        norm (/ 1.0 (+ 1.0 (/ K Q) K2) )
        a0 (* (+ 1 K2) norm) 
-       a1 (* 2 (- K2 1) norm)  
+       a1 (* 2.0 (- K2 1.0) norm)  
        a2 a0 
        b1 a1 
-       b2 (* (+ (- 1 (/ K Q)) K2) norm)])))
+       b2 (* (+ (- 1.0 (/ K Q)) K2) norm)])))
 
-;(defn biquad-peaking
-;  [afn center-freq Q db-gain ]
-;  (let [k (shared (K center-freq))
-;        q (shared (arg Q))
-;        g (shared (gain db-gain))
-;        ;; calculate coefficients
-;        norm (shared (div 1 
-;                          (sum 1.0 (div k q) (mul k k))))
-;        a0 (shared (mul (sum 1.0 (mul k k)) norm)) 
-;        a1 (shared (mul 2.0 (sub (mul k k) 1) norm))
-;        a2 a0 
-;        b1 a1 
-;        b2 (mul (sum (sub 1 (div k q)) (mul k k)) norm)]
-;    (tdf2 afn a0 a1 a2 b1 b2))
-;)
+(defn biquad-peaking
+  "tdf2 Biquad-based peaking filter. 
 
-;(defn biquad-low-self
-;  [afn center-freq db-gain s]
-;)
+  afn - audio function signal to filter
+  cutoff-freq - frequency in Hz for peak cutoff 
+  Q - q of filter
+  db-gain - gain in db for boost or cut"
+  [afn cutoff-freq Q db-gain] 
+  (let [_c (arg cutoff-freq)
+        _q (arg Q)
+        _db (arg db-gain)]
+    (tdf2-macro afn _c _q _db 
+      [K2 (* K K)
+       boost (>= db 0.0)
+       norm (if boost
+              (/ 1.0 (+ 1.0 (/ K Q) K2) )        
+              (/ 1.0 (+ 1.0  (/ (* V K) Q) K2)))
+       a0 (if boost
+            (* (+ 1.0 (/ (* K V) Q) K2) norm) 
+            (* (+ 1.0 (/ K Q) K2) norm))
+       a1  (* 2.0 (- K2 1) norm)  
+       a2 (if boost
+            (* (+ (- 1.0 (/ (* K V) Q)) K2) norm) 
+            (* (+ (- 1.0 (/ K Q)) K2) norm))
+       b1 a1 
+       b2 (if boost
+            (* (+ (- 1.0 (/ K Q)) K2) norm)
+            (* (+ (- 1.0 (/ (* K V) Q)) K2) norm))
+       ])))
 
-;(defn biquad-high-self
-;  [afn center-freq db-gain s]
-;)
+(defn biquad-lowshelf
+  "tdf2 Biquad-based lowshelf filter. 
+
+  afn - audio function signal to filter
+  cutoff-freq - frequency in Hz for cutoff 
+  Q - q of filter
+  db-gain - gain in db for boost or cut"
+  [afn cutoff-freq Q db-gain] 
+  (let [_c (arg cutoff-freq)
+        _q (arg Q)
+        _db (arg db-gain)
+        ]
+    (tdf2-macro afn _c _q _db 
+      [K2 (* K K)
+       boost (>= db 0.0)
+       norm (if boost
+              (/ 1.0 (+ 1.0 (* (Math/sqrt 2.0) K) K2))        
+              (/ 1.0 (+ 1.0 (* (Math/sqrt (* 2.0 V)) K) (* V K2))))
+       a0 (if boost
+            (* (+ 1.0 (* (Math/sqrt (* 2.0 V)) K) (* V K2)) norm) 
+            (* (+ 1.0 (* (Math/sqrt 2.0) K) K2) norm))
+       a1 (if boost
+            (* (* 2.0 (- (* V K2) 1.0)) norm) 
+            (* (* 2.0 (- K2 1.0)) norm))  
+       a2 (if boost
+            (* (+ (- 1.0 (* (Math/sqrt (* 2.0 V)) K)) (* V K2)) norm) 
+            (* (+ (- 1.0 (* (Math/sqrt 2.0) K)) K2) norm))
+       b1 (if boost
+            (* (* 2.0 (- K2 1.0)) norm) 
+            (* (* 2.0 (- (* V K2) 1.0)) norm)) 
+       b2 (if boost
+            (* (+ (- 1.0 (* (Math/sqrt 2.0) K)) K2) norm)                 
+            (* (+ (- 1.0 (* (Math/sqrt (* 2.0 V)) K)) (* V K2)) norm))
+       ])))
+
+
+(defn biquad-highshelf
+  "tdf2 Biquad-based highshelf filter. 
+
+  afn - audio function signal to filter
+  cutoff-freq - frequency in Hz for cutoff 
+  Q - q of filter
+  db-gain - gain in db for boost or cut"
+  [afn cutoff-freq Q db-gain] 
+  (let [_c (arg cutoff-freq)
+        _q (arg Q)
+        _db (arg db-gain)
+        ]
+    (tdf2-macro afn _c _q _db 
+      [K2 (* K K)
+       boost (>= db 0.0)
+       norm (if boost
+              (/ 1.0 (+ 1.0 (* (Math/sqrt 2.0) K) K2))        
+              (/ 1.0 (+ V (* (Math/sqrt (* 2.0 V)) K) K2)))
+       a0 (if boost
+            (* (+ V (* (Math/sqrt (* 2.0 V)) K) K2) norm) 
+            (* (+ 1.0 (* (Math/sqrt 2.0) K) K2) norm))
+       a1 (if boost
+            (* (* 2.0 (- K2 V)) norm) 
+            (* (* 2.0 (- K2 1.0)) norm))  
+       a2 (if boost
+            (* (+ (- V (* (Math/sqrt (* 2.0 V)) K)) K2) norm) 
+            (* (+ (- 1.0 (* (Math/sqrt 2.0) K)) K2) norm))
+       b1 (if boost
+            (* (* 2.0 (- K2 1.0)) norm) 
+            (* (* 2.0 (- K2 V)) norm)) 
+       b2 (if boost
+            (* (+ (- 1.0 (* (Math/sqrt 2.0) K)) K2) norm)                 
+            (* (+ (- V (* (Math/sqrt (* 2.0 V)) K)) K2) norm))
+       ])))

@@ -4,6 +4,12 @@
 
 Updated
 
+* pink.filters
+  * biquad-lpf, biquad-hpf, biquad-bpf, biquad-notch,
+    biquad-peaking, biquad-lowshelf, biquad-highshelf - Low
+    Pass, High Pass, Band Pass, Notch, peaking, low shelf,
+    and highelf filters based on the transposed direct form
+    II (tdf2) form of biquad
 * pink.io.midi
   * namespace redesigned for use with :as syntax when requiring [Issue #5,
     changes contributed by @triss]

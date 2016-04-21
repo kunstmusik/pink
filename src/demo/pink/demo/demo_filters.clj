@@ -11,10 +11,15 @@
              [pink.config :refer :all]
              ))
 
-(defn test-filter
+(defn setup-filter
   [filterfn & args]
   (pan (mul 0.5 (apply filterfn (white-noise) args))
        0.0))
+
+(defn test-filter
+  [filterfn & args]
+  (add-audio-events
+    (apply event setup-filter 0.0 filterfn args)))
 
 (comment
 
@@ -32,36 +37,23 @@
 
   ;; Individual tests
 
-  (add-audio-events 
-    (event test-filter 0.0 butterlp (env [0.0 20 10 20000])))
-
-  (add-audio-events 
-    (event test-filter 0.0 butterhp (env [0.0 20 5 20000])))
-
-  (add-audio-events 
-    (event test-filter 0.0 butterbp (env [0.0 20 5 20000]) 100 ))
-
-  (add-audio-events 
-    (event test-filter 0.0 butterbr (env [0.0 20 5 20000]) 1000 ))
-
-  (add-audio-events 
-    (event test-filter 0.0 butterbr (env [0.0 20 5 20000]) 100 ))
-
-  (add-audio-events 
-    (event test-filter 0.0 moogladder (env [0.0 20 10 20000]) 0.1 ))
-
-
-  (add-audio-events 
-    (event test-filter 0.0 biquad-lpf (env [0.0 20 5 20000]) 0.4 ))
-
-  (add-audio-events 
-    (event test-filter 0.0 biquad-hpf (env [0.0 20 5 20000]) 0.1 ))
-
-  (add-audio-events 
-    (event test-filter 0.0 biquad-bpf (env [0.0 20 5 20000]) 0.9 ))
-
-  (add-audio-events 
-    (event test-filter 0.0 biquad-notch (env [0.0 20 5 20000]) 0.6 ))
+  (test-filter butterlp (env [0.0 20 10 20000]))
+  (test-filter butterlp (env [0.0 20 10 20000]))
+  (test-filter butterhp (env [0.0 20 5 20000]))
+  (test-filter butterbp (env [0.0 20 5 20000]) 100 )
+  (test-filter butterbr (env [0.0 20 5 20000]) 1000 )
+  (test-filter butterbr (env [0.0 20 5 20000]) 100 )
+  (test-filter moogladder (env [0.0 20 10 20000]) 0.1 )
+  (test-filter biquad-lpf (env [0.0 20 5 20000]) 0.4 )
+  (test-filter biquad-hpf (env [0.0 20 5 20000]) 0.1 )
+  (test-filter biquad-bpf (env [0.0 20 5 20000]) 0.9 )
+  (test-filter biquad-notch (env [0.0 20 5 20000]) 0.6 )
+  (test-filter biquad-peaking (env [0.0 20 5 20000]) 0.6 12 )
+  (test-filter biquad-peaking (env [0.0 20 5 20000]) 0.9 -24)
+  (test-filter biquad-lowshelf (env [0.0 20 5 20000]) 0.6 12)
+  (test-filter biquad-lowshelf (env [0.0 20 5 20000]) 0.9 -24)
+  (test-filter biquad-highshelf (env [0.0 20 5 20000]) 0.6 12 )
+  (test-filter biquad-highshelf (env [0.0 20 5 20000]) 0.9 -24)
 
   (doseq [_ (range 5)] 
     (add-afunc
