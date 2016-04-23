@@ -10,8 +10,8 @@ New
     peaking, low shelf, and highelf filters based on the transposed direct form
     II (tdf2) form of biquad
 * pink.oscillators
-  * gatesig - generates unipolar rectangular audio signal with given frequency
-    and duty cycle. Works well with adsr140 envelope.
+  * unirect - generates unipolar rectangular audio signal with given frequency
+    and duty cycle. Works well as a gate signal for adsr140 envelope.
 
 Updated
 

@@ -495,10 +495,10 @@
           (gen-recur p))
         (yield out)))))
 
-;; Gatesig
+;; UNIRECT 
 
-(defn gatesig
-  "Unipolar rectangle signal generator. Takes in frequency and duty cycle."
+(defn unirect 
+  "Unipolar rectangle signal generator. Takes in frequency and duty cycle. Useful as a periodic gate signal."
   [freq duty-cycle]
   (let [f (arg freq) d (arg duty-cycle) sr (double *sr*)
         out (create-buffer)]
