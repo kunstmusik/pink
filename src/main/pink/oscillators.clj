@@ -5,6 +5,8 @@
             [pink.gen :refer [gen-sine]])
   (:import [clojure.lang IFn$DD]))
 
+(set! *unchecked-math* true)
+
 (def ^:const ^:private ^{:tag 'double} PI Math/PI)
 (def ^:const ^:private ^{:tag 'double} TWO_PI (* 2.0 PI))
 
@@ -492,3 +494,21 @@
           (aset out int-indx v)
           (gen-recur p))
         (yield out)))))
+
+;; Gatesig
+
+(defn gatesig
+  "Unipolar rectangle signal generator. Takes in frequency and duty cycle."
+  [freq duty-cycle]
+  (let [f (arg freq) d (arg duty-cycle) sr (double *sr*)
+        out (create-buffer)]
+    (generator
+      [t (long 0)]
+      [_f f _d d]
+      (let [dur (/ sr _f)
+            duty-dur (* _d dur)
+            t1 (inc t)
+            new-t (if (>= t1 dur) 0 t1)]
+        (aset out int-indx (if (< t duty-dur) 1.0 0.0)) 
+        (gen-recur new-t))
+      (yield out))))
