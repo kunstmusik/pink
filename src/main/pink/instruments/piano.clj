@@ -86,92 +86,71 @@
   ^double [^double t60] 
   (- 1.0 (Math/pow 0.001 (/ 1.0 t60 (double *sr*)))))
 
-;;; expseg (like musickit asymp)
-;(def-clm-struct expsegstr currentvalue targetvalue rate)
-;(defn make-expseg (&key (currentvalue 0.0) (targetvalue 0.0) (rate .5))
-;  (make-expsegstr
-;   :currentvalue currentvalue :targetvalue targetvalue :rate rate))
-;(defmacro expseg (f)
-;  `(let ((cv (expsegstr-currentvalue ,f)))
-;     (setf (expsegstr-currentvalue ,f)
-;     (+ cv (* (- (expsegstr-targetvalue ,f) cv) (expsegstr-rate ,f))))))
+(defn expseg
+  [^double cur-val ^double target-val ^double rate]
+  (let [out create-buffer]
+    (generator
+      [v cur-val]
+      []
+      (let [new-v (+ v (* (- target-val cv) rate))]
+        (aset out int-indx new-v)
+        (gen-recur new-v))
+      (yield out))))
 
-;(deftype ExpSegStr [^:cur-val target-val rate])
-;(defn make-expseg
-;  [& {:keys [cur-val target-val rate]
-;      :or {cur-val 0.0 target-val 0.0 rate 0.5}}]
-;  (ExpSegStr. cur-val target-val rate))
-;(defn expseg
-;  [^ExpSegStr f]
-;  )
+(defn one-pole-swept
+  [afn coef]
+  (let [out (create-buffer)]
+    (generator
+      [y1 0.0]
+      [sig afn 
+       _coef coef]
+      (let [v (- (* (+ 1.0 _coef) sig) (* coef y1))]
+        (aset out int-indx v)
+        (gen-recur v))
+      (yield out))))
 
-;(def-clm-struct simpfilt a0 a1 a2 b0 b1 b2 x1 x2 y1 y2)
+(defn one-pole-allpass
+  [afn ^double coef] 
+  (let [out (create-buffer)]
+    (generator
+      [x1 0.0 y1 0.0]
+      [sig afn]
+      (let [v (+ (* coef (- sig y1)) x1)]
+        (aset out int-indx v)
+        (gen-recur sig v))
+      (yield out))))
 
-;;;; signal controlled one-pole lowpass filter
-;(defn make-one-pole-swept (&key (y1 0.0)) (make-simpfilt :y1 y1))
-;(defmacro one-pole-swept (f input coef)
-;  `(let* ((coef ,coef)
-;    (output (- (* (1+ coef) ,input) (* coef (simpfilt-y1 ,f)))))
-;     (setf (simpfilt-y1 ,f) output)))
+(defn one-pole-one-zero
+  "y(n) = a0 (xn) + a1 x(n-1) - b0 y(n-1)"
+  [afn ^double a0 ^double a1 ^double b1]
+  (let [out (create-buffer)]
+    (generator
+      [x1 0.0 y1 0.0] 
+      [sig afn]
+      (let [v (- (+ (* a0 sig) (* a1 x1)) 
+                 (* b0 y1))]
+        (aset out int-indx v) 
+        (gen-recur sig v))
+      (yield out))))
 
-;(defn one-pole-swept
-;  [f input coef]
-;  (let [out (create-buffer)
-        
-;        ])
-;  )
+(defn noise
+  "'very special noise generator' from piano.clm"
+  ([amp] (noise amp 16383))
+  (^doubles 
+    [^double amp ^long noise-seed]
+    (let [out (create-buffer)] 
+      (generator
+        [seed noise-seed] 
+        []
+        (let [new-seed
+              (+ (* seed 1103515245) 12345)
+              val (* amp (- (* (mod (/ new-seed 65536) 65536)
+                               0.0000305185) 1.0))]
+          (aset out int-indx val)
+          (gen-recur new-seed)) 
+        (yield out)
+        ))))
 
-;;;; one-pole allpass filter
-;(defn make-one-pole-allpass (coef &key (x1 0.0) (y1 0.0))
-;  (make-simpfilt :a0 coef :x1 x1 :y1 y1))
-;(defmacro one-pole-allpass (f input)
-;  `(let* ((input ,input)
-;    (output (+ (* (simpfilt-a0 ,f) (- input (simpfilt-y1 ,f)))
-;         (simpfilt-x1 ,f))))
-;     (setf (simpfilt-x1 ,f) input
-;     (simpfilt-y1 ,f) output)))
-
-
-;;;; one-pole-one-zero filter:  y(n) = a0 x(n) + a1 x(n-1) - b0 y(n-1)
-;(defn make-one-pole-one-zero (a0 a1 b1 &key (x1 0.0) (y1 0.0))
-;  (make-simpfilt :a0 a0 :a1 a1 :b1 b1 :x1 x1 :y1 y1))
-;(defmacro one-pole-one-zero (f input)
-;  `(let* ((input ,input)
-;    (output (- (+ (* (simpfilt-a0 ,f) input)
-;      (* (simpfilt-a1 ,f) (simpfilt-x1 ,f)))
-;         (* (simpfilt-b1 ,f) (simpfilt-y1 ,f)))))
-;     (setf (simpfilt-x1 ,f) input
-;     (simpfilt-y1 ,f) output)))
-
-;;;;very special noise generator
-;(def-clm-struct noisestr noise-seed)
-;(defn make-noise (&key (noise-seed 16383))
-;  (make-noisestr :noise-seed noise-seed))
-;(defmacro noise (r amp)
-;  `(let
-;      ((seed (+ (* (noisestr-noise-seed ,r) 1103515245)
-;             12345)))
-;    (setf (noisestr-noise-seed ,r) seed)
-;    (* ,amp (- (* (mod (/ seed
-;              65536) 65536) 0.0000305185) 1.0))))
-
-;(defn noise
-;  "\"very special noise generator\" from piano.clm"
-;  [amp]
-;  (let [out ^doubles (create-buffer)
-;        seed-state (atom 16383)]
-;    (fn []
-;      (loop [i 0 seed @seed-state]
-;        (if (< i *buffer-size*)
-;          (let [new-seed (+ (* seed 1103515245) 12345)
-;                new-val (* amp 
-;                           (- (* (mod (/ new-seed 65536) 65536) 0.0000305185)
-;                              1.0))]
-;            (aset out i (double new-val))
-;            (recur (unchecked-inc i) new-seed))
-;          (do
-;            (reset! seed-state seed)
-;            out))))))
 ;(def t (noise 0.5))
 ;(require '[clojure.pprint :refer [pprint]])
 ;(try (t) (catch Exception e (.printStackTrace e)))
