@@ -1,7 +1,9 @@
 (ns pink.instruments.piano
   "Translation of Scott Van Duyne's Piano Model from Common Lisp Music"
   (:require [pink.util :refer :all]
-            [pink.config :refer :all]))
+            [pink.config :refer :all]
+            [pink.delays :refer [delay-readi fdelay]])
+  (:import [clojure.lang IFn$LD IFn$DD]))
 
 (def number-of-stiffness-allpasses 8)
 (def longitudinal-mode-cutoff-keynum 29)
@@ -95,6 +97,19 @@
       (let [new-v (+ v (* (- target-val cv) rate))]
         (aset out int-indx new-v)
         (gen-recur new-v))
+      (yield out))))
+
+
+;; based on one-pole in CLM's mus.lisp
+(defn one-pole 
+  [afn a0 b1]
+  (let [out (create-buffer)]
+    (generator
+      [y1 0.0]
+      [sig afn]
+      (let [v (- (* a0 sig) (* b1 y1))]
+        (aset out int-indx v) 
+        (gen-recur v))
       (yield out))))
 
 (defn one-pole-swept
@@ -220,6 +235,78 @@
     v
     (envelope-interp keynum table)))
 
+(defn make-ss-delay 
+  "Single-sample frac delay"
+  ^IFn$DD [^double delay-time]
+  (let [del-time-samps (inc (long (* delay-time (double *sr*))))
+        delay-buffer (double-array del-time-samps)
+        rw-ptr (long-array 1 0)
+        ^IFn$LD del-read (delay-readi delay-buffer del-time-samps)]
+    (fn ^double [^double input]
+      (let [index (long (aget rw-ptr 0)) 
+            v (.invokePrim del-read index)]
+        (aset delay-buffer index input)
+        (aset rw-ptr 0 (rem (inc index) del-time-samps))
+        v))))
+
+(defn ss-one-pole-allpass 
+  "Single-sample one-pole allpass"
+  ^IFn$DD [^double coef]
+  (let [x1 (double-array 1 0)
+        y1 (double-array 1 0)]
+    (fn ^double [^double input]
+      (let [_x1 (aget x1 0)
+            _y1 (aget y1 0)
+            v (+ (* coef (- input _y1)) _x1)]
+        (aset x1 0 input) 
+        (aset y1 0 v) 
+        v))))
+
+(defn make-string-delay
+  ^IFn$DD [delay-len tuning-coef stiffness-coef]
+  (let [d (make-ss-delay (- 1.0 delay-len))
+        t (ss-one-pole-allpass tuning-coef)
+        a1 (ss-one-pole-allpass stiffness-coef)
+        a2 (ss-one-pole-allpass stiffness-coef)
+        a3 (ss-one-pole-allpass stiffness-coef)
+        a4 (ss-one-pole-allpass stiffness-coef)
+        a5 (ss-one-pole-allpass stiffness-coef)
+        a6 (ss-one-pole-allpass stiffness-coef)
+        a7 (ss-one-pole-allpass stiffness-coef)
+        a8 (ss-one-pole-allpass stiffness-coef)]
+    (fn ^double [^double input]
+      (d (t (a1 (a2 (a3 (a4 (a5 (a6 (a7 (a8 input)))))))))))))
+
+
+(defn make-string-delay 
+  [afn delay-len tuning-coef stiffness-coef]
+  (-> (make-delay0 afn (- 1.0 delay-len))
+     (one-pole-allpass tuning-coef) 
+     (one-pole-allpass stiffness-coef) 
+     (one-pole-allpass stiffness-coef) 
+     (one-pole-allpass stiffness-coef) 
+     (one-pole-allpass stiffness-coef) 
+     (one-pole-allpass stiffness-coef) 
+     (one-pole-allpass stiffness-coef) 
+     (one-pole-allpass stiffness-coef)))
+
+(defn piano-junction
+  [afn]
+  (let [out (create-output)]
+    (generator
+      []
+      [sig afn]
+
+      (let 
+        [combedexcitationsignal
+         (* hammergain 
+            (+ adelout (* adelin strikepositioninvfac)))
+         ] 
+        )
+      ) 
+    )
+  )
+
 (defn piano 
   "Physically-modelled piano instrument. Based on Scott Van Duyne's Piano Model
   from Common Lisp Music.  (Note: translation not yet done, please don't use.)"
@@ -269,7 +356,141 @@
         pedalenvelopet60 (arg-lookup args :pedalenvelopet60 keynum default-pedalenvelopet60-table)
         soundboardcutofft60 (arg-lookup args :soundboardcutofft60 keynum default-soundboardcutofft60-table)
         drypedalresonancefactor (arg-lookup args :drypedalresonancefactor keynum default-drypedalresonancefactor-table)
-        unacordagain (arg-lookup args :unacordagain keynum default-unacordagain-table)]
+        unacordagain (arg-lookup args :unacordagain keynum default-unacordagain-table)
+       
+       ;; generators
+
+
+      dry-tap (mul (expseg 1.0 0.0 (in-t60 drytapampt60))
+           (one-pole-swept 
+              (one-pole-one-zero (noise noi amp) 1.0 0.0 0.0) 
+              (expseg drytapfiltcoefcurrent 
+                      drytapfiltcoeftarget
+                      drytapfiltcoeft60)))
+
+      open-strings
+      (mul (expseg (* sustainpedallevel pedalpresencefactor
+                      (if pedal-down 1.0 drypedalresonancefactor))
+                   0.0
+                   (in-t60 pedalenvelopet60))
+           (one-pole-swept 
+             (one-pole-one-zero (noise noi amp) 1.0 0.0 0.0) 
+             (expseg 0.0 -0.5 (in-t60 pedalenvelopet60))))
+
+      total-tap (sum dry-tap open-strings)
+
+
+
+      hammerpole
+      (+ softpole (* (- loudpole softpole) strike-velocity)) 
+      hammergain
+      (+ softgain (* (- loudgain softgain) strike-velocity))
+
+      adelin 
+      (-> total-tap 
+        (one-pole (* 1.0 (- 1.0 hammerpole)) (- hammerpole)) 
+        (one-pole (* 1.0 (- 1.0 hammerpole)) (- hammerpole)) 
+        (one-pole (* 1.0 (- 1.0 hammerpole)) (- hammerpole)) 
+        (one-pole (* 1.0 (- 1.0 hammerpole)) (- hammerpole)))
+
+
+      [dlen1 apcoef1] (apfloor (/ (* *srate* strikeposition) freq) wt)
+
+      adelout
+      (one-pole-allpass (delay0 adelin dlen1) apcoef1)
+
+      combedexcitationsignal
+      (shared 
+        (mul hammergain
+             (sum adelout
+                  (mul adelin strikepositioninvfac))))
+
+
+      string1-junction-input
+      (sum (mul unacordagain combedexcitationsignal)
+           (mul loop-gain 
+                (make-string-delay 
+                  (sum couplingfilter-output string1-junction-inputXXX)
+                  (- 1.0 delaylength1)
+                  tuningcoefficient1
+                  stiffnesscoefficient1))
+
+      string2-junction-input
+      (sum combedexcitationsignal
+           (mul loop-gain
+                (make-string-delay 
+                  (sum couplingfilter-output string2-junction-inputXXX)
+                  (- 1.0 delaylength2)
+                  tuningcoefficient2
+                  stiffnesscoefficient)))
+
+      string3-junction-input
+      (sum combedexcitationsignal
+           (mul loop-gain
+                (make-string-delay 
+                  (sum couplingfilter-output string3-junction-inputXXX)
+                  (- 1.0 delaylength3)
+                  tuningcoefficient3
+                  stiffnesscoefficient)))
+
+      couplingfilter-input
+      (sum string1-junction-input
+           string2-junction-input
+           string3-junction-input)
+
+      couplingfilter-output
+      (one-pole-one-zero couplingfilter-input cvb0 cvb1 cfa1)
+
+
+      ;dry-tap (one-pole-one-zero afn 1.0 0.0 0.0) 
+      ;dry-tap-coef-expseg (expseg drytapfiltcoefcurrent 
+      ;                            drytapfiltcoeftarget
+      ;                            drytapfiltcoeft60)
+      ;dry-tap-one-pole-swept (one-pole-swept afn coef)
+      ;dry-tap-amp-expseg (expseg 1.0 0.0 (in-t60 drytapampt60))
+
+      ;wettap (one-pole-one-zero afn (- 1.0 (Math/abs pedalresonancepole)
+      ;                                 0.0 (- pedalresonancepole)))
+      ;wettap-coef-expseg (expseg 0.0 -0.5 (in-t60 pedalenvelopet60))
+      ;wettap-one-pole-swept (one-pole-swept afn coef)
+      ;wettap-amp-expseg (expseg (* sustainpedallevel pedalpresencefactor
+      ;                             (if pedal-down 1.0 drypedalresonancefactor))
+      ;                          0.0
+      ;                          (in-t60 pedalenvelopet60))
+      sb-cutoff-rate (in-t60 soundboardcutofft60)
+
+
+      ;hammerpole
+      ;(+ softpole (* (- loudpole softpole) strike-velocity)) 
+      ;hammergain
+      ;(+ softgain (* (- loudgain softgain) strike-velocity))
+      ;hammer-one-pole1
+      ;(make-one-pole (* 1.0 (- 1.0 hammerpole)) (- hammerpole))
+      ;hammer-one-pole2
+      ;(make-one-pole (* 1.0 (- 1.0 hammerpole)) (- hammerpole)) 
+      ;hammer-one-pole3
+      ;(make-one-pole (* 1.0 (- 1.0 hammerpole)) (- hammerpole)) 
+      ;hammer-one-pole4
+      ;(make-one-pole (* 1.0 (- 1.0 hammerpole)) (- hammerpole)) 
+
+
+      tp (fn [a b] (tune-piano a b number-of-stiffness-allpasses cfb0 cfb1 cfa1))
+      [delaylength1 tuningcoefficient1] (tp freq1 stiffnesscoefficient1)
+      [delaylength2 tuningcoefficient2] (tp freq2 stiffnesscoefficient1)
+      [delaylength3 tuningcoefficient3] (tp freq3 stiffnesscoefficient1)
+
+
+
+        ]
+
+  ;  (/ (* *sr* strikeposition) freq)
+
+
+	;;;strike position comb filter delay length
+	;(agraffe-len (/ (* *srate* strikeposition) freq)))
+  ;   (multiple-value-bind
+  ;    (dlen1 apcoef1) (apfloor agraffe-len wt)
+ 
 
     ))
 
