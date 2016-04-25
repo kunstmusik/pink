@@ -2,10 +2,11 @@
   "Translation of Scott Van Duyne's Piano Model from Common Lisp Music"
   (:require [pink.util :refer :all]
             [pink.config :refer :all]
-            [pink.delays :refer [delay-readi fdelay]])
+            [pink.delays :refer [delay-read adelay]])
   (:import [clojure.lang IFn$LD IFn$DD]))
 
 (set! *unchecked-math* true)
+(set! *warn-on-reflection* true)
 
 (def number-of-stiffness-allpasses 8)
 (def longitudinal-mode-cutoff-keynum 29)
@@ -104,7 +105,7 @@
 
 ;; based on one-pole in CLM's mus.lisp
 (defn- one-pole 
-  [afn a0 b1]
+  [afn ^double a0 ^double b1]
   (let [out (create-buffer)]
     (generator
       [y1 0.0]
@@ -154,7 +155,7 @@
 
 (defn- noise
   "'very special noise generator' from piano.clm"
-  ([amp] (noise amp 16383))
+  ([^double amp] (noise amp 16383))
   (^doubles 
     [^double amp ^long noise-seed]
     (let [out (create-buffer)] 
@@ -163,9 +164,9 @@
         []
         (let [new-seed
               (+ (* seed 1103515245) 12345)
-              val (* amp (- (* (mod (/ new-seed 65536) 65536)
+              v (* amp (- (* (double (mod (/ new-seed 65536) 65536))
                                0.0000305185) 1.0))]
-          (aset out int-indx val)
+          (aset out int-indx v)
           (gen-recur new-seed)) 
         (yield out)
         ))))
@@ -226,12 +227,12 @@
     (apfloor len wt)))
 
 (defn- envelope-interp
-  [x table]
-  (let [[a b & r] table]
+  ^double [^double x table]
+  (let [[^double a ^double b & r] table]
     (when (and a b) 
       (if (<= x a) 
         b
-        (let [[c d] r] 
+        (let [[^double c ^double d] r] 
           (cond 
             (nil? c)
             b
@@ -242,9 +243,9 @@
 
 
 (defn- arg-lookup 
-  [args kwd keynum table]
+  ^double [args kwd keynum table]
   (if-let [v (kwd args)] 
-    v
+    (double v)
     (envelope-interp keynum table)))
 
 (defn- make-ss-delay 
@@ -255,7 +256,7 @@
     (let [del-time-samps (long delay-time) 
           delay-buffer (double-array del-time-samps)
           rw-ptr (long-array 1 0)
-          ^IFn$LD del-read (delay-readi delay-buffer del-time-samps)]
+          ^IFn$LD del-read (delay-read delay-buffer del-time-samps)]
       (fn ^double [^double input]
         (let [index (long (aget rw-ptr 0)) 
               v (.invokePrim del-read index)]
@@ -289,7 +290,7 @@
         v))))
 
 (defn- make-string-delay
-  ^IFn$DD [delay-len tuning-coef stiffness-coef]
+  ^IFn$DD [^double delay-len ^double tuning-coef ^double stiffness-coef]
   (let [^IFn$DD d (make-ss-delay (- delay-len 1.0))
         ^IFn$DD t (ss-one-pole-allpass tuning-coef)
         ^IFn$DD a1 (ss-one-pole-allpass stiffness-coef)
@@ -317,9 +318,9 @@
   "Physically-modelled piano instrument. Based on Scott Van Duyne's Piano Model
   from Common Lisp Music.  (Note: translation not yet done, please don't use.)"
   [& {:keys 
-      [ duration keynum strike-velocity 
+      [ duration ^double keynum strike-velocity 
        pedal-down release-time-margin amp 
-       detuningfactor detuningfactor-table  stiffnessfactor 
+       detuningfactor detuningfactor-table  ^double stiffnessfactor 
        stiffnessfactor-table pedalpresencefactor longitudinalmode 
        strikepositioninvfac singlestringdecayratefactor]
       :or {
@@ -342,10 +343,10 @@
       :as args}]
 
   (let [
-        dur (long (Math/floor (* duration *sr*)))
+        dur (long (Math/floor (* (double duration) (double *sr*))))
 
-        freq (* 440.0 (Math/pow 2.0 (/ (- keynum 69.0) 12.0)))
-        wt (/ (* 2 Math/PI freq) *sr*) 
+        freq (* 440.0 (Math/pow 2.0 (/ (- (double keynum) 69.0) 12.0)))
+        wt (/ (* 2.0 Math/PI (double freq)) (double *sr*)) 
 
         loudpole (arg-lookup args :loudpole keynum default-loudpole-table)
         softpole (arg-lookup args :softpole keynum default-softpole-table)
@@ -381,7 +382,7 @@
                                drytapfiltcoeft60)))
 
         open-strings
-        (mul (expseg (* sustainpedallevel pedalpresencefactor
+        (mul (expseg (* sustainpedallevel (double pedalpresencefactor)
                         (if pedal-down 1.0 drypedalresonancefactor))
                      0.0
                      (in-t60 pedalenvelopet60))
@@ -394,9 +395,9 @@
 
 
         hammerpole
-        (+ softpole (* (- loudpole softpole) strike-velocity)) 
+        (+ softpole (* (- loudpole softpole) (double strike-velocity))) 
         hammergain
-        (+ softgain (* (- loudgain softgain) strike-velocity))
+        (+ softgain (* (- loudgain softgain) (double strike-velocity)))
 
         adelin 
         (shared
@@ -407,10 +408,10 @@
               (one-pole (* 1.0 (- 1.0 hammerpole)) (- hammerpole))))
 
 
-        [dlen1 apcoef1] (apfloor (/ (* *sr* strikeposition) freq) wt)
+        [dlen1 apcoef1] (apfloor (/ (* (double *sr*) strikeposition) freq) wt)
 
         adelout
-        (one-pole-allpass (fdelay adelin dlen1) apcoef1)
+        (one-pole-allpass (adelay adelin dlen1) apcoef1)
 
         combedexcitationsignal
         (shared 
@@ -429,21 +430,21 @@
         b singlestringzero
         a singlestringpole
         ctemp (+ 1 (- b) g (- (* a g))
-                 (* nstrings (+ 1 (- b) (- g) (* a g))))
+                 (* (double nstrings) (+ 1 (- b) (- g) (* a g))))
 
         cfb0 (/ (* 2 (+ -1 b g (- (* a g)))) ctemp)
         cfb1 (/ (* 2 (+ a (- (* a b)) (- (* b g)) (* a b g))) ctemp)
         cfa1 (/ (+ (- a) (* a b) (- (* b g)) (* a b g)
-                   (* nstrings (+ (- a) (* a b) (* b g) (- (* a b g)))))
+                   (* (double nstrings) (+ (- a) (* a b) (* b g) (- (* a b g)))))
                 ctemp)
 
 
         ;;determine string tunings (and longitudinal modes, if present)
         freq1
-        (if (<= keynum longitudinal-mode-cutoff-keynum)
-          (* freq longitudinalmode) freq)
-        freq2 (+ freq (* detuning2 detuningfactor))
-        freq3 (+ freq (* detuning3 detuningfactor))
+        (if (<= keynum (double longitudinal-mode-cutoff-keynum))
+          (* freq (double longitudinalmode)) freq)
+        freq2 (+ freq (* detuning2 (double detuningfactor)))
+        freq3 (+ freq (* detuning3 (double detuningfactor)))
 
 
         ;;scale stiffness coefficients, if desired
@@ -454,7 +455,7 @@
                 (- stiffnessfactor 1.0)))
           (* stiffnesscoefficient stiffnessfactor))
         stiffnesscoefficientl
-        (if (<= keynum longitudinal-mode-cutoff-keynum)
+        (if (<= keynum (double longitudinal-mode-cutoff-keynum))
           longitudinal-mode-stiffness-coefficient
           stiffnesscoefficient)
 
@@ -471,13 +472,13 @@
 
         out (create-buffer)
 
-        string1-delay 
+        ^IFn$DD string1-delay 
         (make-string-delay delaylength1 tuningcoefficient1 stiffnesscoefficientl)
 
-        string2-delay 
+        ^IFn$DD string2-delay 
         (make-string-delay delaylength2 tuningcoefficient2 stiffnesscoefficient)
 
-        string3-delay 
+        ^IFn$DD string3-delay 
         (make-string-delay delaylength3 tuningcoefficient3 stiffnesscoefficient)
 
         ^IFn$DD coupling-filter (ss-one-pole-one-zero cfb0 cfb1 cfa1) 
@@ -494,14 +495,14 @@
   (let [release (== counter dur)
         new-s1 (+ (* unacordagain sig) 
                   (* loop-gain 
-                     (string1-delay (+ coupling-filter-output s1-junction-input))))
+                     (.invokePrim string1-delay (+ coupling-filter-output s1-junction-input))))
         new-s2 (+ sig 
                   (* loop-gain 
-                     (string2-delay (+ coupling-filter-output s2-junction-input))))
+                     (.invokePrim string2-delay (+ coupling-filter-output s2-junction-input))))
 
         new-s3 (+ sig 
                   (* loop-gain 
-                     (string3-delay (+ coupling-filter-output s3-junction-input))))
+                     (.invokePrim string3-delay (+ coupling-filter-output s3-junction-input))))
 
         coupling-filt-in (+ new-s1 new-s2 new-s3)
         coupling-filt-out (.invokePrim coupling-filter coupling-filt-in)

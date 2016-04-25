@@ -26,5 +26,9 @@
     (i instr 0.0 0.4 0.25 60)
     (i instr 0.5 0.4 0.25 64))
 
+  (add-audio-events
+    (i instr 0.0 0.4 0.25 62)
+    (i instr 0.5 0.4 0.25 65))
+
 
   )
