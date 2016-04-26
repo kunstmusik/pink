@@ -2,7 +2,8 @@
   "Translation of Scott Van Duyne's Piano Model from Common Lisp Music"
   (:require [pink.util :refer :all]
             [pink.config :refer :all]
-            [pink.delays :refer [delay-read adelay]])
+            [pink.delays :refer [delay-read adelay]]
+             [pink.noise :refer [white-noise]])
   (:import [clojure.lang IFn$LD IFn$DD]))
 
 (set! *unchecked-math* true)
@@ -153,32 +154,11 @@
         (gen-recur sig v))
       (yield out))))
 
+;; Not using 'very special noise generator' from piano.clm as it
+;; used ratio math which would be very slow...
 (defn- noise
-  "'very special noise generator' from piano.clm"
-  ([^double amp] (noise amp 16383))
-  (^doubles 
-    [^double amp ^long noise-seed]
-    (let [out (create-buffer)] 
-      (generator
-        [seed (long noise-seed)] 
-        []
-        (let [new-seed
-              (+ (* seed 1103515245) 12345)
-              v (* amp (- (* (double (mod (/ new-seed 65536) 65536))
-                               0.0000305185) 1.0))]
-          (aset out int-indx v)
-          (gen-recur new-seed)) 
-        (yield out)
-        ))))
-
-;;;;delay line unit generator with length 0 capabilities...
-;(defn make-delay0 (len)
-;  (cond ((> len 0) (make-delay len))
-;      ((= len 0) nil)
-;      (t (clm-print "can't handle that much stiffness on current pitch") nil)))
-;(defmacro delay0 (f input)
-;  `(let ((input ,input))
-;     (if ,f (delay ,f input) input)))
+  [^double amp]
+  (mul amp (white-noise)))
 
 (defn- apphase ^double [^double a1 ^double wt]
   (Math/atan2 (* (- (* a1 a1) 1.0) (Math/sin wt))
@@ -187,8 +167,8 @@
 (defn- opozphase ^double [^double b0 ^double b1 ^double a1 ^double wt] 
   (let [s (Math/sin wt)
         c (Math/cos wt)] 
-    (Math/atan2 (- (* a1 s (+ b0 (* b1 c))) (* b1 s (+ 1 (* a1 c))))
-          (+ (* (+ b0 (* b1 c)) (+ 1 (* a1 c))) (* b1 s a1 s)))))
+    (Math/atan2 (- (* a1 s (+ b0 (* b1 c))) (* b1 s (+ 1.0 (* a1 c))))
+          (+ (* (+ b0 (* b1 c)) (+ 1.0 (* a1 c))) (* b1 s a1 s)))))
 
 (defn- get-allpass-coef ^double [^double samp-frac ^double wt]
   (let [ta (Math/tan (- (* samp-frac wt)))
@@ -251,7 +231,7 @@
 (defn- make-ss-delay 
   "Single-sample frac delay"
   ^IFn$DD [^double delay-time]
-  (if (zero? delay-time)
+  (if (= 0.0 delay-time)
     (fn ^double [^double input] input)
     (let [del-time-samps (long delay-time) 
           delay-buffer (double-array del-time-samps)
@@ -429,11 +409,11 @@
         g attenuationperperiod ;;dc gain
         b singlestringzero
         a singlestringpole
-        ctemp (+ 1 (- b) g (- (* a g))
-                 (* (double nstrings) (+ 1 (- b) (- g) (* a g))))
+        ctemp (+ 1.0 (- b) g (- (* a g))
+                 (* (double nstrings) (+ 1.0 (- b) (- g) (* a g))))
 
-        cfb0 (/ (* 2 (+ -1 b g (- (* a g)))) ctemp)
-        cfb1 (/ (* 2 (+ a (- (* a b)) (- (* b g)) (* a b g))) ctemp)
+        cfb0 (/ (* 2.0 (+ -1.0 b g (- (* a g)))) ctemp)
+        cfb1 (/ (* 2.0 (+ a (- (* a b)) (- (* b g)) (* a b g))) ctemp)
         cfa1 (/ (+ (- a) (* a b) (- (* b g)) (* a b g)
                    (* (double nstrings) (+ (- a) (* a b) (* b g) (- (* a b g)))))
                 ctemp)
