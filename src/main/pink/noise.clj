@@ -8,7 +8,7 @@
   (let [out ^doubles (create-buffer)] 
     (generator
       [] []
-      (let [v (- (* 2 (Math/random) 1))]
+      (let [v (- (* 2 (Math/random)) 1)]
         (aset out int-indx v)
         (gen-recur))
       (yield out))))

@@ -20,6 +20,12 @@ Updated
     changes contributed by @triss]
   * find-device fixed to work on Windows [Issue # 3, fix contributed by @triss]
 
+Fixed
+
+* pink.noise
+  * white-noise - paren typo caused noise value to be in range [0,2.0] instead
+    of [-1.0,1.0]
+
 
 ## 0.2.1
 
