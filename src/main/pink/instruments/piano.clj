@@ -54,7 +54,7 @@
   '(21.000 0 24.466 0 28.763 0 36.000 0 108 0))
 
 (def default-releaseloopgain-table
-  '(21.643 0.739 24.000 0.800 36.000 0.880 48.000 0.910 60.000 0.940 72.000 0.965 84.000 0.987 88.99 .987 89.0 1.0 108 1.0))
+  '(21.643 0.739 24.000 0.800 36.000 0.880 48.000 0.910 60.000 0.940 72.000 0.965 84.000 0.987 88.99 0.987 89.0 1.0 108 1.0))
 
 (def default-drytapfiltcoeft60-table
   '(36 0.35 60 0.25 108 0.15))
@@ -93,15 +93,45 @@
   (- 1.0 (Math/pow 0.001 (/ 1.0 t60 (double *sr*)))))
 
 (defn- expseg
-  [^double cur-val ^double target-val ^double rate]
-  (let [out (create-buffer)]
-    (generator
-      [v cur-val]
-      []
-      (let [new-v (+ v (* (- target-val v) rate))]
-        (aset out int-indx new-v)
-        (gen-recur new-v))
-      (yield out))))
+  ([^double cur-val ^double target-val rate]
+   (expseg cur-val target-val rate :sustain))
+  ([^double cur-val ^double target-val rate done-action]
+   (if (fn? rate)
+     (let [out (create-buffer)
+           sustain-buffer (create-buffer target-val)
+           ;; assumes downwards expseg
+           bound (* target-val 1.001)]
+       (generator
+         [v cur-val]
+         [r rate]
+         (if (and (= int-indx 0) (= v target-val))
+           (if (= done-action :sustain)
+             sustain-buffer
+             nil)
+           (let [new-v (if (< v bound)
+                         target-val 
+                         (+ v (* (- target-val v) r))) ]
+             (aset out int-indx new-v)
+             (gen-recur new-v)))
+         (yield out)))
+     (let [out (create-buffer)
+           sustain-buffer (create-buffer target-val)
+           ;; assumes downwards expseg
+           bound (* target-val 1.001)
+           r (double rate)]
+       (generator
+         [v cur-val]
+         []
+         (if (and (= int-indx 0) (= v target-val))
+           (if (= done-action :sustain)
+             sustain-buffer
+             nil)
+           (let [new-v (if (< v bound)
+                         target-val 
+                         (+ v (* (- target-val v) r))) ]
+             (aset out int-indx new-v)
+             (gen-recur new-v)))
+         (yield out))))))
 
 
 ;; based on one-pole in CLM's mus.lisp
@@ -295,10 +325,10 @@
 
 
 (defn piano 
-  "Physically-modelled piano instrument. Based on Scott Van Duyne's Piano Model
-  from Common Lisp Music.  (Note: translation not yet done, please don't use.)"
+  "Physically-modelled piano instrument. Based on Scott Van Duyne's
+  Piano Model from Common Lisp Music. Arguments are given as key/values."
   [& {:keys 
-      [ duration ^double keynum strike-velocity 
+      [ ^double duration ^double keynum strike-velocity 
        pedal-down release-time-margin amp 
        detuningfactor detuningfactor-table  ^double stiffnessfactor 
        stiffnessfactor-table pedalpresencefactor longitudinalmode 
@@ -351,10 +381,16 @@
         drypedalresonancefactor (arg-lookup args :drypedalresonancefactor keynum default-drypedalresonancefactor-table)
         unacordagain (arg-lookup args :unacordagain keynum default-unacordagain-table)
 
+
+        sb-cutoff-rate (in-t60 soundboardcutofft60)
+
         ;; generators
 
 
-        dry-tap (mul (expseg 1.0 0.0 (in-t60 drytapampt60))
+        dry-tap (mul (expseg 1.0 0.0 
+                             (hold-until duration 
+                                         (in-t60 drytapampt60)
+                                         sb-cutoff-rate))
                      (one-pole-swept 
                        (one-pole-one-zero (noise amp) 1.0 0.0 0.0) 
                        (expseg drytapfiltcoefcurrent 
@@ -365,7 +401,9 @@
         (mul (expseg (* sustainpedallevel (double pedalpresencefactor)
                         (if pedal-down 1.0 drypedalresonancefactor))
                      0.0
-                     (in-t60 pedalenvelopet60))
+                     (hold-until duration 
+                                 (in-t60 pedalenvelopet60)
+                                 sb-cutoff-rate))
              (one-pole-swept 
                (one-pole-one-zero (noise amp) 1.0 0.0 0.0) 
                (expseg 0.0 -0.5 (in-t60 pedalenvelopet60))))
@@ -399,7 +437,6 @@
                (sum adelout
                     (mul adelin strikepositioninvfac))))
 
-        sb-cutoff-rate (in-t60 soundboardcutofft60)
 
         ;;compute coefficients for and initialize the coupling filter
         ;;taking l=g(1 - bz^-1)/(1-b), and computing hb = -(1-l)/(2-l)
@@ -462,38 +499,39 @@
         (make-string-delay delaylength3 tuningcoefficient3 stiffnesscoefficient)
 
         ^IFn$DD coupling-filter (ss-one-pole-one-zero cfb0 cfb1 cfa1) 
+
+        loop-gain (hold-until 
+                    duration loop-gain-default
+                    (expseg loop-gain-default releaseloopgain
+                            (in-t60 loop-gain-env-t60) :release))
+
 ]
 
 (generator
-  [counter (long 0) 
-   loop-gain loop-gain-default
+  [loop-gain loop-gain-default
    s1-junction-input 0.0
    s2-junction-input 0.0
    s3-junction-input 0.0
    coupling-filter-output 0.0]
-  [sig combedexcitationsignal]
-  (let [release (== counter dur)
-        new-s1 (+ (* unacordagain sig) 
-                  (* loop-gain 
+  [sig combedexcitationsignal
+   loop-gain-val loop-gain]
+  (let [new-s1 (+ (* unacordagain sig) 
+                  (* loop-gain-val
                      (.invokePrim string1-delay (+ coupling-filter-output s1-junction-input))))
         new-s2 (+ sig 
-                  (* loop-gain 
+                  (* loop-gain-val 
                      (.invokePrim string2-delay (+ coupling-filter-output s2-junction-input))))
 
         new-s3 (+ sig 
-                  (* loop-gain 
+                  (* loop-gain-val 
                      (.invokePrim string3-delay (+ coupling-filter-output s3-junction-input))))
 
         coupling-filt-in (+ new-s1 new-s2 new-s3)
         coupling-filt-out (.invokePrim coupling-filter coupling-filt-in)
         ]
 
-    (when release (println "Release!"))
-
     (aset out int-indx coupling-filt-in)
-    (gen-recur (inc counter) loop-gain new-s1 new-s2 new-s3 coupling-filt-out) 
-
-    )
+    (gen-recur loop-gain new-s1 new-s2 new-s3 coupling-filt-out))
 
 
   (yield out)

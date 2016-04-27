@@ -17,7 +17,7 @@ New
     then emits end-value. duration is given in seconds. end-value may be a
     double or audio function; if the latter, the audio function will be called
     to process once the hold time is complete.
-  
+* pink.instruments.piano - translation of Scott Van Duyne's Piano Model from Common Lisp Music.  
 
 Updated
 
