@@ -12,6 +12,12 @@ New
 * pink.oscillators
   * unirect - generates unipolar rectangular audio signal with given frequency
     and duty cycle. Works well as a gate signal for adsr140 envelope.
+* pink.util
+  * hold-until - audio function that emits a given start value for duration,
+    then emits end-value. duration is given in seconds. end-value may be a
+    double or audio function; if the latter, the audio function will be called
+    to process once the hold time is complete.
+  
 
 Updated
 

@@ -634,3 +634,64 @@
           (dealloc-on-done allocs afn)))))
 
 
+;;
+
+(defn hold-until
+  "Audio function that emits a given start value for duration, then
+  emits end-value. duration is given in seconds. end-value may be a
+  double or audio function; if the latter, the audio function will be
+  called to process once the hold time is complete."
+  [delay-time ^double start-value end-value]
+  (let [end-sample (long (+ 1.0 (* delay-time (double *sr*))))]
+    (if (fn? end-value)
+      ;; case where generator is passed in for end-value
+      (let [out (create-buffer)
+            buf-size (long *buffer-size*)
+            buf (atom nil)]
+        (generator
+          [counter (long 0) buf-indx (long 0)] []
+          (if (>= counter end-sample)
+            (if (and (zero? int-indx) (nil? @buf))
+              nil
+              (let [new-indx (unchecked-inc buf-indx)
+                    buffer ^doubles @buf ] 
+                (if (nil? buffer)
+                  (do
+                    (aset out int-indx 0.0)
+                    (gen-recur counter 0)) 
+                  (do
+                    (aset out int-indx (aget buffer buf-indx)) 
+                    (if (>= new-indx buf-size)
+                      (do
+                        (reset! buf (end-value))
+                        (gen-recur counter 0))
+                      (gen-recur counter new-indx))  
+                    ))))
+            (do 
+              (aset out int-indx start-value)
+              (let [c (unchecked-inc counter)]
+                (when (== c end-sample) 
+                  (reset! buf (end-value)))
+                (gen-recur c 0))))
+          (yield out)
+          ))
+
+      ;; case where start/end are numeric
+      (let [^doubles init-out (create-buffer start-value)
+            ^doubles transition-out (create-buffer start-value) 
+            ^doubles end-out (create-buffer end-value)
+            buf-size (long *buffer-size*)
+            counter (long-array 1 end-sample)]
+          (Arrays/fill transition-out 
+                       (long (mod end-sample buf-size))
+                       buf-size 
+                       (double end-value)) 
+          (fn []
+            (let [new-c (- (aget counter 0) buf-size)]
+              (aset counter 0 new-c)
+              (cond
+                (> new-c buf-size) init-out
+                (> new-c 0) transition-out
+                :default end-out)))) 
+
+      )))
