@@ -13,7 +13,7 @@
 (defn instr 
   [amp key-num]
   (->
-    (piano :duration *duration* :keynum key-num)
+    (piano :duration *duration* :keynum key-num :amp amp)
     ;(mul (hold-until 0.5 1.0 (env [0.0 1.0 0.1 0.0])))
     (pan 0.0)
     ))
@@ -38,6 +38,16 @@
 
   (doseq [x (range 13)]
     (add-audio-events (i instr (* x 0.5) 2.0 0.25 (+ 40 x))))
+
+  (doseq [x (range 1000)]
+    (add-audio-events (i instr (* x 0.125) 2.0 
+                         (* (/ 1.0 (inc (mod x 48))) 0.25) 
+                         (+ 48 (mod x 48)))))
+
+  (doseq [x (range 1000)]
+    (add-audio-events (i instr (* x 0.2) 2.0 
+                         (* (/ 1.0 (inc (mod x 48))) 0.25) 
+                         (+ 48 (mod x 48)))))
 
   (add-audio-events
     (i instr 0.0 0.4 0.25 62)
