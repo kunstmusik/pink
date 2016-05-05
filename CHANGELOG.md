@@ -31,6 +31,9 @@ Fixed
 * pink.noise
   * white-noise - paren typo caused noise value to be in range [0,2.0] instead
     of [-1.0,1.0]
+* pink.engine
+  * root node buffer sizes were not set correctly when using
+    non-default *buffer-size* with engines
 
 
 ## 0.2.1

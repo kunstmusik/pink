@@ -51,7 +51,7 @@
             (create-node)
             sample-rate channels bsize 
             (* bsize channels) (* (long BYTE-SIZE) bsize channels)
-            (event-list buffer-size sample-rate))]
+            (event-list bsize sample-rate))]
     (swap! engines conj e) 
     e))
 
@@ -149,7 +149,8 @@
         clear-flag (.clear engine)
         run-engine-events (event-list-processor (.event-list engine))
         run-pre-control-funcs (control-node-processor pre-control)
-        run-audio-funcs (node-processor root-audio-node)
+        run-audio-funcs (binding [*buffer-size* buffer-size] 
+                          (node-processor root-audio-node))
         run-post-control-funcs (control-node-processor post-control)]
 
     (binding [*sr* sr *buffer-size* buffer-size *nchnls* nchnls]
@@ -253,7 +254,8 @@
         clear-flag (.clear engine)
         run-engine-events (event-list-processor (.event-list engine))
         run-pre-control-funcs (control-node-processor pre-control)
-        run-audio-funcs (node-processor root-audio-node)
+        run-audio-funcs (binding [*buffer-size* buffer-size] 
+                          (node-processor root-audio-node))
         run-post-control-funcs (control-node-processor post-control) 
         ;fos (FileOutputStream. filename)
         ]
