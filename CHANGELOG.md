@@ -4,6 +4,10 @@
 
 New
 
+* pink.processes
+  * New namespace for creating syncronously-executed processes that conform to
+    the pink control function convention.  (Similar to Common Music's processes
+    and Chuck's Shreds.) 
 * pink.filters
   * biquad-lpf, biquad-hpf, biquad-bpf, biquad-notch, biquad-peaking,
     biquad-lowshelf, biquad-highshelf - Low Pass, High Pass, Band Pass, Notch,
@@ -17,7 +21,8 @@ New
     then emits end-value. duration is given in seconds. end-value may be a
     double or audio function; if the latter, the audio function will be called
     to process once the hold time is complete.
-* pink.instruments.piano - translation of Scott Van Duyne's Piano Model from Common Lisp Music.  
+* pink.instruments.piano - translation of Scott Van Duyne's Piano Model from
+  Common Lisp Music.  
 
 Updated
 

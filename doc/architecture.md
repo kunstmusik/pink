@@ -36,7 +36,9 @@ Audio functions are functions that are called once per engine cycle and either g
 
 ### Control Functions
 
-Control functions are functions that are called once per engine cycle and either return true or false, depending on if they are still running or are done. Control functions can generally used for side-effects.  They may be used to create sample-accurate clocks for manually triggering events, model performers, or be used as a callback mechanism by application code.
+Control functions are functions that are called once per engine cycle and either return true or false, depending on if they are still running or are done. Control functions are generally used for side-effects.  Some example uses include sample-accurate clocks for manually triggering events, modeling performers, and as a callback mechanism for application code.
+
+The pink.processes namespace includes a special process macro for writing processes that are compiled into Pink control functions.  Pink processes allow for writing code that uses waits to pause time and follows a simliar model to Common Music's [processes](http://commonmusic.sourceforge.net/cm/res/doc/cm.html#processes) and Chuck's [Shreds](http://chuck.cs.princeton.edu/doc/language/spork.html). (Using Pink's facilities for adding control functions to the engine is functionally equivalent's to CM's sprout and Chuck's spork operations.) More information on processes is available [here](processes.md).
 
 ### Events
 

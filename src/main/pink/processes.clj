@@ -1,0 +1,101 @@
+(ns pink.processes
+  "Write process code that works as control functions."
+  (:require 
+    [clojure.core.async.impl.ioc-macros :as ioc]
+    [pink.config :refer :all]
+    ))
+
+(def ^:const WAIT-IDX 6)
+
+(defn my-wait [c] c)
+
+;; Surrounding my-wait with a loop will induce core.async's
+;; state-machine macros to add a new block for just the call
+;; to my-wait. When the state-machine returns, it will
+;; operate just the wait code, rather than all of the code
+;; prior to the wait terminator. 
+(defmacro wait [c] 
+  `(loop []
+     (pink.processes/my-wait ~c)))
+
+(defn process-wait  [state blk val]
+  (cond 
+    (number? val)
+    (let  [cur-wait  (long (ioc/aget-object state WAIT-IDX))
+           ksmps  (long *buffer-size*)
+           next-buf  (+ cur-wait ksmps)
+           wait-time (long 
+                       (Math/round 
+                       (+ 0.499999 (* (double *sr*) (double val)))))]
+      ;(println next-buf " : " wait-time)
+      (if  (> next-buf wait-time)
+        (do 
+          (ioc/aset-all! state 
+                         WAIT-IDX (rem next-buf wait-time) 
+                         ioc/STATE-IDX blk) 
+          :recur)
+        (do 
+          (ioc/aset-all! state WAIT-IDX next-buf)
+          true)))
+    (fn? val)
+    (let [v (val)] 
+      (if v ;; function signals ready to move on 
+         (do 
+          (ioc/aset-all! state WAIT-IDX 0 
+                         ioc/STATE-IDX blk) 
+          :recur)
+         true ;; pass through
+        ))
+    :default
+    (throw (Exception. (str "Illegal argument: " val)))))
+
+(defn process-done [state val]
+  false)
+
+(defmacro process
+  [& body]
+  (let  [terminators  {`my-wait `process-wait
+                       `counter `process-counter
+                       :Return `process-done}]
+    `(let  [captured-bindings# (clojure.lang.Var/getThreadBindingFrame) 
+            state# (~(ioc/state-machine `(do ~@body) 1  
+                                        (keys &env) 
+                                        terminators))]
+       ;; TODO - consider replacing WAIT-IDX to use a long-array to save on object allocations
+       (ioc/aset-all! state#
+                      WAIT-IDX 0
+                      ;~ioc/BINDINGS-IDX  (clojure.lang.Var/getThreadBindingFrame)
+                      )
+       (fn []
+         (ioc/aset-all! state# ~ioc/BINDINGS-IDX  (clojure.lang.Var/getThreadBindingFrame))
+         (ioc/run-state-machine state#)))))
+
+
+
+(comment
+
+  (def p 
+    (process
+      (loop  [a 0]
+        (when  (< a 5)
+          (wait 3) 
+          (println "test!")
+          (recur  (inc a))))))
+
+  (require '[clojure.pprint :refer [pprint]])
+  (pprint (macroexpand 
+            '(process
+               (loop  [a 0]
+                 (when  (< a 5)
+                   (wait 3) 
+                   (println "test!")
+                   (recur  (inc a)))))
+
+            ))
+
+  (loop  [c 0]
+    (let  [v  (p)]
+      (println c " : " v)
+      (when v
+        (recur  (inc c)))))
+  )
