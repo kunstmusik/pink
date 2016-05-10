@@ -5,9 +5,45 @@
     [pink.config :refer :all]
     ))
 
+;; Experimental Code 
+
+;; (defonce PinkProcessList)
+;; (defn list-pink-processes [])
+;; (kill-all-pink-processes [])
+
+(defprotocol IPinkProcess
+  (paused? [this])
+  (active? [this])
+  (toggle-pause [this])
+  (kill [this]))
+
+(deftype PinkProcess [^:volatile-mutable paused 
+                      ^:volatile-mutable active 
+                      proc-fn]
+  IPinkProcess
+  (paused? [this] paused)
+  (active? [this] active)
+  (toggle-pause [this ] (set! paused (not paused)))
+  (kill [this] 
+    (set! active false) :dead)
+  clojure.lang.IFn  ;; used to conform to Pink's Control Function convention
+  (invoke [this] 
+    (cond
+      (not active) false
+      paused true
+      :default (proc-fn) 
+      )))
+
+(defn create-pink-process 
+  [proc-fn]
+  (PinkProcess. false true proc-fn))
+
+
+;; PROCESS MACHINERY 
+
 (def ^:const WAIT-IDX 6)
 
-(defn my-wait [c] c)
+(defn pink-wait [c] c)
 
 ;; Surrounding my-wait with a loop will induce core.async's
 ;; state-machine macros to add a new block for just the call
@@ -16,7 +52,7 @@
 ;; prior to the wait terminator. 
 (defmacro wait [c] 
   `(loop []
-     (pink.processes/my-wait ~c)))
+     (pink.processes/pink-wait ~c)))
 
 (defn process-wait  [state blk val]
   (cond 
@@ -54,7 +90,7 @@
 
 (defmacro process
   [& body]
-  (let  [terminators  {`my-wait `process-wait
+  (let  [terminators  {`pink-wait `process-wait
                        `counter `process-counter
                        :Return `process-done}]
     `(let  [captured-bindings# (clojure.lang.Var/getThreadBindingFrame) 
@@ -78,7 +114,7 @@
     (process
       (loop  [a 0]
         (when  (< a 5)
-          (wait 3) 
+          (wait 0.1) 
           (println "test!")
           (recur  (inc a))))))
 
