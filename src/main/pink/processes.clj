@@ -5,7 +5,7 @@
     [pink.config :refer :all]
     ))
 
-;; Experimental Code 
+;; EXPERIMENTAL CODE 
 
 ;; (defonce PinkProcessList)
 ;; (defn list-pink-processes [])
@@ -38,6 +38,45 @@
   [proc-fn]
   (PinkProcess. false true proc-fn))
 
+;; SIGNALS
+
+(defprotocol PinkSignal
+  (signal-done? [this]))
+
+(defprotocol ICue
+  (has-cued? [this]) 
+  (signal-cue [this]))
+
+(deftype Cue [^:volatile-mutable sig]
+  ICue
+  (has-cued? [this] sig)
+  (signal-cue [this] (set! sig true))
+  PinkSignal
+  (signal-done? [this] (has-cued? this)))
+
+(defn cue 
+  "Create a cue signal that satisfies ICue and PinkSignal protocols.
+  Useful for one-to-many signalling."
+  []
+  (Cue. false))
+
+(defprotocol ICountdownLatch
+  (count-down [this])
+  (latch-done? [this]))
+
+(deftype CountdownLatch [^:volatile-mutable num-wait]
+  ICountdownLatch
+  (count-down [this] (set! num-wait (dec num-wait)))
+  (latch-done? [this] (= 0 num-wait))
+  PinkSignal
+  (signal-done? [this] (latch-done? this)))
+
+(defn countdown-latch 
+  "Create a countdown-latch that satisfies ICountdownLatch and
+  PinkSignal protcols. Useful for coordinating and waiting for
+  multiple processes to signal."
+  [^long num-wait]
+  (CountdownLatch. num-wait) )
 
 ;; PROCESS MACHINERY 
 
@@ -50,7 +89,10 @@
 ;; to my-wait. When the state-machine returns, it will
 ;; operate just the wait code, rather than all of the code
 ;; prior to the wait terminator. 
-(defmacro wait [c] 
+(defmacro wait 
+  "Wait upon a given time, PinkSignal, or predicate. Must be used
+  within a Pink process."
+  [c] 
   `(loop []
      (pink.processes/pink-wait ~c)))
 
@@ -73,6 +115,13 @@
         (do 
           (ioc/aset-all! state WAIT-IDX next-buf)
           true)))
+    (satisfies? PinkSignal val)
+    (if (signal-done? val)
+       (do 
+          (ioc/aset-all! state WAIT-IDX 0 
+                         ioc/STATE-IDX blk) 
+          :recur)
+       true) ;; pass through
     (fn? val)
     (let [v (val)] 
       (if v ;; function signals ready to move on 
@@ -89,6 +138,7 @@
   false)
 
 (defmacro process
+  "Create a state-machine-based Pink control function."
   [& body]
   (let  [terminators  {`pink-wait `process-wait
                        `counter `process-counter

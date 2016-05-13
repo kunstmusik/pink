@@ -1,5 +1,5 @@
 (ns pink.processes-test
-  (:require [pink.processes :refer [process wait]]
+  (:require [pink.processes :refer [process wait cue countdown-latch] :as p]
             [pink.config :refer :all]
             [clojure.test :refer :all]))
 
@@ -55,3 +55,29 @@
           (is (= c num-wait2))
           (is (= @counter 2))
           )))))   
+
+(deftest test-cue
+  (let [c (cue)]
+    (is (not (p/has-cued? c)))
+    (is (not (p/signal-done? c)))
+    (p/signal-cue c)
+    (is (p/has-cued? c))
+    (is (p/signal-done? c))
+    
+    ))
+
+(deftest test-countdown-latch
+  (let [l (countdown-latch 5)]
+    (is (not (p/signal-done? l)))
+    (is (not (p/latch-done? l)))
+    (p/count-down l)
+    (is (not (p/latch-done? l)))
+    (is (not (p/signal-done? l)))
+    (p/count-down l)
+    (p/count-down l)
+    (p/count-down l)
+    (p/count-down l)
+    (is (p/latch-done? l))
+    (is (p/signal-done? l))
+    ))
+
