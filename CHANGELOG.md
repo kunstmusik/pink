@@ -33,6 +33,10 @@ New
     complete.
 * pink.instruments.piano - translation of Scott Van Duyne's Piano
   Model from Common Lisp Music.  
+* pink.envelopes
+  * hold - simple envelope that holds a given value for a given duration.
+    Will zero out after duration if duration ends mid-buffer, then return
+    nil afterwards to signal completion.
 
 Updated
 

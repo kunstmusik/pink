@@ -335,3 +335,22 @@
   [a r]
   (exp-env [0.0 0.00001 a 1.0 r 0.00001]))
 
+
+(defn hold
+  "Simple envelope that holds a given value for a given
+  duration.  Will zero out after duration if duration ends
+  mid-buffer, then return nil afterwards to signal
+  completion."
+  [^double value ^double duration]
+  (let [out (create-buffer)
+        samps (long (* duration *sr*))]
+    (generator
+      [c (long 0) v 1.0] []
+      (if (not (and (= v 0.0) (= int-indx 0))) 
+        (do 
+          (aset out int-indx v)
+          (if (< c samps)
+            (gen-recur (inc c) 1.0)
+            (gen-recur (inc c) 0.0))) 
+       nil)
+      (yield out))))
