@@ -37,6 +37,10 @@ New
   * hold - simple envelope that holds a given value for a given duration.
     Will zero out after duration if duration ends mid-buffer, then return
     nil afterwards to signal completion.
+* pink.control
+  * chain - Creates a control function that chains together
+    other control functions.  Executes first control-fn until
+    completion, then the second, and so on.
 
 Updated
 

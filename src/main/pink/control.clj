@@ -1,8 +1,25 @@
 (ns pink.control
-  ^{:doc "Library for useful control functions."
+  ^{:doc "Library for control functions."
    :author "Steven Yi"}
   (:require [pink.config :refer :all])
   )
+
+;; Chain
+
+(defn chain
+  "Creates a control function that chains together other control functions.
+  Executes first control-fn until completion, then the second, and so on."
+  [& control-fns]
+  (let [fns (atom control-fns)]
+    (fn []
+      (loop [cur-fn (first @fns)]
+        (if cur-fn
+          (if (cur-fn)
+            true
+            (recur (first (swap! fns rest)))) 
+          (do 
+            (reset! fns nil)
+            false))))))
 
 ;; Control Functions
 (defn create-clock
