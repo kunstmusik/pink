@@ -3,7 +3,8 @@
   (:require [pink.util :refer :all]
             [pink.config :refer :all]
             [pink.delays :refer [delay-read adelay]]
-             [pink.noise :refer [white-noise]])
+            [pink.noise :refer [white-noise]]
+            [pink.envelopes :refer [hold]])
   (:import [clojure.lang IFn$LD IFn$DD]))
 
 (set! *unchecked-math* true)
@@ -133,7 +134,6 @@
              (gen-recur new-v)))
          (yield out))))))
 
-
 ;; based on one-pole in CLM's mus.lisp
 (defn- one-pole 
   [afn ^double a0 ^double b1]
@@ -149,8 +149,7 @@
 (defn- one-pole-swept
   [afn coef]
   (let [out (create-buffer)
-        c (arg coef)
-        ]
+        c (arg coef)]
     (generator
       [y1 0.0]
       [sig afn 
@@ -322,7 +321,6 @@
           (.invokePrim a1)
           (.invokePrim t)
           (.invokePrim d)))))
-
 
 (defn piano 
   "Physically-modelled piano instrument. Based on Scott Van Duyne's
@@ -502,8 +500,10 @@
 
         loop-gain (hold-until 
                     duration loop-gain-default
-                    (expseg loop-gain-default releaseloopgain
-                            (in-t60 loop-gain-env-t60) :release))
+                    (mul
+                      (hold 1.0 0.25)
+                      (expseg loop-gain-default releaseloopgain
+                            (in-t60 loop-gain-env-t60))))
 
 ]
 
