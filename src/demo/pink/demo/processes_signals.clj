@@ -78,41 +78,41 @@
   (def p1-proc0 
     (perf-until-cued-signal-latch 
       [0 2 3 0 2 3 :rest 6]
-      [0.15 0.15 0.15 0.15 0.15 0.15 0.8 2.0]
+      [0.1 0.1 0.1 0.1 0.1 0.1 0.8 2.0]
       cue0 latch0))
 
   (def p1-proc1
     (perf-until-cued 
-      [0 3 0 3 7 :rest]
-      [0.15 0.15 0.15 0.15 0.15 2.2]
+      [0 2 3 0 2 3 5 3 2 :rest -1]
+      [0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.8 2.0]
       cue1))
 
 
   (def p2-proc0
     (perf-until-cued-signal-latch 
-      (transpose [2 5 2 :rest 5 2 5 :rest] -24)
-      [0.2 0.2 0.2 0.4 0.2 0.2 0.2 1.5 ]
+      (transpose [8 9 11 :rest 8 11 9 :rest] -24)
+      [0.1 0.1 0.2 0.2 0.1 0.1 0.2 1.5 ]
       cue0 latch0))
 
 
   (def p2-proc1
     (perf-until-cued 
-      (transpose [2 3 4 5 :rest] -24)
-      [0.2 0.2 0.2 2.0 0.5]
+      (transpose [8 9 11 8 9 11 :rest 8 11 9 :rest] -24)
+      [0.1 0.1 0.1 0.1 0.1 0.2 0.2 0.1 0.1 0.2 1.5 ]
       cue1))
 
 
   (def p3-proc0
     (perf-until-cued-signal-latch 
-      (transpose [5 11 5 11 12 13 :rest] -12)
-      [0.2 0.2 0.2 0.4 0.6 0.8 1.4 ]
+      (transpose [5 5 5 :rest 5 :rest 5 5  :rest] -12)
+      [0.1 0.1 0.1 0.1 0.2 0.1 0.2 0.1 0.1 0.2]
       cue0 latch0))
 
 
   (def p3-proc1
     (perf-until-cued 
-      (transpose [6 8 9 :rest] -12)
-      [0.2 0.2 0.2 2.0]
+      (transpose [5 5 5 :rest 5 :rest 5 5 :rest] -12)
+      [0.1 0.1 0.1 0.2 0.1 0.2 0.1 0.1 0.2]
       cue1))
 
 
@@ -139,8 +139,6 @@
   (start-engine)
 
   ;; Testing of PinkSignals
-
-
   (add-pre-cfunc conductor)
 
 )
