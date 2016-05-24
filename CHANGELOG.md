@@ -1,6 +1,6 @@
 # CHANGELOG for Pink
 
-## NEXT
+## 0.3.0 
 
 New
 
