@@ -88,3 +88,15 @@
       (yield out)))
     ))
 
+;; TODO: Implement time-varying cubic delays...
+;(defn solina-chorus
+;  "Mono chorus modeled after Solina String Ensemble chorus module. Takes in
+;  audio function source, then pair of LFO frequency and amplitudes."
+;  [afn lfo-freq1 lfo-amp1 lfo-freq2 lfo-amp2]
+;  (let [lfreq1 (arg lfo-freq1)
+;        lamp1 (arg lfo-amp1)
+;        lfreq2 (arg lfo-freq2)
+;        lamp2 (arg lfo-amp2)]
+
+;    )
+;  )

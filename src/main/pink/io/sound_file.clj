@@ -102,6 +102,8 @@
 ;(println (alength (:data a)))
 ;(pprint a)
 
+;; TODO - finish implementation below and use for audio file writing...
+
 (defn- write-wav-header!
   "Writes WAV file header.  Uses mock values for file and data chunk length
   that will be re-written once the WAV writing is complete and the file
