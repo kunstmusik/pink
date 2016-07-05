@@ -695,3 +695,19 @@
                 :default end-out)))) 
 
       )))
+
+
+
+;; PORTED FROM FAUST
+;;------------------ tau2pole, pole2tau ----------------------
+;; tau2pole(tau) returns a real pole giving exponential decay with
+;; tau = time-constant in seconds
+;; Note that t60 (time to decay 60 dB) is ~6.91 time constants.
+;; pole2tau(pole) returns the time-constant, in seconds, 
+;; corresponding to the given real, positive pole in (0,1).
+
+(defn tau2pole [^double tau]
+  (Math/exp (/ -1.0 (* tau (double *sr*)))))
+
+(defn pole2tau [^double pole]
+  (/ -1.0 (* (double *sr*) (Math/log pole))))
