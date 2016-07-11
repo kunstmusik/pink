@@ -5,11 +5,12 @@
 New 
 
 * pink.util
-  * tau2pole, pole2tau - convert between tau (time in seconds) and 
-    pole values for exponential decay (ported from Faust)
+  * tau2pole, pole2tau - convert between tau (time in seconds) and pole values
+    for exponential decay (ported from Faust)
 
 * pink.instruments.pluck
-  * karplus - implementation of basic karplus-strong algorithm
+  * pluck - implementation of basic Karplus-Strong algorithm (Based on Plucked
+    class from STK)
 
 ## 0.3.0 
 

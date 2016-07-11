@@ -36,22 +36,37 @@
         (aset last-v 0 samp)
         v))))
 
+(defn phase-delay-one-zero
+  ^double [^double freq ^double zero]
+  (let [b0 (if (> zero 0.0) 
+             (/ 1.0 (+ 1.0 zero))
+             (/ 1.0 (- 1.0 zero)))
+        b1 (* (- zero) b0)
+        omegaT (/ (* 2.0 Math/PI freq) (double *sr*))
+        real (+ (* b0 (Math/cos 0.0))
+                (* b1 (Math/cos omegaT))) 
+        imag (- 0.0 
+                (* b0 (Math/sin 0.0))
+                (* b1 (Math/sin omegaT)))
+        phase (mod (Math/atan2 real imag) (* 2 Math/PI))]
+    (/ phase omegaT)))
+
 (defn- create-noise-buffer
   ^doubles [^double amp len]
-  (let [^doubles b (create-delay len)
-        l (alength b) 
+  (let [^doubles b (double-array len)
         pick-filter (ss-one-pole
                       (- 0.999 (* amp 0.15))
                       (* 0.5 amp))]
     (loop [indx 0]
-      (when (< indx l)
+      (when (< indx len)
         (aset b indx ^double (pick-filter (Math/random)))
         (recur (inc indx))))
     b))
 
-;; TODO - add phase delay calculation to delay-line length
 
-(defn plucked 
+;; TODO - factor in done-gain
+
+(defn pluck
   "Basic Karplus-Strong implementation based on Plucked
   class from STK.
  
@@ -60,12 +75,15 @@
   "
   [^double amp ^double freq]
   (let [out (create-buffer)
-        delay-time (/ 1.0 freq)
+        delay-time (- (/ (double *sr*) freq) 
+                        (phase-delay-one-zero freq -1.0)) 
         ^doubles delay-buffer 
-        (create-noise-buffer amp delay-time)
-        delay-length (alength delay-buffer)
+        (create-noise-buffer amp 
+                             (int (+ 0.5 delay-time)))
+        delay-length (long (alength delay-buffer))
         rw-ptr (int-array 1 0)
-        ^IFn$LD del-read (delay-readi delay-buffer delay-time)
+        ^IFn$LD del-read (delay-readi delay-buffer 
+                                      delay-time)
         init-loop-gain (Math/min 
                          0.99999 
                          (+ 0.995 (* freq 0.000005))) 
