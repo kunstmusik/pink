@@ -1,8 +1,8 @@
 (ns pink.io.sound-file
   (:require [pink.config :refer :all]
             [pink.util :refer [create-buffers]])
-  (:import [java.io File ByteArrayOutputStream FileOutputStream]
-           [java.nio ByteBuffer]
+  (:import [java.io File ByteArrayOutputStream FileOutputStream DataOutputStream]
+           [java.nio ByteBuffer ByteOrder]
            [javax.sound.sampled AudioFormat
             AudioFormat$Encoding AudioInputStream AudioSystem]))
 
@@ -110,42 +110,57 @@
   closed."
   [wav-data ^long sr ^long bit-rate ^long channels] 
   (let [baos (:byte-array wav-data)
-        fos (:byte-array wav-data) 
+        fos (:fos wav-data)
+        dos (:dos wav-data)
         byte-rate (long (/ bit-rate 8))
         block-align (* channels byte-rate)
-
+        bbuffer (ByteBuffer/allocate 44)
         ]
 
-    ;;; RIFF identifier 
-    ;(.write baos (.toByteArray "RIFF"))
+    (.order bbuffer ByteOrder/LITTLE_ENDIAN)
 
-    ;;; file length 
+
+    ;; RIFF identifier 
+    (.put bbuffer (.getBytes "RIFF"))
+
+    ;;; file length - mock data for now 
+    (.putInt bbuffer 0)
     ;view.setUint32(4, 32 + samples.length * 2, true);
 
-    ;;; RIFF type 
-    ;(.write baos (.toByteArray "WAVE"))
+    ;; RIFF type 
+    (.put bbuffer (.getBytes "WAVE"))
 
-    ;;; format chunk identifier 
-    ;(.write baos (.toByteArray "fmt "))
+    ;; format chunk identifier 
+    (.put bbuffer (.getBytes "fmt "))
 
-    ;;; format chunk length 
-    ;view.setUint32(16, 16, true);
+    ;; format chunk length 
+    (.putInt bbuffer 16)
+
     ;;; sample format (raw) 
-    ;view.setUint16(20, 1, true);
+    (.putShort bbuffer 1)
+
     ;;; channel count 
-    ;view.setUint16(22, 1, true);
+    (.putShort bbuffer channels)
+
     ;;; sample rate 
-    ;view.setUint32(24, sampleRate, true);
+    (.putInt bbuffer sr)
+
     ;;; byte rate (sample rate * block align) 
-    ;view.setUint32(28, sampleRate * 2, true);
+    (.putInt bbuffer (* sr channels))
+
     ;;; block align (channel count * bytes per sample) 
-    ;view.setUint16(32, 2, true);
+    (.putShort bbuffer (* byte-rate channels))
+
     ;;; bits per sample 
-    ;view.setUint16(34, 16, true);
+    (.putShort bbuffer bit-rate)
     ;;; data chunk identifier 
-    ;(.write baos (.toByteArray "data"))
-    ;;; data chunk length 
-    ;view.setUint32(40, samples.length * 2, true);
+    (.put bbuffer (.getBytes "data"))
+    ;;; data chunk length - mock data for now
+    (.putInt bbuffer 0)
+
+    (.write baos (.array bbuffer))
+
+    (.writeTo baos fos)
 
     )
 
@@ -158,12 +173,15 @@
 
   (let [baos (ByteArrayOutputStream.)
         fos (FileOutputStream. (File. ^String filename))
+        dos (DataOutputStream. baos)
         wav-data 
         {:byte-array baos
          :fos fos
+         :dos dos
          :samples-written (atom 0)}
         ]  
     (write-wav-header! wav-data sr bit-rate channels)
+    wav-data
     )
   )
 
@@ -176,5 +194,17 @@
 (defn close-wav-data
   "Rewrites WAV file header with appropriate values for samples written."
   [wav-data]
-  
+  (.close (:byte-array wav-data)) 
+  (.close (:fos wav-data)) 
   )
+
+
+(comment
+
+;; testing code while developing wave writing code
+
+(let [wav (open-wave-write "testc.wav" 44100 16 2)]
+  (close-wav-data wav) 
+  )
+
+)
