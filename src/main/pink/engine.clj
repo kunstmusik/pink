@@ -4,7 +4,8 @@
             [pink.util :refer :all]
             [pink.event :refer :all]
             [pink.io.audio :refer :all]
-            [pink.node :refer :all])
+            [pink.node :refer :all]
+            [pink.io.sound-file :refer :all])
   (:import [java.io ByteArrayInputStream ByteArrayOutputStream File FileOutputStream DataOutputStream] 
            [java.nio ByteBuffer]
            [java.util Arrays]
@@ -240,12 +241,11 @@
   Warning: Be careful not to render with an engine setup with infinite
   duration!"
   [^Engine engine ^String filename]
-  
+
   (let [sr (.sample-rate engine)
         buffer-size (.buffer-size engine)
         nchnls (.nchnls engine)
         baos (ByteArrayOutputStream.)
-        buf (ByteBuffer/allocate (.byte-buffer-size engine))
         out-buffer (double-array (.out-buffer-size engine))
         start-time (System/currentTimeMillis)
         pre-control (.pre-cfunc-node engine)
@@ -257,8 +257,8 @@
         run-audio-funcs (binding [*buffer-size* buffer-size] 
                           (node-processor root-audio-node))
         run-post-control-funcs (control-node-processor post-control) 
-        ;fos (FileOutputStream. filename)
-        ]
+        wav-out (open-wave-write 
+                  filename sr 16 nchnls buffer-size)]
 
     (reset! (.status engine) :running)
 
@@ -272,7 +272,7 @@
               (run-pre-control-funcs)
               (-> out-buffer  
                   (write-interleaved (run-audio-funcs) nchnls buffer-size)
-                  (doubles->byte-buffer buf))
+                  (write-wav-data wav-out))
               (run-post-control-funcs)) 
             (when @clear-flag 
               (node-clear pre-control)
@@ -280,26 +280,28 @@
               (node-clear post-control)
               (reset! clear-flag false)
               (event-list-clear (.event-list engine)))
-            (.write baos (.array buf))
-            (.clear buf)
+            ;(println 
+            ;  (node-empty? pre-control) " : "
+            ;           (node-empty? root-audio-node) " : "
+            ;           (node-empty? post-control) " : " 
+            ;            (event-list-empty? (.event-list engine))
+
+            ;  )
             (when (and (node-empty? pre-control) 
                        (node-empty? root-audio-node) 
                        (node-empty? post-control) 
                        (event-list-empty? (.event-list engine)))
               (engine-stop engine))
+            ;(println "EVENTS: " (.events (.event-list engine)))
             (recur (unchecked-inc buffer-count)))
-          (let [data (.toByteArray baos)
-                bais (ByteArrayInputStream. data)
-                af (AudioFormat. (.sample-rate engine) 16 (.nchnls engine) true true)
-                aftype AudioFileFormat$Type/WAVE 
-                ais (AudioInputStream. bais af (* buffer-count buffer-size))
-                f (File. filename)]
-            (println "Writing output to " (.getAbsolutePath f))
-            (AudioSystem/write ais aftype f)
+          (do
+            (close-wav-data wav-out)
+            (println "Output written to " (.getAbsolutePath (File. filename)))
+
             (println "Elapsed time: " 
                      (/ (- (System/currentTimeMillis) start-time) 1000.0)))
           )))))
- 
+
 ;; Event functions dealing with audio engines
 
 (defn fire-audio-event 

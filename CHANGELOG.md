@@ -12,6 +12,12 @@ New
   * pluck - implementation of basic Karplus-Strong algorithm (Based on Plucked
     class from STK)
 
+* pink.io.sound-file 
+  * implemented new streaming wav file writing code  
+  
+* pink.engine 
+  * rewrote engine-\>disk to use streaming wav writer
+
 ## 0.3.0 
 
 New

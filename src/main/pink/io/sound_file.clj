@@ -1,10 +1,14 @@
 (ns pink.io.sound-file
   (:require [pink.config :refer :all]
             [pink.util :refer [create-buffers]])
-  (:import [java.io File ByteArrayOutputStream FileOutputStream DataOutputStream]
+  (:import [java.io File ByteArrayOutputStream 
+            FileOutputStream DataOutputStream 
+            RandomAccessFile]
            [java.nio ByteBuffer ByteOrder]
            [javax.sound.sampled AudioFormat
-            AudioFormat$Encoding AudioInputStream AudioSystem]))
+            AudioFormat$Encoding AudioInputStream AudioSystem]
+           [pink EngineUtils]
+           ))
 
 (defn- locate-file
   [f]
@@ -109,7 +113,7 @@
   that will be re-written once the WAV writing is complete and the file
   closed."
   [wav-data ^long sr ^long bit-rate ^long channels] 
-  (let [baos (:byte-array wav-data)
+  (let [^ByteArrayOutputStream baos(:byte-array wav-data)
         fos (:fos wav-data)
         dos (:dos wav-data)
         byte-rate (:byte-rate wav-data)
@@ -119,13 +123,11 @@
 
     (.order bbuffer ByteOrder/LITTLE_ENDIAN)
 
-
     ;; RIFF identifier 
     (.put bbuffer (.getBytes "RIFF"))
 
     ;;; file length - mock data for now 
     (.putInt bbuffer 0)
-    ;view.setUint32(4, 32 + samples.length * 2, true);
 
     ;; RIFF type 
     (.put bbuffer (.getBytes "WAVE"))
@@ -146,7 +148,7 @@
     (.putInt bbuffer sr)
 
     ;;; byte rate (sample rate * block align) 
-    (.putInt bbuffer (* sr channels))
+    (.putInt bbuffer (* sr channels byte-rate))
 
     ;;; block align (channel count * bytes per sample) 
     (.putShort bbuffer (* byte-rate channels))
@@ -170,9 +172,12 @@
   [filename sr bit-rate channels block-size]
 
   (let [byte-rate (long (/ bit-rate 8))
-        bbuffer (ByteBuffer/allocate (* channels byte-rate block-size) )
+        bbuffer (ByteBuffer/allocate 
+                  (* channels byte-rate block-size))
+        baos (ByteArrayOutputStream.)
         wav-data 
-        {:byte-array (ByteArrayOutputStream.)
+        {:byte-array baos 
+         :filename filename
          :fos (FileOutputStream. (File. ^String filename))
          :dos (DataOutputStream. baos)
          :blocks-written (atom 0)
@@ -188,11 +193,19 @@
     ))
 
 (defn write-wav-data 
-  "Appends new audio data to WAV file."
-  [wav-data interleaved-audio] 
-  (let [bbuffer (:bbuffer wav-data) 
-        
-        ]  
+  "Appends new audio data to WAV file. interleaved-audio is
+  expected to be a double[] with size equal to block-size *
+  num-channels."
+  [interleaved-audio wav-data ] 
+  (let [^ByteBuffer bbuffer (:bbuffer wav-data)
+        ^ByteArrayOutputStream baos (:byte-array wav-data)
+        ^FileOutputStream fos (:fos wav-data)]  
+    (.clear bbuffer)
+    (.reset baos)
+    (EngineUtils/writeDoublesToByteBufferAsShorts 
+      interleaved-audio bbuffer)
+    (.write baos (.array bbuffer))
+    (.writeTo baos fos) 
     (swap! (:blocks-written wav-data) inc)
     wav-data
     )
@@ -201,9 +214,29 @@
 (defn close-wav-data
   "Rewrites WAV file header with appropriate values for samples written."
   [wav-data]
-  (.close (:byte-array wav-data)) 
-  (.close (:fos wav-data)) 
-  )
+  (.close ^ByteArrayOutputStream (:byte-array wav-data)) 
+  (.close ^FileOutputStream (:fos wav-data)) 
+  (let [bbuffer (ByteBuffer/allocate 4)
+        rafile (RandomAccessFile. 
+                 ^String (:filename wav-data) "rw")
+        blocks-written @(:blocks-written wav-data)
+        data-len (* (:byte-rate wav-data) 
+                    blocks-written 
+                    (:block-size wav-data)
+                    (:channels wav-data)
+                    ) 
+        file-len (+ data-len 36)]
+    (.order bbuffer ByteOrder/LITTLE_ENDIAN)
+    (.putInt bbuffer file-len) 
+    (.seek rafile 4)
+    (.write rafile (.array bbuffer))
+    (.clear bbuffer)
+    (.order bbuffer ByteOrder/LITTLE_ENDIAN)
+    (.putInt bbuffer data-len )
+    (.seek rafile 40)
+    (.write rafile (.array bbuffer)) 
+    (.close rafile)
+    ))
 
 
 (comment
