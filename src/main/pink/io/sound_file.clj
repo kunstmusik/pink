@@ -106,8 +106,13 @@
 ;(println (alength (:data a)))
 ;(pprint a)
 
-;; TODO - finish implementation below and use for audio file writing...
 
+;; NOTE: The wav writing code was tested to produce wav files. The files
+;; correctly load in Audacity, report valid information with libsndfile's
+;; sndfile-info, and play in VLC and Windows Media Player.  Oddly, Groove Music
+;; player on Windows 10 reported errors with the file. I have no idea why at
+;; this time, but am moving forward as the other programs open the files
+;; correctly.
 (defn- write-wav-header!
   "Writes WAV file header.  Uses mock values for file and data chunk length
   that will be re-written once the WAV writing is complete and the file
@@ -239,12 +244,3 @@
     ))
 
 
-(comment
-
-;; testing code while developing wave writing code
-
-(let [wav (open-wave-write "testc.wav" 44100 16 2 64)]
-  (close-wav-data wav) 
-  )
-
-)
