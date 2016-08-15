@@ -112,7 +112,7 @@
   (let [baos (:byte-array wav-data)
         fos (:fos wav-data)
         dos (:dos wav-data)
-        byte-rate (long (/ bit-rate 8))
+        byte-rate (:byte-rate wav-data)
         block-align (* channels byte-rate)
         bbuffer (ByteBuffer/allocate 44)
         ]
@@ -160,35 +160,42 @@
 
     (.write baos (.array bbuffer))
 
-    (.writeTo baos fos)
+    (.writeTo baos fos))
 
-    )
-
-  )
+    wav-data)
 
 (defn open-wave-write
   "Opens a WAV file for streaming writes. WAV will have a mock header written
   that will have full information written when close-wav-data is called."
-  [filename sr bit-rate channels]
+  [filename sr bit-rate channels block-size]
 
-  (let [baos (ByteArrayOutputStream.)
-        fos (FileOutputStream. (File. ^String filename))
-        dos (DataOutputStream. baos)
+  (let [byte-rate (long (/ bit-rate 8))
+        bbuffer (ByteBuffer/allocate (* channels byte-rate block-size) )
         wav-data 
-        {:byte-array baos
-         :fos fos
-         :dos dos
-         :samples-written (atom 0)}
-        ]  
+        {:byte-array (ByteArrayOutputStream.)
+         :fos (FileOutputStream. (File. ^String filename))
+         :dos (DataOutputStream. baos)
+         :blocks-written (atom 0)
+         :byte-rate byte-rate
+         :bbuffer bbuffer
+         :sr sr
+         :bit-rate bit-rate
+         :channels channels
+         :block-size block-size
+         }]  
+    (.order bbuffer ByteOrder/LITTLE_ENDIAN)
     (write-wav-header! wav-data sr bit-rate channels)
-    wav-data
-    )
-  )
+    ))
 
 (defn write-wav-data 
   "Appends new audio data to WAV file."
   [wav-data interleaved-audio] 
-  
+  (let [bbuffer (:bbuffer wav-data) 
+        
+        ]  
+    (swap! (:blocks-written wav-data) inc)
+    wav-data
+    )
   )
 
 (defn close-wav-data
@@ -203,7 +210,7 @@
 
 ;; testing code while developing wave writing code
 
-(let [wav (open-wave-write "testc.wav" 44100 16 2)]
+(let [wav (open-wave-write "testc.wav" 44100 16 2 64)]
   (close-wav-data wav) 
   )
 
