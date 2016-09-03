@@ -1,4 +1,4 @@
-(defproject kunstmusik/pink "0.3.0"
+(defproject kunstmusik/pink "0.4.0-SNAPSHOT"
   :jvm-opts ;["-server" "-Xmx2g" "-XX:-UseParallelGC"]
   ^:replace
   ["-server"
@@ -33,7 +33,7 @@
               :dev  {
                      :global-vars  {*warn-on-reflection* true}
                      :dependencies [[criterium "0.4.2"]] 
-                     :plugins [[codox "0.8.8"]] 
+                     :plugins [[lein-codox "0.9.6"]] 
                      :source-paths ["src/demo"]
                      } 
 
@@ -63,5 +63,6 @@
   :javac-options     ["-target" "1.7" "-source" "1.7"]
   :scm {:name "git"
         :url "https://github.com/kunstmusik/pink.git" }
+  :codox {:source-paths ["src/main"] } 
   ;:main 
   )
