@@ -18,7 +18,7 @@ Features include:
 * Higher-order Events: Functions and events can be used as arguments to events 
 * Use Clojure to extend the system: single language for all extension points to the system
 
-For more information, please see the [Documentation](doc/intro.md).
+For more information, please see the [website](http://kunstmusik.github.io/pink).
 
 ## Installation
 
