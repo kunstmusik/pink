@@ -8,33 +8,26 @@
             [pink.oscillators :refer :all]
             [pink.filters :refer [tone atone]]
             [pink.delays :refer :all]
-            )
+            [diff-eq.core :refer [dfn]])
   (:import [clojure.lang IFn$LD IFn$DD]))
 
 (defn ss-one-pole
   [^double pole ^double gain]
   (let [b0 (if (> pole 0.0) (- 1.0 pole) (+ 1.0 pole))
-        a1 (- pole)
-        ^doubles last-v (double-array 1 0.0)
-        ]
-    (fn ^double [^double samp]
-      (let [v (- (* b0 (* samp gain))
-                 (* a1 (aget last-v 0)))]
-        (aset last-v 0 v)
-        v))))
+        a1 (- pole)]
+    (dfn [samp]
+         y (- (* b0 (* samp gain))
+              (* a1 [y -1])))))
 
 (defn- ss-one-zero
   [^double zero]
   (let [b0 (if (> zero 0.0) 
              (/ 1.0 (+ 1.0 zero))
              (/ 1.0 (- 1.0 zero)))
-        b1 (* (- zero) b0)
-        ^doubles last-v (double-array 1 0.0)]
-    (fn ^double [^double samp]
-      (let [v (+ (* b1 (aget last-v 0))
-                 (* b0 samp))]
-        (aset last-v 0 samp)
-        v))))
+        b1 (* (- zero) b0)]
+    (dfn [samp]
+         y (+ (* b1 [samp -1])
+              (* b0 samp)))))
 
 (defn phase-delay-one-zero
   ^double [^double freq ^double zero]
