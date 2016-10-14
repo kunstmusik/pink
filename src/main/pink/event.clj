@@ -1,6 +1,6 @@
 (ns pink.event
   (:require [pink.util :refer [create-buffer drain-atom! try-func apply!*!]]
-            [pink.config :refer [*tempo*]]  )
+            [pink.config :refer [*tempo* *beat*]]  )
   (:import [java.util Collection PriorityQueue]))
 
 (deftype Event [event-func ^double start event-args ]
@@ -140,7 +140,8 @@
                    tempo)
         end-time (+ cur-beat time-adj)
         events ^PriorityQueue (.events evtlst)]
-    (binding [*tempo* tempo]    
+    (binding [*tempo* tempo
+              *beat* cur-beat]    
       (loop [evt ^Event (.peek events)]
         (when (and evt (< (.start evt) end-time)) 
           (fire-event (.poll events))
