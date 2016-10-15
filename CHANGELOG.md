@@ -18,6 +18,10 @@ New
 * pink.engine 
   * rewrote engine-\>disk to use streaming wav writer
 
+* pink.config
+  * added new \*beat\* config variable that has the current beat time of the event list. 
+  * documentation added for each config variable
+
 ## 0.3.0 
 
 New
