@@ -1,8 +1,10 @@
 # CHANGELOG for Pink
 
-## NEXT
+All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-New 
+## [Unreleased] 
+
+### Added 
 
 * pink.util
   * tau2pole, pole2tau - convert between tau (time in seconds) and pole values
@@ -22,9 +24,9 @@ New
   * added new \*beat\* config variable that has the current beat time of the event list. 
   * documentation added for each config variable
 
-## 0.3.0 
+## [0.3.0] - 2016-05-24
 
-New
+### Added 
 
 * pink.processes
   * New namespace for creating syncronously-executed processes that
@@ -64,7 +66,7 @@ New
     other control functions.  Executes first control-fn until
     completion, then the second, and so on.
 
-Updated
+### Changed 
 
 * pink.io.midi
   * namespace redesigned for use with :as syntax when requiring [Issue
@@ -72,7 +74,7 @@ Updated
   * find-device fixed to work on Windows [Issue # 3, fix contributed
     by @triss]
 
-Fixed
+### Fixed
 
 * pink.noise
   * white-noise - paren typo caused noise value to be in range [0,2.0]
@@ -82,14 +84,15 @@ Fixed
     non-default *buffer-size* with engines
 
 
-## 0.2.1
+## [0.2.1] - 2015-09-07 
 
+### Changed 
 * removed use of Zach Tellman's primitive-math and added implementation of
   not== to pink.util based on his work
 
-## 0.2.0
+## [0.2.0] - 2015-07-24
 
-New 
+### Added 
 
 * pink.oscillators
   * pulse - unipolar pulse generator 
@@ -125,7 +128,7 @@ New
     diode-based ring modulator
 * Updated to Clojure 1.7.0
 
-Fixed
+### Fixed
 
 * pink.delays
   * adelay - calculation for delay time was off by buffer-size, reimplemented
@@ -133,6 +136,12 @@ Fixed
 * pink.envelopes
   * adsr - fixed error when \*done\* and \*duration\* were nil 
 
-## 0.1.0
+## 0.1.0 - 2015-05-08
 
 * Initial Release
+
+
+
+[Unreleased]: https://github.com/kunstmusik/pink/compare/0.3.0...HEAD
+[0.2.0]: https://github.com/kunstmusik/pink/compare/0.1.0...0.2.0
+[0.3.0]: https://github.com/kunstmusik/pink/compare/0.2.0...0.3.0
