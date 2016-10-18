@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file. This change
 
 ### Added 
 
+* pink.live-code
+  * New namespace for functions useful for live coding against the pink.simple engine. 
+
 * pink.util
   * tau2pole, pole2tau - convert between tau (time in seconds) and pole values
     for exponential decay (ported from Faust)

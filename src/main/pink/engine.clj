@@ -90,11 +90,11 @@
   (event-list-get-tempo-atom (.event-list engine)))
 
 (defn engine-get-tempo
-  [^Engine engine]
-  @(engine-get-tempo-atom engine))
+  ^double [^Engine engine]
+  (double @(engine-get-tempo-atom engine)))
 
 (defn engine-set-tempo
-  [^Engine engine tempo]
+  [^Engine engine ^double tempo]
   (reset! (engine-get-tempo-atom engine) tempo))
 
 ;;;; JAVASOUND CODE

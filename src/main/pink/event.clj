@@ -92,6 +92,11 @@
   [^EventList evtlst]
   (.tempo-atom evtlst))
 
+(defn event-list-beat-time
+  "Returns the current beat time for the event list."
+  ^double [^EventList evtlst]
+  (double @(.cur-beat evtlst)))
+
 (defn event-list-empty?
   [^EventList evtlst]
   (.isEmpty ^PriorityQueue (.events evtlst)))

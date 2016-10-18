@@ -4,8 +4,9 @@
   pink.simple
   (:require [pink.engine :refer :all]
             [pink.util :refer [with-duration apply!*!]]
-            [pink.event :refer [event]]
-            ))
+            [pink.event :refer [event event-list-beat-time]])
+  (:import [pink.engine Engine]
+           [pink.event EventList]))
 
 (def engine (engine-create :nchnls 2))
 
@@ -84,6 +85,15 @@
   ([evt & evts]
    (add-audio-events (list* evt evts))))
 
+(defn now 
+  "Returns the current *beat* time of the engine."
+  ^double []
+  (event-list-beat-time (.event-list ^Engine engine)))
+
+(defn tempo 
+  "Returns the current *tempo* of the engine."
+  ^double []
+  (engine-get-tempo ^Engine engine))
 
 ;; higher level
 
