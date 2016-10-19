@@ -111,6 +111,30 @@
    (beats (* b beats-per-bar))))
 
 
+;; Sequences and Atoms
+
+(defn next-in-atom 
+  "Retrieves head of sequence held in atom and resets atom to rest of sequence.
+  Not thread safe in that outside mutator may write a value that gets
+  overwritten by the reset! call, but largely okay for the kinds of operations
+  done in live-coding."
+  [atm]
+  (let [[f & r] @atm] 
+    (reset! atm r)
+    f))
+
+(defn reset!!
+  "Same as reset! but returns nil. Useful for live coding so that value from
+  reset! does not try to get printed by editor's clojure plugin. For example,
+  when using an atom to store an infinite sequence used by a recursive process,
+  reset!! might cause an OutOfMemoryException as the editor would try to print
+  the results of the reset!."
+  [a b]
+  (reset! a b)
+  nil)
+
+
+
 ;; visualization
 
 (defn beat-printer 

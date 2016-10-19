@@ -119,6 +119,18 @@
         (mul e 0.5)
         (pan 0.0)))))
 
+(defn synth2 
+  [dur freq]
+  (with-duration (beats dur) 
+    (let [e (shared (adsr 0.01 0.5 0.001 0.5))]
+      (->
+        (sum (blit-saw freq)
+             (blit-saw (* freq 1.0013)) ) 
+        (moogladder (sum 500 (mul 3000 e)) 0.15)
+        (mul e 0.75)
+        (pan 0.0)))))
+
+
 (defn add-wet-dry
   [wet-dry afn]
   (let [s (shared afn)]
@@ -132,11 +144,19 @@
   (let [dur (rand-nth [1/4 1/2 1 1])
         freq (* 100 (inc indx)) 
         wet-dry 0.5]
-
     (add-wet-dry wet-dry (synth1 dur freq))
     (cause m1 (next-beat dur) 
            (mod (inc indx) 8)
            )))
+
+(defn m2 [pchs durs]
+  (let [p (next-in-atom pchs)
+        d (next-in-atom durs)
+        wet-dry 0.1] 
+    (add-wet-dry wet-dry (synth2 d p))
+    (cause m2 (next-beat d) (!r! pchs) (!r! durs))))
+
+
 
 (comment
     
@@ -150,6 +170,28 @@
   ;; eval to get melodic line going
   ;; eval multiple times to get parallel melodic lines 
   (cause m1 (next-beat 4) 0)
+
+  ;; can mutate the pattern sequences while m2 is running in its event stream
+  (def m2-pchs (atom nil))
+  (reset!! m2-pchs (cycle [60 120 60]))
+
+  (def m2-durs (atom nil))
+  (reset!! m2-durs (repeatedly #(rand-nth [1/2 1])))
+  
+  (cause m2 (next-beat 4) (!r! m2-pchs) (!r! m2-durs))
+
+  ;; sequence ahead 64-beats of changes
+  (let [t (next-beat 16)]
+    (cause (fn [] (reset!! m2-durs (repeatedly #(rand-nth [1/2 1]))))
+           t)
+    (cause (fn [] (reset!! m2-durs (repeatedly #(rand-nth [1/2 1/4]))))
+           (+ t 16))
+    (cause (fn [] (reset!! m2-durs (repeatedly #(rand-nth [1/2 1]))))
+           (+ t 32))
+    (cause (fn [] (reset!! m2-durs (repeatedly #(rand-nth [1/2 1/4]))))
+           (+ t 48))
+    (cause (fn [] (kill-recur! m2)) 
+           (+ t 64)))
 
   ;; eval to show beat/bar structure in REPL
   (cause beat-printer (next-beat 4) 4 16)
