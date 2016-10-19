@@ -28,7 +28,7 @@
   "Returns audio function that plays a stereo sample without looping until
   completion."
   ([sample]
-   (let [dur (get-duration sample)]
+   (let [dur (sample-duration sample)]
      (mul (env [0 0 0.001 0.5 (- dur 0.002) 0.5 0.001 0])
           (oscili 1.0 (/ 1.0 dur) 
                   (aget ^"[[D" (:data sample) 0))
@@ -41,6 +41,16 @@
   event that calls the given function at given start time (in beats) and with
   given arguments."
   (add-events (apply event func start args)))
+
+(defmacro redef! 
+  "Macro to redefine given function 'a' to function value held in new-func.
+  Useful in conjunction with cause to schedule when a function will be
+  redefined. For example, when modifying a temporally recursive function, one
+  can use (cause #(redef! a b) (next-beat 16)) to schedule that the function 'a'
+  be redefined with value of 'b' at the next 4-bar boundary. Users may then
+  edit body of function separately from its use in performance."
+  [a new-func] 
+  `(def ~a ~new-func))
 
 (defmacro kill-recur! 
   "Macro to redefine given function name to a var-arg, no-op function. Useful
@@ -57,7 +67,8 @@
 
   Note: Implemented as macro to work with var special-form."
   [a]
-  `(alter-var-root (var ~a) (fn [& a#])))
+  `(defn ~a [& args#]))
+
 
 (defn next-beat 
   "Calculates forward time for the next beat boundary.  Useful for scheduling
@@ -68,9 +79,10 @@
   For example, if an engine has a current beat time of 81.2, if (next-beat 4)
   is used, it will provide a value of 3.8, so that the event function will fire
   at beat 84."
-  (^double [] (next-beat 1.0))
-  (^double [b]
-   (let [beat (now) 
+  (^double [] (next-beat (now) 1.0))
+  (^double [b] (next-beat (now) b))
+  (^double [cur-beat-time b]
+   (let [beat cur-beat-time 
          base (Math/floor (/ beat b))]
      (double (- (* (inc base) b) beat)))))
 
