@@ -140,7 +140,8 @@
       reverb 
       (apply-stereo mul s wet-dry)))) 
 
-(defn m1 [indx]
+(defn m1
+  [indx]
   (let [dur (rand-nth [1/4 1/2 1 1])
         freq (* 100 (inc indx)) 
         wet-dry 0.5]
@@ -190,13 +191,14 @@
            (+ t 32))
     (cause (fn [] (reset!! m2-durs (repeatedly #(rand-nth [1/2 1/4]))))
            (+ t 48))
-    (cause (fn [] (kill-recur! m2)) 
+    (cause (fn [] (end-recur! m2)) 
            (+ t 64)))
 
   ;; eval to show beat/bar structure in REPL
   (cause beat-printer (next-beat 4) 4 16)
 
-  (kill-recur! drums)
+  (end-recur! drums)
+  (end-recur! m2)
 
   (stop-engine)
   

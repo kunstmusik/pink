@@ -50,7 +50,7 @@
   be redefined with value of 'b' at the next 4-bar boundary. Users may then
   edit body of function separately from its use in performance."
   [a new-func] 
-  `(def ~a ~new-func))
+  `(alter-var-root (var ~a) (fn [f#] ~new-func)))
 
 (defmacro kill-recur! 
   "Macro to redefine given function name to a var-arg, no-op function. Useful
@@ -60,14 +60,46 @@
   When using kill-recur!, be aware that the function def in memory no longer
   represents what is on screen. User will need to re-evaluate the function
   definition before using again in temporal recursion.
+
+  When multiple instances of a function are in temporal recursion, kill-recur!
+  may be used to stop all instances.
  
-  User may schedule a call to kill-recur by using wrapper function, such as:
+  User may schedule a call to kill-recur! by using wrapper function, such as:
 
   (cause #(kill-recur! my-perf-func) (next-beat 4)) 
 
   Note: Implemented as macro to work with var special-form."
   [a]
-  `(defn ~a [& args#]))
+  `(redef! ~a (fn [& args#])))
+
+(defmacro end-recur! 
+  "Macro to redefine given function name to a var-arg function that
+  short-circuits current operation.  Useful to end temporal recursion of an
+  event function that may be already queued up in the event list. 
+  
+  end-recur! operates by swapping out the function value held in 'a' with one
+  that will restore the value of 'a' to its previous value. This ends the
+  temporal recursion of the function as well as allows the user start a new
+  temporal recursion without first re-evaluating the 'a' function from the
+  editor. This is in contrast to kill-recur! which will leave the function
+  value as a no-op function. 
+  
+  end-recur! is best used when a single instance of a function is used in
+  temporal recursion. If multiple recursions are in operation, end-recur! may
+  not end all instances. 
+ 
+  User may schedule a call to end-recur! by using wrapper function, such as:
+
+  (cause #(end-recur! my-perf-func) (next-beat 4)) 
+
+  Note: Implemented as macro to work with var special-form."
+  [a]
+  `(alter-var-root (var ~a) 
+           (fn [f#] 
+             (fn [& args#]
+                (alter-var-root 
+                  (var ~a) 
+                  (fn [g#] f#))))))
 
 
 (defn next-beat 
