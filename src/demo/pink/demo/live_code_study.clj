@@ -89,14 +89,17 @@
   (when (pattern indx)
     (play-sample-one-shot samp-num amp)))
 
+(defn sub-beat [n]
+  (* (now) n))
+
 (defn drums 
   []
-  (let [n (beat-mod (* (now) 4) 16)
+  (let [n (beat-mod (sub-beat 4) 16)
         bd-pat #{0 4 8 12 14}
         snare-pat #{2 4 12 15}]
     (play-samp bd bd-pat n 2.0)
     (play-samp snare snare-pat n 1.0)
-    (play-samp ride (into #{} (range 0 16 2)) n 0.35)
+    ;(play-samp ride (into #{} (range 0 16 2)) n 0.35)
     )
   (cause drums (next-beat 1/4)))
 
@@ -157,6 +160,24 @@
     (add-wet-dry wet-dry (synth2 d p))
     (cause m2 (next-beat d) (!r! pchs) (!r! durs))))
 
+(defn of-range [^double n ^double min-val ^double max-val]
+  (+ min-val (* n (- max-val min-val))))
+
+(defn m3 []
+  (let [n (beat-mod (sub-beat 4) 16)
+        pat #{0 2 6}
+        wet-dry 0.2]
+    (when (pat n)
+      (add-wet-dry wet-dry (synth1 1/4 (of-range (/ (inc n) 16.0) 600 700)))))
+  (cause m3 (next-beat 1/4)))
+
+(defn m4 []
+  (let [n (beat-mod (sub-beat 4) 16)
+        pat #{0 1 2 3 4 5 6 7 14 15}
+        wet-dry 0.3]
+    (when (pat n)
+      (add-wet-dry wet-dry (synth2 1/2 80))))
+  (cause m4 (next-beat 1/4)))
 
 
 (comment
@@ -193,6 +214,9 @@
            (+ t 48))
     (cause (fn [] (end-recur! m2)) 
            (+ t 64)))
+
+  (cause m3 (next-beat 4))
+  (cause m4 (next-beat 4))
 
   ;; eval to show beat/bar structure in REPL
   (cause beat-printer (next-beat 4) 4 16)
