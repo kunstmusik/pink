@@ -1,13 +1,16 @@
 # CHANGELOG for Pink
 
-All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
+All notable changes to this project will be documented in this file. This
+change log follows the conventions of
+[keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased] 
 
 ### Added 
 
 * pink.live-code
-  * New namespace for functions useful for live coding against the pink.simple engine. 
+  * New namespace for functions useful for live coding against the pink.simple
+    engine. 
 
 * pink.util
   * tau2pole, pole2tau - convert between tau (time in seconds) and pole values
@@ -24,8 +27,16 @@ All notable changes to this project will be documented in this file. This change
   * rewrote engine-\>disk to use streaming wav writer
 
 * pink.config
-  * added new \*beat\* config variable that has the current beat time of the event list. 
+  * added new \*beat\* config variable that has the current beat time of the
+    event list. 
   * documentation added for each config variable
+
+### Changed
+
+* pink.util
+  * updated try-func to catch Throwable instead of Exception; fixes issue with
+    assertion errors causing engine to die while live coding 
+
 
 ## [0.3.0] - 2016-05-24
 

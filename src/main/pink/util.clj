@@ -46,7 +46,7 @@
   [f]
   `(try 
     ~f
-    (catch Exception e# 
+    (catch Throwable e# 
       (.printStackTrace e#)
       nil)))
 
