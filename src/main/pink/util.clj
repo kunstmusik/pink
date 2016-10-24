@@ -711,3 +711,29 @@
 
 (defn pole2tau [^double pole]
   (/ -1.0 (* (double *sr*) (Math/log pole))))
+
+
+;;
+
+(defn limit1 
+  "Clamps value v betwen min-val and max-val"
+  ^double [^double v ^double min-val ^double max-val]
+  (Math/max min-val (Math/min max-val v)))
+
+
+(defn limit
+  "Clamp values asig betwen min-val and max-val (block-based audio function)"
+  [afn min-val max-val]
+  (let [out (create-buffer)
+        min-fn (arg min-val)
+        max-fn (arg max-val)] 
+    (generator 
+      []
+      [asig afn
+       mn min-fn
+       mx max-fn]
+      (do 
+        (aset out int-indx (limit1 asig mn mx))
+        (gen-recur))
+      (yield out)
+      )))

@@ -134,3 +134,22 @@
       (temp-afn)
       (is (= 1 (num-allocs a)))
       )))
+
+(deftest test-limit1
+  (is (= 0.0 (limit1 -1.0 0.0 1.0))) 
+  (is (= 1.0 (limit1 2.0 0.0 1.0))) 
+  (is (= 0.5 (limit1 0.5 0.0 1.0))))
+
+(deftest test-limit
+  (let [afn #(into-array Double/TYPE 
+                         (take *buffer-size* (cycle [-1.0 0.0 0.25 0.75 1.0 2.0])))
+        lmt (limit afn 0.0 1.0)
+        ^doubles sig (lmt)]
+    (is (= 0.0 (aget sig 0))) 
+    (is (= 0.0 (aget sig 1))) 
+    (is (= 0.25 (aget sig 2))) 
+    (is (= 0.75 (aget sig 3))) 
+    (is (= 1.0 (aget sig 4))) 
+    (is (= 1.0 (aget sig 5))) 
+    )
+  )
