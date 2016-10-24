@@ -15,6 +15,8 @@ change log follows the conventions of
 * pink.util
   * tau2pole, pole2tau - convert between tau (time in seconds) and pole values
     for exponential decay (ported from Faust)
+  * limit1, limit - clamp value between min and max; limit1 operates as on a
+    single value, limit operates as an block-based audio function
 
 * pink.instruments.pluck
   * pluck - implementation of basic Karplus-Strong algorithm (Based on Plucked
@@ -30,6 +32,10 @@ change log follows the conventions of
   * added new \*beat\* config variable that has the current beat time of the
     event list. 
   * documentation added for each config variable
+
+* pink.filter
+  * added zdf-ladder, a Zero-delay feedback Moog Ladder filter (4-pole
+    24db/oct)
 
 ### Changed
 

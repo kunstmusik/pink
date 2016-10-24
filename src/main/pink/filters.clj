@@ -865,3 +865,79 @@
             (* (+ (- 1.0 (* (Math/sqrt 2.0) K)) K2) norm)                 
             (* (+ (- V (* (Math/sqrt (* 2.0 V)) K)) K2) norm))
        ])))
+
+
+(defn zdf-ladder 
+  "Zero-delay feedback Moog Ladder filter (4-pole 24db/oct)
+
+  afn - mono audio function to filter 
+  cutoff - frequency to cutoff 
+  resonance - controls resonance; 0-1.0, higher is more resonant, 
+    has inverse relationship to Q
+  
+  Based on code by Will Pirkle, presented in:
+
+  http://www.willpirkle.com/Downloads/AN-4VirtualAnalogFilters.2.0.pdf
+   
+  and in his book 'Designing software synthesizer plug-ins in C++ : for
+  RackAFX, VST3, and Audio Units'
+
+  ZDF using Trapezoidal integrator by Vadim Zavalishin, presented in 'The Art
+  of VA Filter Design' (https://www.native-instruments.com/fileadmin/ni_media/
+  downloads/pdf/VAFilterDesign_1.1.1.pdf)"
+  [afn cutoff resonance]
+  (let [out ^doubles (create-buffer)
+        cfn (arg cutoff)
+        rfn (arg resonance)
+        sr (long *sr*)
+        T (/ 1.0 sr)
+        two_div_T (/ 2.0 T)
+        T_div_two (/ T 2.0)
+        kdiv (- 25.0 0.707)]
+    (generator 
+      [last-res 0 last-k 0 last-cut 0 
+       last-g 0 last-g2 0 last-g3 0 last-G 0 last-G_pole 0
+       z1 0 z2 0 z3 0 z4 0]
+      [asig afn 
+       cut cfn 
+       res rfn]
+      (let [k (if (not== last-res res)
+                (let [R (limit1 (- 1.0 res) 0.025 1.0)
+                      Q (/ 1.0 (* 2 R))]
+                  (/ (* 4.0 (- Q 0.707)) kdiv)) 
+                last-k)
+            cut-changed (not== cut last-cut)
+            g (if cut-changed
+                (let [wd (* cut TWO_PI)
+                      wa (* two_div_T (Math/tan (* wd T_div_two)))]
+                  (* wa T_div_two))     
+                last-g) 
+            g2 (if cut-changed (* g g) last-g2)
+            g3 (if cut-changed (* g2 g) last-g3)
+            G (if cut-changed (* g3 g) last-G)
+            G_pole (if cut-changed (/ g (+ 1.0 g)) last-G_pole)
+            S (+ (+ (* g3 z1) (* g2 z2))
+                 (+ (* g z3) z4))
+            u (/ (- asig (* k S)) 
+                 (+ 1.0 (* k G)))
+
+            v (* (- u z1) G_pole)
+            lp (+ v z1)
+            new-z1 (+ lp v)
+
+            v2 (* (- lp z2) G_pole)
+            lp2 (+ v2 z2)
+            new-z2 (+ lp2 v2)
+
+            v3 (* (- lp2 z3) G_pole)
+            lp3 (+ v3 z3)
+            new-z3 (+ lp3 v3)
+
+            v4 (* (- lp3 z4) G_pole)
+            lp4 (+ v4 z4)
+            new-z4 (+ lp4 v4)]
+        (aset out int-indx lp4) 
+        (gen-recur res k cut g g2 g3 G G_pole
+                   new-z1 new-z2 new-z3 new-z4))
+      (yield out)
+      )))

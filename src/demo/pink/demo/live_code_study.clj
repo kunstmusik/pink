@@ -92,8 +92,7 @@
 (defn sub-beat [n]
   (* (now) n))
 
-(defn drums 
-  []
+(defn drums []
   (let [n (beat-mod (sub-beat 4) 16)
         bd-pat #{0 4 8 12 14}
         snare-pat #{2 4 12 15}]
@@ -118,20 +117,36 @@
       (->
         (sum (blit-saw freq)
              (blit-square (* freq 2)) ) 
-        (moogladder (sum 500 (mul 2000 e)) 0.75)
+        (zdf-ladder (sum 500 (mul 2000 e)) 0.75)
         (mul e 0.5)
         (pan 0.0)))))
 
 (defn synth2 
   [dur freq]
   (with-duration (beats dur) 
-    (let [e (shared (adsr 0.01 0.5 0.001 0.5))]
+    (let [e (shared (adsr 0.01 (beats 0.5) 0.001 (beats 0.5)))]
       (->
         (sum (blit-saw freq)
              (blit-saw (* freq 1.0013)) ) 
-        (moogladder (sum 500 (mul 3000 e)) 0.15)
+        (zdf-ladder (sum 500 (mul 
+                               ;(of-range (/ (beat-mod 8) 16.0) 1000 8000) 
+                               3000
+                                  e)) 
+                    0.15)
         (mul e 0.75)
         (pan 0.0)))))
+
+(comment
+  (add-wet-dry 
+    0.2  
+    (-> (sum (blit-saw 400)
+             (mul 0.5 (blit-saw 800)
+                  (blit-saw 800.2317)))
+        (zdf-ladder (sum 100 (mul 10000 (adsr 0.0 4.0 0 4.0))) 0.8)
+        (mul 0.8)
+        (pan 0.0)
+        ))
+  )
 
 
 (defn add-wet-dry
@@ -173,7 +188,7 @@
 
 (defn m4 []
   (let [n (beat-mod (sub-beat 4) 16)
-        pat #{0 1 2 3 4 5 6 7 14 15}
+        pat #{0 1 2 3 4 5 6 7}
         wet-dry 0.3]
     (when (pat n)
       (add-wet-dry wet-dry (synth2 1/2 80))))
