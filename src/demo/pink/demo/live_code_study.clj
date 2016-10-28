@@ -195,6 +195,16 @@
   (cause m4 (next-beat 1/4)))
 
 
+(defn m5-freq [] 80)
+(defn m5 []
+  (let [n (beat-mod (sub-beat 4) 16)
+        pat #{0 1 2 3 4 5 6 7}
+        wet-dry 0.1]
+    (when (pat n)
+      (add-wet-dry wet-dry (synth2 1/2 (m5-freq)))))
+  (cause m5 (next-beat 1/4)))
+
+
 (comment
     
   (start-engine)
@@ -213,7 +223,7 @@
   (reset!! m2-pchs (cycle [60 120 60]))
 
   (def m2-durs (atom nil))
-  (reset!! m2-durs (repeatedly #(rand-nth [1/2 1])))
+  (reset!! m2-durs (repeatedly #(rand-nth [1/2 1 1/2])))
   
   (cause m2 (next-beat 4) (!r! m2-pchs) (!r! m2-durs))
 
@@ -232,6 +242,25 @@
 
   (cause m3 (next-beat 4))
   (cause m4 (next-beat 4))
+
+  (cause m5 (next-beat 5))
+  (redef! m5-freq 
+          (fn [] 
+            (if (> (Math/random) 0.85)
+              800 80)))
+
+  ;; modify m5-freq to yield different values
+  (redef! m5-freq 
+          (let [pat (atom (cycle [80 90 100 200]))]
+          (fn [] 
+            (next-in-atom pat))))
+
+  ;; schedule the function change for m5-freq
+  (cause (next-beat 4)
+       (redef! m5-freq 
+          (let [pat (atom (cycle [80 90 100 200]))]
+          (fn [] 
+            (next-in-atom pat)))))
 
   ;; eval to show beat/bar structure in REPL
   (cause beat-printer (next-beat 4) 4 16)
