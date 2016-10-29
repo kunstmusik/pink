@@ -9,6 +9,7 @@
             [pink.oscillators :refer :all]
             [pink.space :refer :all]
             [pink.event :refer :all]
+            [pink.noise :refer :all]
             [pink.effects.ringmod :refer :all]
             [pink.effects.reverb :refer :all]
             [pink.io.sound-file :refer :all]
@@ -204,6 +205,22 @@
       (add-wet-dry wet-dry (synth2 1/2 (m5-freq)))))
   (cause m5 (next-beat 1/4)))
 
+(def m6-pchs 
+  (atom 
+    (cycle (concat 
+      (repeat 16 160)
+      (repeat 16 200)
+      (repeat 16 300)
+      (repeat 16 400)
+      ))))
+
+(defn m6-freq []
+  (next-in-atom m6-pchs))
+
+(defn m6 []
+  (let [n (beat-mod (sub-beat 4) 16)]
+    (add-wet-dry 0.05 (synth1 (beats 1/4) (m6-freq)))) 
+  (cause m6 (next-beat 1/4)))
 
 (comment
     
@@ -247,7 +264,7 @@
   (redef! m5-freq 
           (fn [] 
             (if (> (Math/random) 0.85)
-              800 80)))
+              (* 80 4) 80)))
 
   ;; modify m5-freq to yield different values
   (redef! m5-freq 
@@ -267,6 +284,17 @@
 
   (end-recur! drums)
   (end-recur! m2)
+
+  (add-afunc 
+    (with-duration (beats 16) 
+      (let-s [e (adsr (beats 8) (beats 8) 0.0 0.0)] 
+        (->
+          (sum (blit-triangle 300) (blit-triangle 600))
+          (zdf-ladder (sum 300 (mul e 4000)) 0.25)
+          (mul 0.5 e )
+          (pan 0.1)
+          ))))
+
 
   (stop-engine)
   
