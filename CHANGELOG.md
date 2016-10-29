@@ -34,14 +34,18 @@ change log follows the conventions of
   * documentation added for each config variable
 
 * pink.filter
-  * added zdf-ladder, a Zero-delay feedback Moog Ladder filter (4-pole
-    24db/oct)
+  * zdf-ladder - a Zero-delay feedback Moog Ladder filter (4-pole 24db/oct)
+  * zdf-2pole - zero-delay feedback, 2-pole (12 dB/oct) state variable filter
+    (returns low-pass, band-pass, and high-pass signals)
 
 ### Changed
 
 * pink.util
   * updated try-func to catch Throwable instead of Exception; fixes issue with
     assertion errors causing engine to die while live coding 
+
+* pink.oscillators
+  * pulse - added optional amplitude argument
 
 
 ## [0.3.0] - 2016-05-24

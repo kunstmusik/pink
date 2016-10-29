@@ -941,3 +941,48 @@
                    new-z1 new-z2 new-z3 new-z4))
       (yield out)
       )))
+
+(defn zdf-2pole
+  "State-variable, Zero-delay feedback, 2-pole filter.
+
+  Returns [lp bp hp]"
+  [afn cutoff Q]
+  (let [hp-out (create-buffer)
+        lp-out (create-buffer)
+        bp-out (create-buffer)
+        out (into-array [lp-out bp-out hp-out])
+
+        cfn (arg cutoff)
+        qfn (arg Q)
+        sr (long *sr*)
+        T (/ 1.0 sr)
+        two_div_T (/ 2.0 T)
+        T_div_two (/ T 2.0)]
+    (generator 
+      [last-q 0 last-res 0 last-cut 0 last-G 0 
+       z1 0 z2 0]
+      [asig afn 
+       cut cfn 
+       qval qfn]
+      (let [res (if (not== last-q qval)
+                  (/ 1.0 (* 2 qval))
+                  last-res)
+            G (if (not== cut last-cut)
+                (let [wd (* cut TWO_PI)
+                      wa (* two_div_T (Math/tan (* wd T_div_two)))]
+                  (* wa T_div_two))     
+                last-G) 
+            hp (/ (- (- asig (* (+ (* 2.0 res) G) z1)) z2) 
+                  (+ (+ 1.0 (* res G)) (* G G)))
+            bp (+ (* G hp) z1)
+            lp (+ (* G bp) z2)
+            new-z1 (+ (* G hp) bp)
+            new-z2 (+ (* G bp) lp)]
+        (aset lp-out int-indx lp) 
+        (aset bp-out int-indx bp) 
+        (aset hp-out int-indx hp) 
+        (gen-recur qval res cut G new-z1 new-z2 ))
+      (yield out)
+      )))
+
+
