@@ -472,10 +472,11 @@
   "Pulse generator. If freq is number and <= 0.0, will return a single
   impulse.  Otherwise returns impulses at given frequency. Freq may be 
   time-vary function."
-  [freq]
+  ([freq] (pulse freq 1.0))
+  ([freq ^double amp]
   (if (and (number? freq) (<= ^double freq 0.0))
     (let [initial (let [b (create-buffer)]
-                    (aset b 0 1.0)
+                    (aset b 0 amp)
                     b)
           empty-buf (create-buffer)
           init-done (atom false)]
@@ -490,10 +491,10 @@
       (generator
         [previous 100]
         [p phsr]
-        (let [v (if (> previous p) 1.0 0.0)]
+        (let [v (if (> previous p) amp 0.0)]
           (aset out int-indx v)
           (gen-recur p))
-        (yield out)))))
+        (yield out))))))
 
 ;; UNIRECT 
 
