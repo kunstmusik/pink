@@ -130,7 +130,7 @@
         (sum (blit-saw freq)
              (blit-saw (* freq 1.0013)) ) 
         (zdf-ladder (sum 500 (mul 
-                               ;(of-range (/ (beat-mod 8) 16.0) 1000 8000) 
+                               ;(of-range (/ (beat-mod 16) 16.0) 1000 8000) 
                                3000
                                   e)) 
                     0.15)
@@ -260,7 +260,7 @@
   (cause m3 (next-beat 4))
   (cause m4 (next-beat 4))
 
-  (cause m5 (next-beat 5))
+  (cause m5 (next-beat 4))
   (redef! m5-freq 
           (fn [] 
             (if (> (Math/random) 0.85)
@@ -284,6 +284,8 @@
 
   (end-recur! drums)
   (end-recur! m2)
+
+  (cause m6 (next-beat 4))
 
   (add-afunc 
     (with-duration (beats 16) 

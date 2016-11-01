@@ -107,16 +107,27 @@
   of temporally recursive event function so that it will fire in sync with
   other beat-oriented functions.Adjusts for fractional part of current beat
   time that arises due to block-based processing. 
-  
+
   For example, if an engine has a current beat time of 81.2, if (next-beat 4)
   is used, it will provide a value of 3.8, so that the event function will fire
   at beat 84."
   (^double [] (next-beat (now) 1.0))
   (^double [b] (next-beat (now) b))
   (^double [cur-beat-time b]
-   (let [beat cur-beat-time 
-         base (Math/floor (/ beat b))]
-     (double (- (* (inc base) b) beat)))))
+           (let [beat cur-beat-time 
+                 base (Math/floor (double (/ (+ beat (* 0.05 b)) b)))]
+             (double (- (* (inc base) b) beat)))))
+ 
+(defn beat-advance
+  "Calculates start time for x number of beats ahead in time.  Uses next-beat
+  with subdiv time to get the adjusted time for one subdivision, then adds
+  remaining number of units to subdiv. Units should be a whole number.
+  
+  For example, to calculate 7 16th notes ahead in time, use (beat-advance 1/4
+  7)."
+  ([subdiv] (beat-advance subdiv 1.0))
+  ([subdiv units]
+  (+ (next-beat subdiv) (* subdiv (dec units)))))
 
 (defn beat-mod 
   "Returns modulus division of given beat-time and mod-val. Rounds to whole
