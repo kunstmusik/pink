@@ -177,4 +177,36 @@
 
   (add-afunc (example3 1200.0))
   (add-afunc (example3 1800.0))
+
+
+  (add-afunc
+    (->
+     (white-noise) 
+     (zdf-1pole (env [0.0 10000 5 20]))
+     (get-channel 0)
+     (pan 0.0)))
+
+  (add-afunc
+    (->
+     (white-noise) 
+     (zdf-1pole (env [0.0 20 5 10000]))
+     (get-channel 1)
+     (pan 0.0)))
+ 
+
+  (add-afunc
+    (->
+     (white-noise) 
+     (zdf-2pole (env [0.0 10000 5 20]) 4)
+     (get-channel 0)
+     (pan 0.0)))
+
+  (add-afunc
+    (->
+     (white-noise) 
+     (zdf-2pole (env [0.0 20 5 10000]) 4)
+     (get-channel 1)
+     (pan 0.0)))
+
+  
 )
