@@ -223,13 +223,14 @@
 
   (add-afunc 
     (with-duration 0.5 
-      (let [e (shared (adsr 0.01 0.25 0.09 0.15))]
+      (let [e (shared (adsr 0.01 0.2 0.09 0.15))]
         (->
           (sum (blit-saw 220) (blit-square 110)) 
+          (k35-hpf 400 7)
           (k35-lpf 
             (sum 110 (mul 3000 e)) 9.5)
           ;(zdf-2pole (sum 200 (mul 3000 e)) 8)
           ;(get-channel 0)
           (mul e 0.25)
-          (pan 1.0)))))
+          (pan 0.0)))))
 )
