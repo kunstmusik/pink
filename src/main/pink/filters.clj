@@ -1048,7 +1048,7 @@
 (defn- ss-zdf-hpf []
   (let [lpf (ss-zdf-lpf)]
     (fn ^doubles [^double asig ^double G]
-      (let [out ^doubles(lpf asig G)]
+      (let [out ^doubles (lpf asig G)]
         (aset out 0 (- asig (aget out 0))) 
         out))))
 
