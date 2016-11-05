@@ -211,7 +211,25 @@
   (add-afunc
     (->
      (white-noise) 
-     (k35-lpf (exp-env [0.0 200 5 1200]) 10)
+     (k35-lpf (exp-env [0.0 5000 0.5 1000]) 9.95)
      (pan 0.0)))
   
+  (add-afunc
+    (->
+     (white-noise) 
+     (k35-hpf (exp-env [0.0 10000 5 20]) 10)
+     (pan 0.0)))
+
+
+  (add-afunc 
+    (with-duration 0.5 
+      (let [e (shared (adsr 0.01 0.25 0.09 0.15))]
+        (->
+          (sum (blit-saw 220) (blit-square 110)) 
+          (k35-lpf 
+            (sum 110 (mul 3000 e)) 9.5)
+          ;(zdf-2pole (sum 200 (mul 3000 e)) 8)
+          ;(get-channel 0)
+          (mul e 0.25)
+          (pan 1.0)))))
 )

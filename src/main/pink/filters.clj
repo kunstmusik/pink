@@ -1058,7 +1058,7 @@
         (/ 3.0 (+ 2.0 (* 4.0 (* p p)))))))
 
 (defn k35-lpf
-  "2-pole (12db/oct) low-pass filter based on Korg 35 module
+  "12db/oct low-pass filter based on Korg 35 module
   (found in MS-10 and MS-20).
 
   Based on code by Will Pirkle, presented in:
@@ -1073,14 +1073,14 @@
   [afn cut Q]
   (let [out (create-buffer)
         cfn (arg cut)
-        qfn (limit (arg Q) 1.0 10.0)
+        qfn (limit (arg Q) 0.0 10.0)
         ^IFn$DD calc-G (ss-zdf-G) 
         lpf1 (ss-zdf-lpf) 
         lpf2 (ss-zdf-lpf) 
         hpf1 (ss-zdf-hpf)
         saturation 1.0]
     (generator
-      [last-cut 0 last-q 0 last-g 0 last-S35 0 last-K 0]
+      [last-cut 0 last-q -1 last-g 0 last-S35 0 last-K 0]
       [asig afn, cut cfn, qval qfn]
       (let [g (if (not== last-cut cut)
                 (double (calc-G cut)) 
@@ -1088,8 +1088,7 @@
             G (/ g (+ 1.0 g))
             K (if (not== last-q qval)
                 (+ 0.01
-                   (* (- 2.0 0.01) 
-                      (/ (- qval 1.0) (- 10.0 1.0))))
+                   (* (- 2.0 0.01) (/ qval 10.0)))
                 last-K)
             lpf2-beta 
             (/ (- K (* K G)) (+ 1.0 g))
@@ -1112,7 +1111,63 @@
                       (* y (/ 1.0 K))
                       y)]
         (aset out int-indx out-sig)
-        (gen-recur cut qval G S35 K))
+        (gen-recur cut qval g S35 K))
       (yield out))))
 
+(defn k35-hpf
+  "6db/oct high-pass filter based on Korg 35 module
+  (found in MS-10 and MS-20).
 
+  Based on code by Will Pirkle, presented in:
+
+  http://www.willpirkle.com/Downloads/AN-5Korg35_V3.pdf
+
+  [ARGS]
+
+  afn - audio function input
+  cutoff - frequency of cutoff
+  Q - filter Q [0, 10.0] (k35-hpf will clamp to boundaries)"
+  [afn cut Q]
+  (let [out (create-buffer)
+        cfn (arg cut)
+        qfn (limit (arg Q) 0.0 10.0)
+        ^IFn$DD calc-G (ss-zdf-G) 
+        hpf1 (ss-zdf-hpf)
+        hpf2 (ss-zdf-hpf) 
+        lpf1 (ss-zdf-lpf) 
+        saturation 1.0]
+    (generator
+      [last-cut 0 last-q -1 last-g 0 last-S35 0 last-K 0]
+      [asig afn, cut cfn, qval qfn]
+      (let [g (if (not== last-cut cut)
+                (double (calc-G cut)) 
+                last-g)
+            G (/ g (+ 1.0 g))
+            K (if (not== last-q qval)
+                (+ 0.01
+                   (* (- 2.0 0.01) (/ qval 10.0)))
+                last-K)
+            hpf2-beta 
+            (/ (* -1.0 G) (+ 1.0 g)) 
+            lpf1-beta
+            (/ 1.0 (+ 1.0 g)) 
+            
+
+            ;; TODO - optimize alpha 
+            alpha (/ 1.0 (+ (- 1.0 (* K G)) 
+                            (* K (* G G))))
+
+            y1 (aget ^doubles (hpf1 asig G) 0)
+            u (+ (* alpha y1) last-S35) 
+            y (* K u)
+
+            hpf2-sig ^doubles (hpf2 y G)
+            lpf1-sig ^doubles (lpf1 (aget hpf2-sig 0) G)
+            S35 (+ (* hpf2-beta (aget hpf2-sig 1)) 
+                   (* lpf1-beta (aget lpf1-sig 1)) )
+            out-sig (if (> K 0.0) 
+                      (* y (/ 1.0 K))
+                      y)]
+        (aset out int-indx out-sig)
+        (gen-recur cut qval g S35 K))
+      (yield out))))
