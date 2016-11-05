@@ -1,8 +1,9 @@
 (ns pink.filters
   (:require [pink.config :refer [*sr* *buffer-size*]]
             [pink.util :refer :all]
-            [pink.delays :refer :all])
-  (:import [clojure.lang IFn$DDDLO IFn$LD]))
+            [pink.delays :refer :all]
+            [diff-eq.core :refer :all])
+  (:import [clojure.lang IFn$DDDLO IFn$LD IFn$DD IFn$DDD]))
 
 (set! *unchecked-math* true)
 
@@ -1020,5 +1021,98 @@
         (gen-recur qval res cut G new-z1 new-z2 ))
       (yield out)
       )))
+
+
+;; Korg 35
+
+(defn- ss-zdf-G [] 
+  (let [sr (long *sr*)
+        T (/ 1.0 sr)
+        two_div_T (/ 2.0 T)
+        T_div_two (/ T 2.0)]
+    (fn ^double [^double cut]
+      (let [wd (* cut TWO_PI)
+            wa (* two_div_T (Math/tan (* wd T_div_two)))]
+            (* wa T_div_two)))))
+
+(defn- ss-zdf-lpf [] 
+  (let [out (double-array 2)]
+    (fn ^doubles [^double asig ^double G]
+      (let [z1 (aget out 1)
+            v (* (- asig z1) G)
+            lp (+ v z1)]
+        (aset out 0 lp)
+        (aset out 1 (+ lp v)))
+      out)))
+
+(defn- ss-zdf-hpf []
+  (let [lpf (ss-zdf-lpf)]
+    (fn ^doubles [^double asig ^double G]
+      (let [out ^doubles(lpf asig G)]
+        (aset out 0 (- asig (aget out 0))) 
+        out))))
+
+(defn- fasttanh
+  ^double [^double p]
+  (/ p (+ (Math/abs (* 2.0 p)) 
+        (/ 3.0 (+ 2.0 (* 4.0 (* p p)))))))
+
+(defn k35-lpf
+  "2-pole (12db/oct) low-pass filter based on Korg 35 module
+  (found in MS-10 and MS-20).
+
+  Based on code by Will Pirkle, presented in:
+
+  http://www.willpirkle.com/Downloads/AN-5Korg35_V3.pdf
+
+  [ARGS]
+
+  afn - audio function input
+  cutoff - frequency of cutoff
+  Q - filter Q [1, 10.0] (k35-lpf will clamp to boundaries)"
+  [afn cut Q]
+  (let [out (create-buffer)
+        cfn (arg cut)
+        qfn (limit (arg Q) 1.0 10.0)
+        ^IFn$DD calc-G (ss-zdf-G) 
+        lpf1 (ss-zdf-lpf) 
+        lpf2 (ss-zdf-lpf) 
+        hpf1 (ss-zdf-hpf)
+        saturation 1.0]
+    (generator
+      [last-cut 0 last-q 0 last-g 0 last-S35 0 last-K 0]
+      [asig afn, cut cfn, qval qfn]
+      (let [g (if (not== last-cut cut)
+                (double (calc-G cut)) 
+                last-g)
+            G (/ g (+ 1.0 g))
+            K (if (not== last-q qval)
+                (+ 0.01
+                   (* (- 2.0 0.01) 
+                      (/ (- qval 1.0) (- 10.0 1.0))))
+                last-K)
+            lpf2-beta 
+            (/ (- K (* K G)) (+ 1.0 g))
+            hpf1-beta
+            (/ -1.0 (+ 1.0 g))
+
+            ;; TODO - optimize alpha 
+            alpha (/ 1.0 (+ (- 1.0 (* K G)) 
+                            (* K (* G G))))
+
+            y1 (aget ^doubles (lpf1 asig G) 0)
+            u (* alpha (+ y1 last-S35 )) 
+            ;u (Math/tanh (* alpha (+ y1 last-S35 ))) 
+            lpf2-sig ^doubles (lpf2 u G)
+            y (* K (aget lpf2-sig 0))
+            hpf1-sig ^doubles (hpf1 y G)
+            S35 (+ (* lpf2-beta (aget lpf2-sig 1)) 
+                   (* hpf1-beta (aget hpf1-sig 1)) )
+            out-sig (if (> K 0.0) 
+                      (* y (/ 1.0 K))
+                      y)]
+        (aset out int-indx out-sig)
+        (gen-recur cut qval G S35 K))
+      (yield out))))
 
 

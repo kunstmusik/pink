@@ -204,9 +204,14 @@
   (add-afunc
     (->
      (white-noise) 
-     (zdf-2pole (env [0.0 20 5 10000]) 4)
+     (zdf-2pole (exp-env [0.0 20 5 10000]) 4)
      (get-channel 1)
      (pan 0.0)))
 
+  (add-afunc
+    (->
+     (white-noise) 
+     (k35-lpf (exp-env [0.0 200 5 1200]) 10)
+     (pan 0.0)))
   
 )
