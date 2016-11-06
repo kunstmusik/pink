@@ -211,6 +211,12 @@
   (add-afunc
     (->
      (white-noise) 
+     (zdf-ladder (exp-env [0.0 20000 5 20]) 1.0)
+     (pan 0.0)))
+
+  (add-afunc
+    (->
+     (white-noise) 
      (k35-lpf (exp-env [0.0 5000 0.5 1000]) 9.95)
      (pan 0.0)))
   
