@@ -894,7 +894,7 @@
         T (/ 1.0 sr)
         two_div_T (/ 2.0 T)
         T_div_two (/ T 2.0)
-        kdiv (- 25.0 0.707)]
+        kdiv (- 25.0 0.5)]
     (generator 
       [last-res 0 last-k 0 last-cut 0 
        last-g 0 last-g2 0 last-g3 0 last-G 0 last-G_pole 0
@@ -905,7 +905,7 @@
       (let [k (if (not== last-res res)
                 (let [R (limit1 (- 1.0 res) 0.025 1.0)
                       Q (/ 1.0 (* 2 R))]
-                  (/ (* 4.0 (- Q 0.707)) kdiv)) 
+                  (/ (* 4.0 (- Q 0.5)) kdiv)) 
                 last-k)
             cut-changed (not== cut last-cut)
             g (if cut-changed
@@ -917,8 +917,9 @@
             g3 (if cut-changed (* g2 g) last-g3)
             G (if cut-changed (* g3 g) last-G)
             G_pole (if cut-changed (/ g (+ 1.0 g)) last-G_pole)
-            S (+ (+ (* g3 z1) (* g2 z2))
-                 (+ (* g z3) z4))
+            g+1 (+ 1.0 g)
+            S (+ (+ (* g3 (/ z1 g+1)) (* g2 (/ z2 g+1)))
+                 (+ (* g (/ z3 g+1)) (/ z4 g+1)))
             u (/ (- asig (* k S)) 
                  (+ 1.0 (* k G)))
 
