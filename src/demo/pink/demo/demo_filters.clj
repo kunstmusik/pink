@@ -238,5 +238,7 @@
           ;(zdf-2pole (sum 200 (mul 3000 e)) 8)
           ;(get-channel 0)
           (mul e 0.25)
-          (pan 0.0)))))
+          (pan 0.0)
+          ))))
 )
+

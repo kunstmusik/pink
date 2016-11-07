@@ -1076,20 +1076,20 @@
   afn - audio function input
   cutoff - frequency of cutoff
   Q - filter Q [1, 10.0] (k35-lpf will clamp to boundaries)"
-  [afn cut Q]
+  ([afn cut Q] (k35-lpf afn cut Q false 1.0))
+  ([afn cut Q non-linear-processing saturation]
   (let [out (create-buffer)
         cfn (arg cut)
         qfn (limit (arg Q) 0.0 10.0)
-        ^IFn$DD calc-G (ss-zdf-G) 
+        calc-G ^IFn$DD (ss-zdf-G) 
         lpf1 (ss-zdf-lpf) 
         lpf2 (ss-zdf-lpf) 
-        hpf1 (ss-zdf-hpf)
-        saturation 1.0]
+        hpf1 (ss-zdf-hpf)]
     (generator
       [last-cut 0 last-q -1 last-g 0 last-S35 0 last-K 0]
       [asig afn, cut cfn, qval qfn]
       (let [g (if (not== last-cut cut)
-                (double (calc-G cut)) 
+                (.invokePrim calc-G cut) 
                 last-g)
             G (/ g (+ 1.0 g))
             K (if (not== last-q qval)
@@ -1107,7 +1107,11 @@
 
             y1 (aget ^doubles (lpf1 asig G) 0)
             u (* alpha (+ y1 last-S35 )) 
-            ;u (Math/tanh (* alpha (+ y1 last-S35 ))) 
+
+            u (if non-linear-processing 
+                 (Math/tanh (* saturation u)) 
+                 u)
+
             lpf2-sig ^doubles (lpf2 u G)
             y (* K (aget lpf2-sig 0))
             hpf1-sig ^doubles (hpf1 y G)
@@ -1118,7 +1122,7 @@
                       y)]
         (aset out int-indx out-sig)
         (gen-recur cut qval g S35 K))
-      (yield out))))
+      (yield out)))))
 
 (defn k35-hpf
   "6db/oct high-pass filter based on Korg 35 module
@@ -1133,47 +1137,52 @@
   afn - audio function input
   cutoff - frequency of cutoff
   Q - filter Q [0, 10.0] (k35-hpf will clamp to boundaries)"
-  [afn cut Q]
-  (let [out (create-buffer)
-        cfn (arg cut)
-        qfn (limit (arg Q) 0.0 10.0)
-        ^IFn$DD calc-G (ss-zdf-G) 
-        hpf1 (ss-zdf-hpf)
-        hpf2 (ss-zdf-hpf) 
-        lpf1 (ss-zdf-lpf) 
-        saturation 1.0]
-    (generator
-      [last-cut 0 last-q -1 last-g 0 last-S35 0 last-K 0]
-      [asig afn, cut cfn, qval qfn]
-      (let [g (if (not== last-cut cut)
-                (double (calc-G cut)) 
-                last-g)
-            G (/ g (+ 1.0 g))
-            K (if (not== last-q qval)
-                (+ 0.01
-                   (* (- 2.0 0.01) (/ qval 10.0)))
-                last-K)
-            hpf2-beta 
-            (/ (* -1.0 G) (+ 1.0 g)) 
-            lpf1-beta
-            (/ 1.0 (+ 1.0 g)) 
-            
 
-            ;; TODO - optimize alpha 
-            alpha (/ 1.0 (+ (- 1.0 (* K G)) 
-                            (* K (* G G))))
+  ([afn cut Q] (k35-hpf afn cut Q false 1.0))
+  ([afn cut Q non-linear-processing saturation]
+   (let [out (create-buffer)
+         cfn (arg cut)
+         qfn (limit (arg Q) 0.0 10.0)
+         calc-G ^IFn$DD (ss-zdf-G) 
+         hpf1 (ss-zdf-hpf)
+         hpf2 (ss-zdf-hpf) 
+         lpf1 (ss-zdf-lpf) 
+         saturation 1.0]
+     (generator
+       [last-cut 0 last-q -1 last-g 0 last-S35 0 last-K 0]
+       [asig afn, cut cfn, qval qfn]
+       (let [g (if (not== last-cut cut)
+                 (.invokePrim calc-G cut) 
+                 last-g)
+             G (/ g (+ 1.0 g))
+             K (if (not== last-q qval)
+                 (+ 0.01
+                    (* (- 2.0 0.01) (/ qval 10.0)))
+                 last-K)
+             hpf2-beta 
+             (/ (* -1.0 G) (+ 1.0 g)) 
+             lpf1-beta
+             (/ 1.0 (+ 1.0 g)) 
 
-            y1 (aget ^doubles (hpf1 asig G) 0)
-            u (+ (* alpha y1) last-S35) 
-            y (* K u)
 
-            hpf2-sig ^doubles (hpf2 y G)
-            lpf1-sig ^doubles (lpf1 (aget hpf2-sig 0) G)
-            S35 (+ (* hpf2-beta (aget hpf2-sig 1)) 
-                   (* lpf1-beta (aget lpf1-sig 1)) )
-            out-sig (if (> K 0.0) 
-                      (* y (/ 1.0 K))
-                      y)]
-        (aset out int-indx out-sig)
-        (gen-recur cut qval g S35 K))
-      (yield out))))
+             ;; TODO - optimize alpha 
+             alpha (/ 1.0 (+ (- 1.0 (* K G)) 
+                             (* K (* G G))))
+
+             y1 (aget ^doubles (hpf1 asig G) 0)
+             u (+ (* alpha y1) last-S35) 
+             y (* K u)
+             y (if non-linear-processing 
+                 (Math/tanh (* saturation y)) 
+                 y)
+
+             hpf2-sig ^doubles (hpf2 y G)
+             lpf1-sig ^doubles (lpf1 (aget hpf2-sig 0) G)
+             S35 (+ (* hpf2-beta (aget hpf2-sig 1)) 
+                    (* lpf1-beta (aget lpf1-sig 1)) )
+             out-sig (if (> K 0.0) 
+                       (* y (/ 1.0 K))
+                       y)]
+         (aset out int-indx out-sig)
+         (gen-recur cut qval g S35 K))
+       (yield out)))))
