@@ -60,32 +60,6 @@
 
 ;; control
 
-
-
-(defn pattern 
-  "Create a pattern."
-  [pat-fn pat]
-  {:pat-fn pat-fn
-   :pattern pat
-   :index 0
-   :done false})
-
-(defn pattern-player
-  []
-  (comment
-    (let [p (tick! pattern) ]
-      (when p
-
-        )
-      (process p)
-      (compare-and-set!)
-      )  
-    (process)  
-    (update atom with cas (which may fail and that-is okay))
-    (trecur x y z)
-    ))
-
-
 (defn play-samp [samp-num pattern indx amp]
   (when (pattern indx)
     (play-sample-one-shot samp-num amp)))
@@ -298,6 +272,8 @@
           ))))
 
 
+
   (stop-engine)
   
   )
+
