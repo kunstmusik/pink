@@ -493,9 +493,6 @@
      ) 
     ))
 
-;; TODO - verify lpf18 output matches that of Csound's
-;; TODO - Optimize code below to check if values have changed, if not, 
-;;        don't recompute coefficients (same what Csound does)
 (defn lpf18
   "Josep Comajuncosas' 18dB/oct resonant 3-pole LPF with tanh dist.
   Coded in C by John ffitch, 2000 Dec 17, for Csound 
@@ -510,37 +507,48 @@
         onedsr (/ 1.0 (double *sr*))
         out (create-buffer)] 
     (generator
-      [lastin 0.0
-       lastres 0.0
-       lastcut 0.0
-       lastdist 0.0
-       ay1 0.0
-       ay2 0.0
-       aout 0.0]
+      [last-in 0 last-res 0 last-cut 0 last-dist 0
+       last-kfcn 0 last-kp 0 last-kres 0 last-value 0
+       ay1 0 ay2 0 aout 0]
       [ain afn
        cut cutfn
        res resfn
        dist distfn]
-      (let [kfcn (* 2.0 cut onedsr)
-            kp (+ (* (+ (* -2.7528 kfcn) 3.0429) 
-                     kfcn)
-                  (* 1.718 kfcn)
-                  -0.9984)
+      (let [cut-changed (not== cut last-cut)
+            res-changed (not== res last-res)
+            dist-changed (not== dist last-dist)
+            kfcn (if cut-changed 
+                   (* 2.0 cut onedsr)
+                   last-kfcn)
+            kp (if cut-changed 
+                 (+ (+ (* (+ (* -2.7528 kfcn) 3.0429) 
+                          kfcn)
+                       (* 1.718 kfcn))
+                    -0.9984)
+                 last-kp)
             kp1 (+ 1.0 kp)
             kp1h (* 0.5 kp1)
-            kres (* res 
-                    (+ (* -2.7079 kp1) (* 10.963 kp1)
-                       (* -14.934 kp1) 8.4974))
-            value (+ 1.0 (* dist (+ 1.5 
-                                    (* 2.0 kres (- 1.0 kfcn)))))
+            kres (if res-changed 
+                   (* res 
+                      (+ (* (- (* (+ (* -2.7079 kp1) 
+                                  10.963) 
+                               kp1) 
+                            14.934)
+                            kp1) 
+                         8.4974))
+                   last-res)
+            value (if (or cut-changed res-changed dist-changed)
+                    (+ 1.0 (* dist (+ 1.5 
+                                      (* 2.0 (* kres (- 1.0 kfcn))))))        
+                    last-value)
 
-            curin (- ain (Math/tanh (* kres aout)))
-            curay1 (- (* kp1h (+ lastin lastin)) (* kp ay1))
-            curay2 (- (* kp1h (+ curay1 ay1)) (* kp ay2))
-            curaout (- (* kp1h (+ curay2 ay2)) (* kp aout))
-            outval (Math/tanh (* curaout value))] 
-        (aset out int-indx outval)
-        (gen-recur curin res cut dist curay1 curay2 curaout))
+            cur-in (- ain (Math/tanh (* kres aout)))
+            cur-ay1 (- (* kp1h (+ cur-in last-in)) (* kp ay1))
+            cur-ay2 (- (* kp1h (+ cur-ay1 ay1)) (* kp ay2))
+            cur-aout (- (* kp1h (+ cur-ay2 ay2)) (* kp aout))
+            out-val (Math/tanh (* cur-aout value))] 
+        (aset out int-indx out-val)
+        (gen-recur cur-in res cut dist kfcn kp kres value cur-ay1 cur-ay2 cur-aout))
       (yield out))))
 
 ;; State Variable Filter

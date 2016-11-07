@@ -178,6 +178,11 @@
   (add-afunc (example3 1200.0))
   (add-afunc (example3 1800.0))
 
+  (add-afunc
+    (->
+     (blit-saw 220) 
+     (lpf18 (env [0.0 10000 5 20]) 0.5 1)
+     (pan 0.0)))
 
   (add-afunc
     (->

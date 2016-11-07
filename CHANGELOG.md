@@ -39,6 +39,9 @@ change log follows the conventions of
     (returns low-pass and high-pass signals)
   * zdf-2pole - zero-delay feedback, 2-pole (12 dB/oct) state variable filter
     (returns low-pass, band-pass, and high-pass signals)
+  * k35-lpf - 12 dB/oct lowpass filter (based on Korg 35 filter)
+  * k35-hpf - 6 dB/cot highpass filter (based on Korg 35 filter) 
+  * lpf-18 - 3-pole (18 dB/oct) low pass filter with resonance and distortion
 
 ### Changed
 

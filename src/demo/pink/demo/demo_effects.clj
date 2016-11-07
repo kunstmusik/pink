@@ -136,7 +136,7 @@
 
   (node-add-func
     reverb-node
-    (sawz 2.0 400 600 0.2))
+    (instr-saw 1.0 600 0.2))
 
   (node-add-func
     reverb-node
