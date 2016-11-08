@@ -231,6 +231,11 @@
      (k35-hpf (exp-env [0.0 10000 5 20]) 10)
      (pan 0.0)))
 
+  (add-afunc
+    (->
+     (dust2 (exp-env [0.0 20000 4 10 1 10])) 
+     (zdf-ladder (exp-env [0.0 4000 5 3000]) 10)
+     (pan 0.0)))
 
   (add-afunc 
     (with-duration 0.5 

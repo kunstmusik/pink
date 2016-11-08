@@ -43,6 +43,10 @@ change log follows the conventions of
   * k35-hpf - 6 dB/cot highpass filter (based on Korg 35 filter) 
   * lpf-18 - 3-pole (18 dB/oct) low pass filter with resonance and distortion
 
+* pink.noise
+  * dust - generate random impulses from 0.0 to +1.0
+  * dust2 - generate random impulses from -1.0 to +1.0
+
 ### Changed
 
 * pink.util
