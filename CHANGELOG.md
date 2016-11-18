@@ -41,6 +41,8 @@ change log follows the conventions of
     (returns low-pass, band-pass, and high-pass signals)
   * k35-lpf - 12 dB/oct lowpass filter (based on Korg 35 filter)
   * k35-hpf - 6 dB/cot highpass filter (based on Korg 35 filter) 
+  * diode-filter - 24 dB/oct Diode Ladder filter (used in
+    EMS VCS3 and TB-303)
   * lpf-18 - 3-pole (18 dB/oct) low pass filter with resonance and distortion
 
 * pink.noise

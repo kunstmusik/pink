@@ -250,5 +250,16 @@
           (mul e 0.25)
           (pan 0.0)
           ))))
+
+  (add-afunc 
+    (with-duration 0.25 
+      (let [e (shared (adsr 0.01 0.00 1.0 0.15))]
+        (->
+          (blit-saw 110) 
+          (diode-ladder (sum 200 (mul (adsr 0.01 0.25 0.0001 0.25) 6000)) 
+                        10 :norm 4)
+          (mul e)
+          (pan 0.0)
+          ))))
 )
 

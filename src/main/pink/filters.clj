@@ -1194,3 +1194,144 @@
          (aset out int-indx out-sig)
          (gen-recur cut qval g S35 K))
        (yield out)))))
+
+
+(defn diode-ladder 
+  "24db/oct low-pass diode ladder filter (found in EMS VCS3 and Roland TB-303).
+
+  Based on code by Will Pirkle, presented in:
+
+  http://www.willpirkle.com/Downloads/AN-6DiodeLadderFilter.pdf
+
+  [ARGS]
+
+  afn - audio function input
+  cutoff - frequency of cutoff
+  k - filter resonance (self-oscillation occurs at k=17)
+  non-linear-processing - type of non-linear processing
+  (0 - none, 1 - normalized, 2 - non-normalized)
+  saturation - used with non-linear-processing"
+
+  ([afn cutoff k] (diode-ladder afn cutoff k :none 1.0))
+  ([afn cutoff k non-linear-processing saturation]
+   (let [out (create-buffer)
+         cfn (arg cutoff)
+         kfn (arg k)
+         sr (long *sr*)
+         T (/ 1.0 sr)
+         two_div_T (/ 2.0 T)
+         T_div_two (/ T 2.0)
+         a2 0.5 a3 0.5 a4 0.5
+         saturation (double saturation)]
+     (generator
+       [last-cut 0 last-g 0 last-G1 0 last-G2 0 last-G3 0 
+        last-G4 0 last-GAMMA 0 last-SG1 0 last-SG2 0 
+        last-alpha 0 last-beta1 0 last-beta2 0 last-beta3 0 
+        last-beta4 0 last-gamma1 0 last-gamma2 0 
+        last-gamma3 0 z1 0 z2 0 z3 0 z4 0]
+       [asig afn, cut cfn, K kfn]
+       (let [cut-changed (not== cut last-cut)
+             g (if cut-changed
+                 (let [wd (* cut TWO_PI)
+                       wa (* two_div_T (Math/tan (* wd T_div_two)))]
+                   (* wa T_div_two))     
+                 last-g) 
+             g+1 (+ 1.0 g)
+             G4 (if cut-changed 
+                  (* 0.5 (/ g g+1)) 
+                  last-G4)
+             G3 (if cut-changed 
+                  (* 0.5 (/ g (- g+1 (* 0.5 (* g G4))))) 
+                  last-G3)
+             G2 (if cut-changed 
+                  (* 0.5 (/ g (- g+1 (* 0.5 (* g G3))))) 
+                  last-G2)
+             G1 (if cut-changed 
+                  (/ g (- g+1 (* g G2))) 
+                  last-G1)
+             GAMMA (if cut-changed 
+                     (* (* G4 G3) (* G2 G1))
+                     last-GAMMA) 
+             SG1 (if cut-changed 
+                   (* G4 (* G3 G2))
+                   last-SG1)  
+             SG2 (if cut-changed (* G4 G3) last-SG2)
+             SG3 G4
+             alpha (if cut-changed (/ g g+1) last-alpha)
+
+             beta1 (if cut-changed
+                     (/ 1.0 (- g+1 (* g G2)))
+                     last-beta1)
+             beta2 (if cut-changed
+                     (/ 1.0 (- g+1 (* 0.5 (* g G3))))
+                     last-beta2)
+             beta3 (if cut-changed
+                     (/ 1.0 (- g+1 (* 0.5 (* g G4))))
+                     last-beta3)
+             beta4 (if cut-changed
+                     (/ 1.0 g+1)
+                     last-beta4)
+
+             gamma1 (if cut-changed 
+                      (+ 1.0 (* G1 G2))
+                      last-gamma1)
+             gamma2 (if cut-changed 
+                      (+ 1.0 (* G2 G3))
+                      last-gamma2)
+             gamma3 (if cut-changed 
+                      (+ 1.0 (* G3 G4))
+                      last-gamma3)
+
+             delta1 g
+             delta2 (* 0.5 g)
+             delta3 delta2
+
+             epsilon1 G2
+             epsilon2 G3
+             epsilon3 G4
+
+             fb4 (* beta4 z4)
+             fb3 (* beta3 (+ z3 (* fb4 delta3)))
+             fb2 (* beta2 (+ z2 (* fb3 delta2)))
+
+             fbo1 (* beta1 (+ z1 (* fb2 delta1)))
+             fbo2 (* beta2 (+ z2 (* fb3 delta2)))
+             fbo3 (* beta3 (+ z3 (* fb4 delta3)))
+             fbo4 fb4 
+
+             SIGMA (+ (+ (* SG1 fbo1) (* SG2 fbo2))
+                      (+ (* SG3 fbo3) fbo4))
+
+             asig (case non-linear-processing
+                    :norm (* (/ 1.0 (Math/tanh saturation))
+                             (Math/tanh (* saturation asig)))  
+                    :simple (Math/tanh (* saturation asig))
+                    asig)
+
+             un (/ (- asig (* K SIGMA))
+                   (+ 1.0 (* K GAMMA)))
+
+             xin1 (+ (+ (* un gamma1) fb2) (* epsilon1 fbo1))
+             v (* (- xin1 z1) alpha)
+             lp (+ v z1)
+             new-z1 (+ lp v)
+
+             xin2 (+ (+ (* lp gamma2) fb3) (* epsilon2 fbo2))
+             v2 (* (- (* a2 xin2) z2) alpha)
+             lp2 (+ v2 z2)
+             new-z2 (+ lp2 v2)
+
+             xin3 (+ (+ (* lp2 gamma3) fb4) (* epsilon3 fbo3))
+             v3 (* (- (* a3 xin3) z3) alpha)
+             lp3 (+ v3 z3)
+             new-z3 (+ lp3 v3)
+
+             v4 (* (- (* a4 lp3) z4) alpha)
+             lp4 (+ v4 z4)
+             new-z4 (+ lp4 v4) ]
+         (aset out int-indx lp4) 
+         (gen-recur cut g G1 G2 G3 G4 GAMMA SG1 SG2 
+                    alpha beta1 beta2 beta3 beta4
+                    gamma1 gamma2 gamma3
+                    new-z1 new-z2 new-z3 new-z4))
+       (yield out)))))
