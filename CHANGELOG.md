@@ -35,9 +35,9 @@ change log follows the conventions of
 
 * pink.filter
   * zdf-ladder - a Zero-delay feedback Moog Ladder filter (4-pole 24db/oct)
-  * zdf-1pole - zero-delay feedback, 1-pole (6 dB/oct) state variable filter
+  * zdf-1pole - zero-delay feedback, 1-pole (6 dB/oct) multimode filter
     (returns low-pass and high-pass signals)
-  * zdf-2pole - zero-delay feedback, 2-pole (12 dB/oct) state variable filter
+  * zdf-2pole - zero-delay feedback, 2-pole (12 dB/oct) multimode filter
     (returns low-pass, band-pass, and high-pass signals)
   * k35-lpf - 12 dB/oct lowpass filter (based on Korg 35 filter)
   * k35-hpf - 6 dB/cot highpass filter (based on Korg 35 filter) 

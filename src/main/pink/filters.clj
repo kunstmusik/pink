@@ -958,7 +958,7 @@
       )))
 
 (defn zdf-1pole
-  "State-variable, Zero-delay feedback, 1-pole filter.
+  "Multimode, Zero-delay feedback, 1-pole filter.
   
   Returns [lp hp]"
   [afn cutoff] 
@@ -994,7 +994,7 @@
       )))
 
 (defn zdf-2pole
-  "State-variable, Zero-delay feedback, 2-pole filter.
+  "Multimode, Zero-delay feedback, 2-pole filter.
 
   Returns [lp bp hp]"
   [afn cutoff Q]
