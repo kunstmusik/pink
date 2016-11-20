@@ -49,6 +49,10 @@ change log follows the conventions of
   * dust - generate random impulses from 0.0 to +1.0
   * dust2 - generate random impulses from -1.0 to +1.0
 
+* pink.effects.distortion
+  * distort - normalized and non-normalized hyperbolic tangent distortion
+  * distort1 - modified hyberbolic distortion with assymetric waveshaping
+
 ### Changed
 
 * pink.util
