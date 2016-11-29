@@ -1138,7 +1138,7 @@
 
   Based on code by Will Pirkle, presented in:
 
-  http://www.willpirkle.com/Downloads/AN-5Korg35_V3.pdf
+  http://www.willpirkle.com/Downloads/AN-7Korg35HPF_V2.pdf
 
   [ARGS]
 
@@ -1178,7 +1178,8 @@
                              (* K (* G G))))
 
              y1 (aget ^doubles (hpf1 asig G) 0)
-             u (+ (* alpha y1) last-S35) 
+
+             u (* alpha (+ y1 last-S35 )) 
              y (* K u)
              y (if non-linear-processing 
                  (Math/tanh (* saturation y)) 
