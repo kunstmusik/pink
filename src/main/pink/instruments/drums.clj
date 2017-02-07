@@ -110,7 +110,7 @@
 (defn clap
   ([] (clap 0.5))
   ([amp]
-   (end-when-silent
+   #_(end-when-silent
      (->
           
        )
