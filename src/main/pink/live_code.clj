@@ -154,6 +154,30 @@
    (beats (* b beats-per-bar))))
 
 
+(defn sub-beat 
+  "Returns current sub-beat time."
+  [n]
+  (* (now) n))
+
+
+(defn cosr
+  "Cosine that scales/shifts value into range given by low/high.
+  Useful when generating events. Phase can be calculated using beat-phase.
+  (Based on cosr by Andrew Sorensen)."
+  ^double [^double phs ^double low ^double high]
+  (let [r (- high low)
+        c (Math/cos (* phs (* 2 Math/PI)))]
+    (+ low (* r (* 0.5 (+ 1.0 c))))))
+
+(defn beat-phase 
+  "Returns current phase (0.0,1.0] of *beat* within total number of sub-beats. For example,
+ using a sub-beat of 4 (i.e., 16th notes), 16 total would equal one measure at 
+ 4/4 time signature. Useful when paired with cosr."
+  ^double [^double sub-div ^double total]
+  (/ (beat-mod (sub-beat sub-div) total) total))
+
+
+
 ;; Sequences and Atoms
 
 (defn next-in-atom 
