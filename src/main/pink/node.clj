@@ -9,16 +9,50 @@
   (:import [pink.event Event]))
 
 
+(defprotocol Node
+  (node-add-func 
+    [n func] 
+    "Add function to pending adds list") 
+  (node-remove-func 
+    [n func]
+    "Add func to pending removes list") 
+  (node-clear 
+    [n] 
+    "Clear out all active and pending funcs") 
+  (node-empty? 
+    [n] 
+    "Checks whether active and pending add lists are empty")
+  (node-state 
+    [n] 
+    "Returns state map for Node"))
+
+(defn- create-node-state
+  [channels]
+  { :funcs (atom []) 
+   :pending-adds (atom [])
+   :pending-removes (atom [])
+   :status (atom nil)
+   :channels channels
+   })
+
 (defn create-node 
   [& { :keys [channels] 
       :or {channels *nchnls*}
       }]
-  { :funcs (atom []) 
-    :pending-adds (atom [])
-    :pending-removes (atom [])
-    :status (atom nil)
-    :channels channels
-   })
+  (let [state (create-node-state channels)] 
+    (reify 
+      Node
+      (node-add-func [this func]
+        (swap! (:pending-adds state) conj func))
+      (node-remove-func [this func]
+        (swap! (:pending-removes state) conj func))
+      (node-clear [this]
+        (reset! (:status state) :clear))
+      (node-empty?  [this]
+        (and (empty? @(:funcs state)) 
+             (empty? @(:pending-adds state))))
+      (node-state [this] state)
+      )))
 
 (defn- update-funcs
   [v adds-atm removes-atm]
@@ -57,11 +91,12 @@
   "An audio-rate function that renders child funcs and returns the 
   signals in an out-buffer."
   [node] 
-  (let [out-buffer (create-buffers (:channels node))
-        node-afuncs (:funcs node)
-        pending-adds (:pending-adds node)
-        pending-removes (:pending-removes node)
-        status (:status node)]
+  (let [state (node-state node)
+        out-buffer (create-buffers (:channels state))
+        node-afuncs (:funcs state)
+        pending-adds (:pending-adds state)
+        pending-removes (:pending-removes state)
+        status (:status state)]
     (fn []
       (clear-buffer out-buffer)
       (if (= :clear @status)
@@ -81,10 +116,11 @@
   "Creates a control node processing functions that runs controls functions, 
   handling pending adds and removes, as well as filters out done functions."
   [node]
-  (let [node-funcs (:funcs node)
-        pending-adds (:pending-adds node)
-        pending-removes (:pending-removes node)
-        status (:status node)]
+  (let [state (node-state node)
+        node-funcs (:funcs state)
+        pending-adds (:pending-adds state)
+        pending-removes (:pending-removes state)
+        status (:status state)]
     (fn []
       (if (= :clear @status)
         (do 
@@ -97,22 +133,79 @@
           (reset! node-funcs newfns))
         ))))
 
-(defn node-add-func
-  "Adds an audio function to a node. Should not be called directly but rather be used via a message added to the node."
-  [node afn]
-  (swap! (:pending-adds node) conj afn))
+(defn control-node
+  "Creates a Node that also adheres to control function convention (0-arity IFn that
+  returns true or nil)."
+ []
+  (let [state (create-node-state *nchnls*)
+        node-funcs (:funcs state)
+        pending-adds (:pending-adds state)
+        pending-removes (:pending-removes state)
+        status (:status state)] 
+    (reify 
+      Node
+      (node-add-func [this func]
+        (swap! (:pending-adds state) conj func))
+      (node-remove-func [this func]
+        (swap! (:pending-removes state) conj func))
+      (node-clear [this]
+        (reset! (:status state) :clear))
+      (node-empty?  [this]
+        (and (empty? @(:funcs state)) 
+             (empty? @(:pending-adds state))))
+      (node-state [this] state)
+      clojure.lang.IFn
+      (invoke [this]
+        (if (= :clear @status)
+          (do 
+            (reset! node-funcs [])
+            (reset! pending-adds [])
+            (reset! pending-removes [])
+            (reset! status nil))
+          (let [newfns (process-cfuncs 
+                         (update-funcs @node-funcs pending-adds pending-removes))] 
+            (reset! node-funcs newfns))
+          )))))
 
-(defn node-remove-func
-  [node afn]
-  (swap! (:pending-removes node) conj afn))
+(defn audio-node
+  "Creates a Node that also adheres to audio function convention (0-arity IFn that
+  returns audio buffer or nil)."
+  [& { :keys [channels] 
+      :or {channels *nchnls*}
+      }]
+  (let [state (create-node-state channels)
+        out-buffer (create-buffers (:channels state))
+        node-funcs (:funcs state)
+        pending-adds (:pending-adds state)
+        pending-removes (:pending-removes state)
+        status (:status state)] 
+    (reify 
+      Node
+      (node-add-func [this func]
+        (swap! (:pending-adds state) conj func))
+      (node-remove-func [this func]
+        (swap! (:pending-removes state) conj func))
+      (node-clear [this]
+        (reset! (:status state) :clear))
+      (node-empty?  [this]
+        (and (empty? @(:funcs state)) 
+             (empty? @(:pending-adds state))))
+      (node-state [this] state)
 
-(defn node-clear
-  [node]
-  (reset! (:status node) :clear))
-
-(defn node-empty?
-  [node]
-  (and (empty? @(:funcs node)) (empty? @(:pending-adds node))))
+      clojure.lang.IFn
+      (invoke [this]
+        (clear-buffer out-buffer)
+        (if (= :clear @status)
+          (do 
+            (reset! node-funcs [])
+            (reset! pending-adds [])
+            (reset! pending-removes [])
+            (reset! status nil)) 
+          (let [afs (run-node-funcs 
+                      (update-funcs @node-funcs pending-adds pending-removes) 
+                      out-buffer)]
+            (reset! node-funcs afs)))
+        out-buffer))))
 
 ;; Event functions dealing with nodes
 
@@ -134,3 +227,5 @@
      (map #(wrap-node-event node %) [args])))
   ([node x & args]
    (node-events node (list* x args))))
+
+

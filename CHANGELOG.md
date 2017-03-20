@@ -28,6 +28,12 @@ change log follows the conventions of
 * pink.engine 
   * rewrote engine-\>disk to use streaming wav writer
 
+* pink.node
+  * refactored and introduced new Node protocol
+  * added control-node and audio-node utility functions that return reified 
+  Nodes that also implement IFn to adhere to control and audio function 
+  conventions (simplifies creation and use of nodes)
+
 * pink.config
   * added new \*beat\* config variable that has the current beat time of the
     event list. 

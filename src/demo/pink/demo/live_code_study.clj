@@ -64,9 +64,6 @@
   (when (pattern indx)
     (play-sample-one-shot samp-num amp)))
 
-(defn sub-beat [n]
-  (* (now) n))
-
 (defn drums []
   (let [n (beat-mod (sub-beat 4) 16)
         bd-pat #{0 4 8 12 14}
@@ -78,9 +75,9 @@
   (cause drums (next-beat 1/4)))
 
 
-(def reverb (create-node :channels 2) )
+(def reverb (audio-node :channels 2) )
 (def reverb-fn
-  (freeverb (node-processor reverb) 0.8 0.25))
+  (freeverb reverb 0.8 0.25))
 
 (add-afunc reverb-fn)
 

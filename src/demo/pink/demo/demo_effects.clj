@@ -90,11 +90,11 @@
 
   (start-engine)
 
-  (def root-node (create-node :channels 2))
-  (add-afunc (chorus (node-processor root-node) 0.8))
+  (def root-node (audio-node :channels 2))
+  (add-afunc (chorus root-node 0.8))
 
-  (def reverb-node (create-node :channels 2))
-  (add-afunc (freeverb (node-processor reverb-node) 0.90 0.5))
+  (def reverb-node (audio-node :channels 2))
+  (add-afunc (freeverb reverb-node 0.90 0.5))
 
   ;; chorus
   (node-add-func

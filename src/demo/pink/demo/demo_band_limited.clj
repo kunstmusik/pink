@@ -76,8 +76,8 @@
 
   (start-engine)
 
-  (def root-node (create-node :channels 2))
-  (add-afunc (node-processor root-node))
+  (def root-node (audio-node :channels 2))
+  (add-afunc root-node)
 
   ;(def root-node (create-node :channels 1))
   ;(def delayed-audio-node

@@ -32,8 +32,8 @@
   (def e (engine-create :nchnls 2))
   (engine-start e)
 
-  (def root-node (create-node :channels 2))
-  (engine-add-afunc e (node-processor root-node))
+  (def root-node (audio-node :channels 2))
+  (engine-add-afunc e root-node)
 
   (def my-score 
     (let [num-notes 10] 

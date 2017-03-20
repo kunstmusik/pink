@@ -68,8 +68,8 @@
 
 (comment
 
-  (def saw-node (create-node))
-  (def saw-processor (shared (node-processor saw-node)))
+  (def saw-node (audio-node))
+  (def saw-processor (shared saw-node))
 
   (add-afunc (pan saw-processor 0.0))
   (add-afunc (ping-pong-delay saw-processor 
