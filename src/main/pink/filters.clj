@@ -911,8 +911,8 @@
        cut cfn 
        res rfn]
       (let [k (if (not== last-res res)
-                (let [R (limit1 (- 1.0 res) 0.025 1.0)
-                      Q (/ 1.0 (* 2 R))]
+                (let [R (limit1 res 0.0 1.0)
+                      Q (/ 1.0 (* 2.0 (- 1.0 (* R 0.98))))]
                   (/ (* 4.0 (- Q 0.5)) kdiv)) 
                 last-k)
             cut-changed (not== cut last-cut)
