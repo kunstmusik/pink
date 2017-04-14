@@ -1024,7 +1024,7 @@
                   (* wa T_div_two))     
                 last-G) 
             hp (/ (- (- asig (* (+ (* 2.0 res) G) z1)) z2) 
-                  (+ (+ 1.0 (* res G)) (* G G)))
+                  (+ (+ 1.0 (* 2 (* res G))) (* G G)))
             bp (+ (* G hp) z1)
             lp (+ (* G bp) z2)
             new-z1 (+ (* G hp) bp)

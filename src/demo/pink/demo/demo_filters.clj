@@ -216,6 +216,13 @@
   (add-afunc
     (->
      (white-noise) 
+     (zdf-2pole (exp-env [0.0 20 5 10000]) 4)
+     (get-channel 2)
+     (pan 0.0)))
+
+  (add-afunc
+    (->
+     (white-noise) 
      (zdf-ladder (exp-env [0.0 20000 5 20]) 1.0)
      (pan 0.0)))
 
