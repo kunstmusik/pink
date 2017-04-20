@@ -49,10 +49,8 @@
    (end-when-silent
      (-> 
        (pulse 0.0 60.0)  
-       (zdf-2pole freq 20.0)
-       (get-channel 1) ;; band-pass signal
-       (zdf-2pole tone 0.5)
-       (get-channel 0) ;; low-pass signal
+       (zdf-2pole freq 20.0 2) ;; band-pass signal
+       (zdf-2pole tone 0.5 0) ;; low-pass signal 
        (mul amp)))))
 
 (defn conga
@@ -65,8 +63,7 @@
    (end-when-silent
      (-> 
      (pulse 0.0 60.0)  
-     (zdf-2pole freq 50.0)
-     (get-channel 1)
+     (zdf-2pole freq 50.0 2) ;; band-pass
      (mul amp)))))
 
 (defn clave
@@ -79,8 +76,7 @@
    (end-when-silent 
      (-> 
        (pulse 0.0 2.0)  
-       (zdf-2pole freq 5.0)
-       (get-channel 1)
+       (zdf-2pole freq 5.0 2) ;; band-pass
        (mul amp)))))
 
 
@@ -96,14 +92,11 @@
        (sum 
          (-> 
            (pulse 0.0 60.0)  
-           (zdf-2pole freq 30.0)
-           (get-channel 1)
-           )
+           (zdf-2pole freq 30.0 2)) ;; band-pass
          (-> 
            (g-noise 8) 
            (mul (exp-decay 0.05 11025))
-           (zdf-2pole  120.0 0.5)
-           (get-channel 0)))
+           (zdf-2pole  120.0 0.5 0)))
        (mul amp)
        ))))
 

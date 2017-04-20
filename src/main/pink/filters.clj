@@ -958,83 +958,107 @@
       )))
 
 (defn zdf-1pole
-  "Multimode, Zero-delay feedback, 1-pole filter.
+  "Zero-delay feedback, 1-pole filter. 
   
-  Returns [lp hp]"
-  [afn cutoff] 
-  
-  (let [hp-out (create-buffer)
-        lp-out (create-buffer)
-        out (into-array [lp-out hp-out])
+  Optional mode argument may be:
 
-        cfn (arg cutoff)
-        sr (long *sr*)
-        T (/ 1.0 sr)
-        two_div_T (/ 2.0 T)
-        T_div_two (/ T 2.0)]
-    (generator 
-      [last-cut 0 last-G 0 
-       z1 0]
-      [asig afn 
-       cut cfn]
-      (let [G (if (not== cut last-cut)
-                (let [wd (* cut TWO_PI)
-                      wa (* two_div_T (Math/tan (* wd T_div_two)))
-                      g (* wa T_div_two)]
-                     (/ g (+ 1.0 g)) )     
-                last-G) 
-            v (* (- asig z1) G)
-            lp (+ v z1)
-            hp (- asig lp)
-            new-z1 (+ lp v)]
-        (aset lp-out int-indx lp) 
-        (aset hp-out int-indx hp) 
-        (gen-recur cut G new-z1))
-      (yield out)
-      )))
+  0 - low-pass, default
+  1 - high-pass 
+  2 - allpass."
+  ([afn cutoff ]
+   (zdf-1pole afn cutoff 0))
+  ([afn cutoff ^long mode] 
+   (let [out (create-buffer)
+         cfn (arg cutoff)
+         sr (long *sr*)
+         T (/ 1.0 sr)
+         two_div_T (/ 2.0 T)
+         T_div_two (/ T 2.0)]
+     (generator 
+       [last-cut 0 last-G 0 
+        z1 0]
+       [asig afn 
+        cut cfn]
+       (let [G (if (not== cut last-cut)
+                 (let [wd (* cut TWO_PI)
+                       wa (* two_div_T (Math/tan (* wd T_div_two)))
+                       g (* wa T_div_two)]
+                   (/ g (+ 1.0 g)) )     
+                 last-G) 
+             v (* (- asig z1) G)
+             lp (+ v z1)
+             new-z1 (+ lp v)]
+         (if (= 0 mode)
+           (aset out int-indx lp) 
+           (let [hp (- asig lp)]
+             (if (= 1 mode)
+               (aset out int-indx hp) 
+               (aset out int-indx (- lp hp)) 
+               )))
+         (gen-recur cut G new-z1))
+       (yield out)
+       ))))
 
 (defn zdf-2pole
-  "Multimode, Zero-delay feedback, 2-pole filter.
+  "Zero-delay feedback, 2-pole filter.
 
-  Returns [lp bp hp]"
-  [afn cutoff Q]
-  (let [hp-out (create-buffer)
-        lp-out (create-buffer)
-        bp-out (create-buffer)
-        out (into-array [lp-out bp-out hp-out])
+  Optional mode argument may be:
 
-        cfn (arg cutoff)
-        qfn (arg Q)
-        sr (long *sr*)
-        T (/ 1.0 sr)
-        two_div_T (/ 2.0 T)
-        T_div_two (/ T 2.0)]
-    (generator 
-      [last-q 0 last-res 0 last-cut 0 last-G 0 
-       z1 0 z2 0]
-      [asig afn 
-       cut cfn 
-       qval qfn]
-      (let [res (if (not== last-q qval)
-                  (/ 1.0 (* 2 qval))
-                  last-res)
-            G (if (not== cut last-cut)
-                (let [wd (* cut TWO_PI)
-                      wa (* two_div_T (Math/tan (* wd T_div_two)))]
-                  (* wa T_div_two))     
-                last-G) 
-            hp (/ (- (- asig (* (+ (* 2.0 res) G) z1)) z2) 
-                  (+ (+ 1.0 (* 2 (* res G))) (* G G)))
-            bp (+ (* G hp) z1)
-            lp (+ (* G bp) z2)
-            new-z1 (+ (* G hp) bp)
-            new-z2 (+ (* G bp) lp)]
-        (aset lp-out int-indx lp) 
-        (aset bp-out int-indx bp) 
-        (aset hp-out int-indx hp) 
-        (gen-recur qval res cut G new-z1 new-z2 ))
-      (yield out)
-      )))
+  0 - low-pass, default
+  1 - high-pass 
+  2 - band-pass
+  3 - unity-gain band-pass
+  4 - notch 
+  5 - allpass 
+  6 - peak"
+  ([afn cutoff Q]
+   (zdf-2pole afn cutoff Q 0))
+  ([afn cutoff Q ^long mode]
+   (let [out (create-buffer)
+         cfn (arg cutoff)
+         qfn (arg Q)
+         sr (long *sr*)
+         T (/ 1.0 sr)
+         two_div_T (/ 2.0 T)
+         T_div_two (/ T 2.0)]
+     (generator 
+       [last-q 0 last-res 0 last-cut 0 last-G 0 
+        z1 0 z2 0]
+       [asig afn 
+        cut cfn 
+        qval qfn]
+       (let [res (if (not== last-q qval)
+                   (/ 1.0 (* 2 qval))
+                   last-res)
+             G (if (not== cut last-cut)
+                 (let [wd (* cut TWO_PI)
+                       wa (* two_div_T (Math/tan (* wd T_div_two)))]
+                   (* wa T_div_two))     
+                 last-G) 
+             hp (/ (- (- asig (* (+ (* 2.0 res) G) z1)) z2) 
+                   (+ (+ 1.0 (* 2 (* res G))) (* G G)))
+             bp (+ (* G hp) z1)
+             lp (+ (* G bp) z2)
+             new-z1 (+ (* G hp) bp)
+             new-z2 (+ (* G bp) lp)]
+         (if (= 0 mode)
+           (aset out int-indx lp) 
+           (if (= 1 mode)
+             (aset out int-indx hp) 
+             (if (= 2 mode)
+               (aset out int-indx bp) 
+               (if (= 3 mode)
+                 (aset out int-indx (* 2.0 (* res bp))) 
+                 (if (= 4 mode)
+                   (aset out int-indx (- asig
+                                         (* 2.0 (* res bp)))) 
+                   (if (= 5 mode)
+                     (aset out int-indx (- asig (* 4.0 (* res bp)))) 
+                     (aset out int-indx (- lp hp))))))))
+
+         (gen-recur qval res cut G new-z1 new-z2 ))
+       (yield out)
+       ))))
 
 
 ;; Korg 35

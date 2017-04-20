@@ -188,14 +188,18 @@
     (->
      (white-noise) 
      (zdf-1pole (env [0.0 10000 5 20]))
-     (get-channel 0)
      (pan 0.0)))
 
   (add-afunc
     (->
      (white-noise) 
-     (zdf-1pole (env [0.0 20 5 10000]))
-     (get-channel 1)
+     (zdf-1pole (env [0.0 20 5 10000]) 1)
+     (pan 0.0)))
+
+  (add-afunc
+    (->
+     (white-noise) 
+     (zdf-1pole (env [0.0 20 5 10000]) 2)
      (pan 0.0)))
  
 
@@ -203,22 +207,20 @@
     (->
      (white-noise) 
      (zdf-2pole (env [0.0 10000 5 20]) 4)
-     (get-channel 0)
      (pan 0.0)))
 
   (add-afunc
     (->
      (white-noise) 
-     (zdf-2pole (exp-env [0.0 20 5 10000]) 4)
-     (get-channel 1)
+     (zdf-2pole (exp-env [0.0 20 5 10000]) 4 1)
      (pan 0.0)))
 
   (add-afunc
     (->
      (white-noise) 
-     (zdf-2pole (exp-env [0.0 20 5 10000]) 4)
-     (get-channel 2)
+     (zdf-2pole (exp-env [0.0 20 5 10000]) 4 2)
      (pan 0.0)))
+
 
   (add-afunc
     (->
