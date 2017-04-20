@@ -33,7 +33,7 @@
   :profiles  { 
               :dev  {
                      :global-vars  {*warn-on-reflection* true}
-                     :dependencies [[criterium "0.4.2"]] 
+                     :dependencies [[criterium "0.4.4"]] 
                      :plugins [[lein-codox "0.9.6"]] 
                      :source-paths ["src/demo"]
                      } 
@@ -50,7 +50,7 @@
                              }      
 
               :plotting {
-                     :dependencies [[incanter "1.5.4"]
+                     :dependencies [[incanter "1.9.1"]
                                     ;[kunstmusik/pink-viz "0.1.0-SNAPSHOT"]
                                     ] 
                      :source-paths ["src/plotting"]
