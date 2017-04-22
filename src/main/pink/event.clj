@@ -109,7 +109,8 @@
                  (.event-args ^Event evt))))
 
 (defn- merge-pending!
-  "Merges pending-events with the PriorityQueue of known events. Adjusts start times of events to *tempo*."
+  "Merges pending-events with the PriorityQueue of known events. Event start
+  times are processed relative to the EventList's cur-beat."
   [^EventList evtlst]
   (let [pending (.pending-events evtlst)]
     (try 
