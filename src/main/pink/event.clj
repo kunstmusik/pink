@@ -15,8 +15,23 @@
           t2 (.start ^Event a)] 
      (compare t1 t2))))
 
+(definterface IEventList
+  (setEventProcFn 
+    [proc-fn] 
+    "Set event processing function. proc-fn should be an arity 2 function with
+    input arguments of type double and Event. First argument will be the
+    current beat time of the event list and the second argument will be the
+    current Event to process.")
+  (getEventProcFn 
+    [] "Returns the current event processing function for the EventList."))
+
 (deftype EventList [^PriorityQueue events pending-events cur-beat
-                    buffer-size sr tempo-atom]
+                    buffer-size sr tempo-atom 
+                    ^:unsynchronized-mutable event-proc-fn]
+  IEventList
+  (setEventProcFn [_ proc-fn] (set! event-proc-fn proc-fn))
+  (getEventProcFn [_] event-proc-fn)
+
   Object
   (toString [_]  (str events))
   (hashCode [this] (System/identityHashCode this))
@@ -41,8 +56,13 @@
 (defn alter-event-time
   "Utility function to create a new Event using the same values as the
   passed-in event and new start time."
-  [start ^Event evt]
+  [^double start ^Event evt]
   (event (.event-func evt) start (.event-args evt)))
+
+(defn wrap-relative-start
+  [^double cur-beat ^Event a] 
+  (alter-event-time (+ cur-beat (.start a)) a)) 
+
 
 (defn events [f & args]
   (map #(apply event f %) args))
@@ -58,7 +78,8 @@
   ([buffer-size sr] (event-list [] buffer-size sr))
   ([^Collection evts buffer-size sr] 
    (EventList. 
-     (PriorityQueue. evts) (atom []) (atom 0.0) buffer-size sr (atom *tempo*))))
+     (PriorityQueue. evts) (atom []) (atom 0.0) buffer-size sr (atom *tempo*)
+     wrap-relative-start)))
 
 (defn event-list-add 
   "Add an event or events to an event list"
@@ -118,11 +139,10 @@
         (let [new-events (drain-atom! pending)
               cur-beat (double @(.cur-beat evtlst))
               tempo (double @(.tempo-atom evtlst))
+              event-proc-fn (partial (.getEventProcFn evtlst) cur-beat)
               timed-events 
-              (map (fn [^Event a] (alter-event-time (+ cur-beat (.start a)) a)) 
-                   new-events)] 
-          (.addAll ^PriorityQueue (.events evtlst) timed-events))
-        )
+              (map event-proc-fn new-events)] 
+          (.addAll ^PriorityQueue (.events evtlst) timed-events)))
       (catch Exception e 
         (println "Error: Invalid pending events found!") 
         nil))))
@@ -149,9 +169,14 @@
     (binding [*tempo* tempo
               *beat* cur-beat]    
       (loop [evt ^Event (.peek events)]
-        (when (and evt (< (.start evt) end-time)) 
-          (fire-event (.poll events))
-          (recur (.peek events)))))
+        (when evt
+          (if (< (.start evt) cur-beat)
+            (do 
+              (.poll events) 
+              (recur (.peek events)))
+            (when (< (.start evt) end-time) 
+              (fire-event (.poll events))
+              (recur (.peek events)))))))
     (reset! (.cur-beat evtlst) end-time)))
 
 (defn event-list-processor 
@@ -162,3 +187,15 @@
     (not (.isEmpty ^PriorityQueue (.events evtlst)))))
 
 
+(defn use-absolute-time! 
+  "Set EventList to insert new events without modification
+  to start times."
+  [^EventList evtlst]
+  (.setEventProcFn evtlst (fn [_ evt] evt)) )
+
+
+(defn use-relative-time! 
+  "Set EventList to insert new events processing their start times as relative
+  to the cur-beat. (This is the default behavior of EventList.)"
+  [^EventList evtlst]
+  (.setEventProcFn evtlst wrap-relative-start))

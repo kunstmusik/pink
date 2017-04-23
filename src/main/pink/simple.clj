@@ -4,7 +4,7 @@
   pink.simple
   (:require [pink.engine :refer :all]
             [pink.util :refer [with-duration apply!*!]]
-            [pink.event :refer [event event-list-beat-time]])
+            [pink.event :refer [event event-list-beat-time use-absolute-time!]])
   (:import [pink.engine Engine]
            [pink.event EventList]))
 
@@ -84,6 +84,13 @@
   (engine-add-events engine (audio-events engine evts)))
   ([evt & evts]
    (add-audio-events (list* evt evts))))
+
+(defn use-absolute-time-events!
+  "Set the Pink simple engine's event list to process events without modifying event
+  start times. By default, Pink will process new events' start time as relative to 
+  the cur-beat time. When absolute time is set, events will be merged as-is."
+  []
+  (use-absolute-time! (.event-list ^Engine engine)) )
 
 (defn now 
   "Returns the current *beat* time of the engine."

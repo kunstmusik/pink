@@ -80,6 +80,40 @@
 
     )))
 
+
+(deftest event-list-absolute-time-test
+  (with-private-fns [pink.event [merge-pending!]] 
+    (let [test-note (event test-audio-func 0.0 1.0 440.0)
+        test-note-dupe (event test-audio-func 0.0 1.0 440.0)
+        test-note2 (event test-audio-func 0.1 1.1 880.0)
+        test-note3 (event test-audio-func 0.2 1.0 220.0)
+        evtlst (event-list [test-note2] *buffer-size* *sr*)
+        events ^PriorityQueue (.events evtlst)]
+    (event-list-tick! evtlst)
+    (event-list-tick! evtlst)
+    (event-list-tick! evtlst)
+
+    (use-absolute-time! evtlst)
+
+    (event-list-add evtlst test-note3)
+    (event-list-add evtlst test-note)
+    (event-list-add evtlst test-note-dupe)
+
+    (merge-pending! evtlst)
+
+    (is (= 4 (.size events)))
+    (is (event-equals test-note (.poll events)))
+    (is (event-equals test-note-dupe (.poll events)))
+    (is (event-equals test-note2 (.poll events)))
+    (is (event-equals test-note3 (.poll events)))
+
+    ;;;Test that adding same note is skipped
+    ;(event-list-add evtlst test-note)
+    ;(is (= 2 (count (:events evtlst))))
+
+
+    )))
+
 ;(deftest event-list-remove-test
 ;  (let [test-note (event test-audio-func 0.0 1.0 440.0)
 ;        test-note2 (event test-audio-func 0.0 1.0 880.0)

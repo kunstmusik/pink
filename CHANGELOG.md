@@ -28,6 +28,14 @@ change log follows the conventions of
 * pink.engine 
   * rewrote engine-\>disk to use streaming wav writer
 
+* pink.event
+  * added user-settable event processing function to EventList and utility
+    functions for setting event list processing to process incoming events as
+    having relative (the default) or absolute times according to the cur-beat
+    of the event list. Additional use-absolute-time-events! function added to
+    pink.simple.  For more information, please see Issue #10 in the issue
+    tracker. 
+
 * pink.node
   * refactored and introduced new Node protocol
   * added control-node and audio-node utility functions that return reified 
