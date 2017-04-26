@@ -154,7 +154,7 @@
                           (node-processor root-audio-node))
         run-post-control-funcs (control-node-processor post-control)]
 
-    (binding [*sr* sr *buffer-size* buffer-size *nchnls* nchnls]
+    (binding [*engine* engine *sr* sr *buffer-size* buffer-size *nchnls* nchnls]
 
       (loop [buffer-count 0]
         (if (= @(.status engine) :running)
@@ -262,7 +262,7 @@
 
     (reset! (.status engine) :running)
 
-    (binding [*sr* sr *buffer-size* buffer-size *nchnls* nchnls]
+    (binding [*engine* engine *sr* sr *buffer-size* buffer-size *nchnls* nchnls]
 
       (loop [buffer-count 0]
         (if (= @(.status engine) :running)

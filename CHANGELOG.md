@@ -44,7 +44,9 @@ change log follows the conventions of
 
 * pink.config
   * added new \*beat\* config variable that has the current beat time of the
-    event list. 
+    event list.
+  * added new \*engine\* config variable that points to the currently running
+    engine.
   * documentation added for each config variable
 
 * pink.filter
