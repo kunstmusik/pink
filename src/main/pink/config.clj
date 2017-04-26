@@ -4,6 +4,10 @@
    :author "Steven Yi"}
   pink.config)
 
+(def
+  ^{:dynamic true
+    :doc "The current processing engine."}
+  *engine* nil)
 
 (def 
   ^{:dynamic true
