@@ -89,7 +89,7 @@
       (->
         (sum (blit-saw freq)
              (blit-square (* freq 2)) ) 
-        (zdf-ladder (sum 500 (mul 2000 e)) 0.75)
+        (zdf-ladder (sum 500 (mul 2000 e)) 20)
         (mul e 0.5)
         (pan 0.0)))))
 
@@ -104,7 +104,7 @@
                                ;(of-range (/ (beat-mod 16) 16.0) 1000 8000) 
                                3000
                                   e)) 
-                    0.15)
+                    4)
         (mul e 0.75)
         (pan 0.0)))))
 
@@ -263,7 +263,7 @@
       (let-s [e (adsr (beats 8) (beats 8) 0.0 0.0)] 
         (->
           (sum (blit-triangle 300) (blit-triangle 600))
-          (zdf-ladder (sum 300 (mul e 4000)) 0.25)
+          (zdf-ladder (sum 300 (mul e 4000)) 6)
           (mul 0.5 e )
           (pan 0.1)
           ))))

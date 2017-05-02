@@ -225,7 +225,7 @@
   (add-afunc
     (->
      (white-noise) 
-     (zdf-ladder (exp-env [0.0 20000 5 20]) 1.0)
+     (zdf-ladder (exp-env [0.0 5000 5 20]) 25)
      (pan 0.0)))
 
   (add-afunc

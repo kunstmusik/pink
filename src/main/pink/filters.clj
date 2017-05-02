@@ -881,8 +881,8 @@
 
   afn - mono audio function to filter 
   cutoff - frequency to cutoff 
-  resonance - controls resonance; 0-1.0, higher is more resonant, 
-    has inverse relationship to Q
+  Q - controls Q values for filter in range 0.5-25.0. At 25.0,
+    filter will self-oscillate.
   
   Based on code by Will Pirkle, presented in:
 
@@ -894,26 +894,24 @@
   ZDF using Trapezoidal integrator by Vadim Zavalishin, presented in 'The Art
   of VA Filter Design' (https://www.native-instruments.com/fileadmin/ni_media/
   downloads/pdf/VAFilterDesign_1.1.1.pdf)"
-  [afn cutoff resonance]
+  [afn cutoff Q]
   (let [out ^doubles (create-buffer)
         cfn (arg cutoff)
-        rfn (arg resonance)
+        Qfn (arg Q)
         sr (long *sr*)
         T (/ 1.0 sr)
         two_div_T (/ 2.0 T)
         T_div_two (/ T 2.0)
         kdiv (- 25.0 0.5)]
     (generator 
-      [last-res 0 last-k 0 last-cut 0 
+      [last-Q 0 last-k 0 last-cut 0 
        last-g 0  last-G 0 last-G2 0 last-G3 0 last-gamma 0
        z1 0 z2 0 z3 0 z4 0]
       [asig afn 
        cut cfn 
-       res rfn]
-      (let [k (if (not== last-res res)
-                (let [R (limit1 res 0.0 1.0)
-                      Q (/ 1.0 (* 2.0 (- 1.0 (* R 0.98))))]
-                  (/ (* 4.0 (- Q 0.5)) kdiv)) 
+       q Qfn]
+      (let [k (if (not== last-Q q)
+                (/ (* 4.0 (- (limit1 q 0.5 25.0) 0.5)) kdiv)
                 last-k)
             cut-changed (not== cut last-cut)
             g (if cut-changed
@@ -952,7 +950,7 @@
             lp4 (+ v4 z4)
             new-z4 (+ lp4 v4)]
         (aset out int-indx lp4) 
-        (gen-recur res k cut g G G2 G3 gamma 
+        (gen-recur q k cut g G G2 G3 gamma 
                    new-z1 new-z2 new-z3 new-z4))
       (yield out)
       )))
