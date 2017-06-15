@@ -5,7 +5,8 @@
   "
   (:require [pink.config :refer [*nchnls* *buffer-size*]]
             [pink.event :refer :all]
-            [pink.util :refer :all])
+            [pink.util :refer :all]
+            [pink.dynamics :refer [db->amp]])
   (:import [pink.event Event]))
 
 
@@ -25,6 +26,10 @@
   (node-state 
     [n] 
     "Returns state map for Node"))
+
+(defprotocol StereoMixerNode
+  (set-gain! [n gain-val] "Set gain [0,1] to apply to signal")
+  (set-pan! [n pan-val] "Set pan [-1,1] to apply to signal"))
 
 (defn- create-node-state
   [channels]
@@ -204,6 +209,69 @@
           (let [afs (run-node-funcs 
                       (update-funcs @node-funcs pending-adds pending-removes) 
                       out-buffer)]
+            (reset! node-funcs afs)))
+        out-buffer))))
+
+(defn mixer-node
+  "Creates an audio node that accepts mono-signal audio functions. mixer-node
+  has properties for gain and panning which will be applied to all generated signals.
+  Output is a stereo signal."
+  []
+  (let [state (create-node-state 1)
+        mono-buffer (create-buffer)
+        ^doubles left (create-buffer)
+        ^doubles right (create-buffer)
+        out-buffer (into-array [left right])
+        node-funcs (:funcs state)
+        pending-adds (:pending-adds state)
+        pending-removes (:pending-removes state)
+        status (:status state)
+        ^doubles pan (double-array 1 0.0)
+        ^doubles gain (double-array 1 1.0)
+        PI2 (/ Math/PI 2)] 
+    (reify 
+      Node
+      (node-add-func [this func]
+        (swap! (:pending-adds state) conj func))
+      (node-remove-func [this func]
+        (swap! (:pending-removes state) conj func))
+      (node-clear [this]
+        (reset! (:status state) :clear))
+      (node-empty?  [this]
+        (and (empty? @(:funcs state)) 
+             (empty? @(:pending-adds state))))
+      (node-state [this] state)
+
+      StereoMixerNode
+      (set-pan! [this pan-val] 
+        (aset pan 0 (double pan-val)))
+      (set-gain! [this gain-val] 
+        (aset gain 0 (double gain-val)))
+
+      clojure.lang.IFn
+      (invoke [this]
+        (clear-buffer mono-buffer)
+        (if (= :clear @status)
+          (do 
+            (reset! node-funcs [])
+            (reset! pending-adds [])
+            (reset! pending-removes [])
+            (reset! status nil)) 
+          (let [afs (run-node-funcs 
+                      (update-funcs @node-funcs pending-adds pending-removes) 
+                      mono-buffer)
+                ksmps (long *buffer-size*)
+                g (aget gain 0)
+                p (aget pan 0)
+                new-loc-v (+ 0.5 (* 0.5 p))
+                new-l (db->amp (* 20 (Math/log (Math/cos (* PI2 new-loc-v )))))
+                new-r (db->amp (* 20 (Math/log (Math/sin (* PI2 new-loc-v )))))]
+            (loop [indx 0]
+              (when (< indx ksmps)
+                (let [samp (* g (aget mono-buffer indx))]
+                  (aset left indx (* new-l samp)) 
+                  (aset right indx (* new-r samp)) 
+                  (recur (+ indx 1))))) 
             (reset! node-funcs afs)))
         out-buffer))))
 

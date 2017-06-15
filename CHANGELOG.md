@@ -38,9 +38,13 @@ change log follows the conventions of
 
 * pink.node
   * refactored and introduced new Node protocol
-  * added control-node and audio-node utility functions that return reified 
-  Nodes that also implement IFn to adhere to control and audio function 
-  conventions (simplifies creation and use of nodes)
+  * added control-node and audio-node utility functions that return reified
+    Nodes that also implement IFn to adhere to control and audio function
+    conventions (simplifies creation and use of nodes)
+  * added mixer-node that uses mono-channel audio functions as inputs and
+    applies its own gain and stereo panning; mixer-node responds to all Node
+    protocol functions as well as StereoMixerNode protocol (set-gain!,
+    set-pan!)
 
 * pink.config
   * added new \*beat\* config variable that has the current beat time of the
