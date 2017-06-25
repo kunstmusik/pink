@@ -3,7 +3,7 @@
             [pink.util :refer :all]
             [pink.delays :refer :all]
             [diff-eq.core :refer :all])
-  (:import [clojure.lang IFn$DDDLO IFn$LD IFn$DD IFn$DDD]))
+  (:import [clojure.lang IFn$DDDLO IFn$LD IFn$DD IFn$DDD IFn$DDO]))
 
 (set! *unchecked-math* true)
 
@@ -1105,9 +1105,9 @@
         cfn (arg cut)
         qfn (limit (arg Q) 0.0 10.0)
         calc-G ^IFn$DD (ss-zdf-G) 
-        lpf1 (ss-zdf-lpf) 
-        lpf2 (ss-zdf-lpf) 
-        hpf1 (ss-zdf-hpf)]
+        lpf1 ^IFn$DDO (ss-zdf-lpf) 
+        lpf2 ^IFn$DDO (ss-zdf-lpf) 
+        hpf1 ^IFn$DDO (ss-zdf-hpf)]
     (generator
       [last-cut 0 last-q -1 last-g 0 last-S35 0 last-K 0]
       [asig afn, cut cfn, qval qfn]
@@ -1128,16 +1128,16 @@
             alpha (/ 1.0 (+ (- 1.0 (* K G)) 
                             (* K (* G G))))
 
-            y1 (aget ^doubles (lpf1 asig G) 0)
+            y1 (aget ^doubles (.invokePrim lpf1 asig G) 0)
             u (* alpha (+ y1 last-S35 )) 
 
             u (if non-linear-processing 
                  (Math/tanh (* saturation u)) 
                  u)
 
-            lpf2-sig ^doubles (lpf2 u G)
+            lpf2-sig ^doubles (.invokePrim lpf2 u G)
             y (* K (aget lpf2-sig 0))
-            hpf1-sig ^doubles (hpf1 y G)
+            hpf1-sig ^doubles (.invokePrim hpf1 y G)
             S35 (+ (* lpf2-beta (aget lpf2-sig 1)) 
                    (* hpf1-beta (aget hpf1-sig 1)) )
             out-sig (if (> K 0.0) 
@@ -1166,10 +1166,10 @@
    (let [out (create-buffer)
          cfn (arg cut)
          qfn (limit (arg Q) 0.0 10.0)
-         calc-G ^IFn$DD (ss-zdf-G) 
-         hpf1 (ss-zdf-hpf)
-         hpf2 (ss-zdf-hpf) 
-         lpf1 (ss-zdf-lpf) 
+         ^IFn$DD calc-G (ss-zdf-G) 
+         ^IFn$DDO hpf1 (ss-zdf-hpf)
+         ^IFn$DDO hpf2  (ss-zdf-hpf) 
+         ^IFn$DDO lpf1 (ss-zdf-lpf) 
          saturation 1.0]
      (generator
        [last-cut 0 last-q -1 last-g 0 last-S35 0 last-K 0]
@@ -1192,7 +1192,7 @@
              alpha (/ 1.0 (+ (- 1.0 (* K G)) 
                              (* K (* G G))))
 
-             y1 (aget ^doubles (hpf1 asig G) 0)
+             y1 (aget ^doubles (.invokePrim hpf1 asig G) 0)
 
              u (* alpha (+ y1 last-S35 )) 
              y (* K u)
@@ -1200,8 +1200,8 @@
                  (Math/tanh (* saturation y)) 
                  y)
 
-             hpf2-sig ^doubles (hpf2 y G)
-             lpf1-sig ^doubles (lpf1 (aget hpf2-sig 0) G)
+             hpf2-sig ^doubles (.invokePrim hpf2 y G)
+             lpf1-sig ^doubles (.invokePrim lpf1 (aget hpf2-sig 0) G)
              S35 (+ (* hpf2-beta (aget hpf2-sig 1)) 
                     (* lpf1-beta (aget lpf1-sig 1)) )
              out-sig (if (> K 0.0) 
