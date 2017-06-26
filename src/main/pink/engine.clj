@@ -193,7 +193,11 @@
   [^Engine engine]
   (if (= @(.status engine) :running)
     (reset! (.clear engine) true)))
-                            
+
+(defn engine-clear-events
+  [^Engine engine]
+  (event-list-clear (.event-list engine)))
+
 (defn engine-status 
   [^Engine engine]
   @(.status engine))

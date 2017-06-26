@@ -78,6 +78,11 @@
   ([evt & evts]
    (add-events (list* evt evts))))
 
+(defn clear-events
+  "Clears all pending events in engine's event list"
+  []
+  (engine-clear-events engine))
+
 (defn add-audio-events 
   "Takes in list of events, wraps in audio events, and adds to engine's event list."
   ([evts]
