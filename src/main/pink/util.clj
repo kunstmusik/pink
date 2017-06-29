@@ -352,9 +352,39 @@
     (fn []
       (~f ~out ~afns)))))
 
+
+(defn- split-seq
+  [s pred]
+  (reduce 
+    (fn [a b] 
+      (let [ks (if (pred b) 0 1)] 
+        (update-in a [ks] conj b)))
+    [[] []] s))
+
+(defn- constant-fold
+  ([args op]
+  (let [[constants oargs] (split-seq args number?)]
+    (if (< (count constants) 2)
+      [nil args]
+      [(reduce op constants) oargs]))))
+
 (defn mul 
   [& a]
-  (native-operator Operator/mul a))
+  (let [args (filter #(not (or (= 1 %) (= 1.0 %))) a)]
+    (cond 
+      (empty? args) 0.0 
+      (some #(and (number? %) (zero? %)) args) 0.0 
+      (< (count args) 2)
+      (first args)
+      :else
+      (let [[c oargs] (constant-fold args *)]
+        (cond
+          (empty? oargs) c 
+          (nil? c) 
+          (native-operator Operator/mul oargs)
+          :else
+          (native-operator Operator/mul (into [c] oargs))))
+      )))
 
 (defn div 
   [& a]
@@ -362,7 +392,18 @@
 
 (defn sum 
   [& a]
-  (native-operator Operator/sum a))
+  (let [args (filter #(or (not (number? %)) (not (zero? %))) a)
+        [c oargs] (constant-fold args +)]
+    (cond
+      (and (nil? c) (empty? oargs)) 0.0 
+      (empty? oargs) c 
+      (or (nil? c) (zero? c)) 
+      (if (< (count oargs) 2) 
+        (first oargs)
+        (native-operator Operator/sum oargs)) 
+      :else
+      (native-operator Operator/sum (into [c] oargs)))
+      ))
 
 (defn sub 
   [& a]

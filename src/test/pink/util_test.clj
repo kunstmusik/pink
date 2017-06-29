@@ -97,7 +97,7 @@
 
 (defn done-reader
   []
-  (let [done-val *done*]
+  (let [^booleans done-val *done*]
     (fn []
       (aget done-val 0))))
 
@@ -153,3 +153,25 @@
     (is (= 1.0 (aget sig 5))) 
     )
   )
+
+
+(deftest sum-test
+  (let [test-fn (fn [] 4)] 
+    (is (zero? (sum)))
+    (is (zero? (sum 0)))
+    (is (zero? (sum 0 1 -1)))
+    (is (= test-fn (sum 0 test-fn)))
+    (is (= test-fn (sum 1 -1 test-fn))) 
+    (is (= test-fn (sum 2.0 -2 test-fn))) 
+    (is (= 4.0 (sum 1.0 3)))
+    ))
+
+(deftest mul-test
+  (let [test-fn (fn [] 4)] 
+    (is (zero? (mul)))
+    (is (zero? (mul 0)))
+    (is (zero? (mul 0 test-fn)))
+    (is (= test-fn (mul 1 test-fn))) 
+    (is (= test-fn (mul 1.0 1 test-fn))) 
+    (is (= 3.0 (mul 1.0 3.0)))
+    ))

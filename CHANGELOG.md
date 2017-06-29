@@ -79,6 +79,11 @@ change log follows the conventions of
 * pink.util
   * updated try-func to catch Throwable instead of Exception; fixes issue with
     assertion errors causing engine to die while live coding 
+  * added constant folding to mul and sum. These functions may now return 
+    numbers in addition to audio functions. This allows for further 
+    folding for mul/sum nested expressions but could possibly break older code. 
+    (The risk of breakage is assumed minimal, but please raise an issue if you
+    do become affected.)
 
 * pink.oscillators
   * pulse - added optional amplitude argument
