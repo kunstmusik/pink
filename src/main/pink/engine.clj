@@ -221,22 +221,79 @@
 
 ;; Non-Realtime Engine functions
 
-;(defn write-aiff-header 
-;  [fos nchnls] 
-;  (doto (DataOutputStream. fos) 
-;    ;; FORM CHUNK
-;    (.writeBytes "FORM")
-;    (.writeLong 0) ;; fill in later
-;    (.writeBytes "AIFF")
-;    ;; COMM CHUNK
-;    (.writeBytes "COMM")
-;    (.writeLong 18)
-;    (.writeShort nchnls)
-;    (.writeInt 0) ;; fill in later
-;    (.writeShort 16) ;; try this as doubles later
-;    (.write)
-;    )
-;  )
+(defn engine->buffer
+  "Runs engine and writes output to memory, returning double[]. Engine should be single-channel. 
+  This will run the engine until all audio functions added to it are complete.  
+
+  Warning: Be careful not to render with an engine setup with infinite
+  duration!"
+  [^Engine engine]
+  (when (not= 1 (.nchnls engine))
+    (throw (Exception. "Error: Engine must be mono (nchnls = 1) for engine->buffer")))
+  (let [sr (.sample-rate engine)
+        buffer-size (.buffer-size engine)
+        nchnls (.nchnls engine)
+        baos (ByteArrayOutputStream.)
+        buf (ByteBuffer/allocate (* buffer-size (/ Double/SIZE Byte/SIZE)))
+        out-buffer (double-array (.out-buffer-size engine))
+        start-time (System/currentTimeMillis)
+        pre-control (.pre-cfunc-node engine)
+        root-audio-node (.root-audio-node engine)
+        post-control (.post-cfunc-node engine)
+        clear-flag (.clear engine)
+        run-engine-events (event-list-processor (.event-list engine))
+        run-pre-control-funcs (control-node-processor pre-control)
+        run-audio-funcs (binding [*buffer-size* buffer-size] 
+                          (node-processor root-audio-node))
+        run-post-control-funcs (control-node-processor post-control) 
+        ]
+
+    (reset! (.status engine) :running)
+
+    (binding [*engine* engine *sr* sr *buffer-size* buffer-size *nchnls* nchnls]
+
+      (loop [buffer-count 0]
+        (if (= @(.status engine) :running)
+          (do 
+            (binding [*current-buffer-num* buffer-count]
+              (run-engine-events)
+              (run-pre-control-funcs)
+              (let [^doubles b (run-audio-funcs)]
+                (loop [i 0]
+                  (when (< i buffer-size)
+                    (.putDouble buf (aget b i)) 
+                    (recur (+ 1 i))
+                    )))
+              (.write baos (.array buf))
+              (.clear buf)
+              (run-post-control-funcs)) 
+            (when @clear-flag 
+              (node-clear pre-control)
+              (node-clear root-audio-node)
+              (node-clear post-control)
+              (reset! clear-flag false)
+              (event-list-clear (.event-list engine)))
+            (when (and (node-empty? pre-control) 
+                       (node-empty? root-audio-node) 
+                       (node-empty? post-control) 
+                       (event-list-empty? (.event-list engine)))
+              (engine-stop engine))
+            (recur (unchecked-inc buffer-count)))
+          (do
+            (println "engine->buffer Elapsed time: " 
+                     (/ (- (System/currentTimeMillis) start-time) 1000.0))
+            (let [barray (.toByteArray baos)
+                  blen (/ (alength barray) (/ Double/SIZE Byte/SIZE))
+                  out (double-array blen)
+                  dbuf (->
+                         barray 
+                         (ByteBuffer/wrap)     
+                         (.asDoubleBuffer))]
+              (.get dbuf out) 
+              out 
+              )))))))
+
+
 
 (defn engine->disk 
   "Runs engine and writes output to disk.  This will run the engine until all
@@ -249,7 +306,6 @@
   (let [sr (.sample-rate engine)
         buffer-size (.buffer-size engine)
         nchnls (.nchnls engine)
-        baos (ByteArrayOutputStream.)
         out-buffer (double-array (.out-buffer-size engine))
         start-time (System/currentTimeMillis)
         pre-control (.pre-cfunc-node engine)

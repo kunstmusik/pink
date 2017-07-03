@@ -379,7 +379,7 @@
       :else
       (let [[c oargs] (constant-fold args *)]
         (cond
-          (empty? oargs) c 
+          (empty? oargs) (if (nil? c) 0.0 c) 
           (nil? c) 
           (native-operator Operator/mul oargs)
           :else

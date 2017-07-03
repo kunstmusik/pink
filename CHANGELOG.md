@@ -27,6 +27,8 @@ change log follows the conventions of
   
 * pink.engine 
   * rewrote engine-\>disk to use streaming wav writer
+  * engine-\>buffer - renders an engine to double[]. Useful for building
+    in-memory caches of pre-rendered score material. 
 
 * pink.event
   * added user-settable event processing function to EventList and utility
