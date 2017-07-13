@@ -76,6 +76,9 @@ change log follows the conventions of
   * distort - normalized and non-normalized hyperbolic tangent distortion
   * distort1 - modified hyberbolic distortion with assymetric waveshaping
 
+* pink.effects.reverb
+  * freeverb - added optional stereo-spread parameter, enhanced documentation
+
 ### Changed
 
 * pink.util

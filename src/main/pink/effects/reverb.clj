@@ -96,11 +96,19 @@
 ;; with last arg defaulting to 1.0 for wet signal
 (defn freeverb
   "Freeverb (stereo) for two-channel audio function. Based on Faust implementation.
+
+  afn - input stereo audio function
+  room-size - size of room [0,1.0] 
+  hf-damping - high-frequency damping according to frequency [0,1.0] 
+  stereo-spread - adjusts differences of lengths of delay lines [0,1.0]
   
   For more information, see:
   
   https://ccrma.stanford.edu/~jos/pasp/Freeverb.html"
-  [afn ^double room-size ^double hf-damping]
+  ([afn ^double room-size ^double hf-damping]
+   (freeverb afn room-size hf-damping 0.5))
+  ([afn ^double room-size ^double hf-damping 
+   ^double stereo-spread]
   (with-signals [[left right] afn]
     (let [out ^"[[D" (create-buffers 2) 
           combined (shared (mul FIXED-GAIN (sum left right)))
@@ -111,12 +119,14 @@
           damp (* hf-damping scaledamp) 
           room (+ (* room-size scaleroom) offsetroom)
           freeverbL (freeverbm combined room damp 0)
-          freeverbR (freeverbm combined room damp DEFAULT-STEREO-SPREAD)]
+          freeverbR (freeverbm combined room damp 
+                               (* 46.0 stereo-spread 
+                                  sr-mult))]
       (fn []
         (let [a (freeverbL)
               b (freeverbR)]
           (when (and a b)
             (aset out 0 a)
             (aset out 1 b))
-            out)))))
+            out))))))
 

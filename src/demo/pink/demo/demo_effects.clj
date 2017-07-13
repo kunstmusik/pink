@@ -94,7 +94,7 @@
   (add-afunc (chorus root-node 0.8))
 
   (def reverb-node (audio-node :channels 2))
-  (add-afunc (freeverb reverb-node 0.90 0.5))
+  (add-afunc (freeverb reverb-node 0.50 0.1 0.1))
 
   ;; chorus
   (node-add-func
