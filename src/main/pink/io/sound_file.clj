@@ -2,8 +2,7 @@
   (:require [pink.config :refer :all]
             [pink.util :refer [create-buffers]])
   (:import [java.io File ByteArrayOutputStream 
-            FileOutputStream DataOutputStream 
-            RandomAccessFile]
+            FileOutputStream BufferedOutputStream RandomAccessFile]
            [java.nio ByteBuffer ByteOrder]
            [javax.sound.sampled AudioFormat
             AudioFormat$Encoding AudioInputStream AudioSystem]
@@ -119,7 +118,7 @@
   closed."
   [wav-data ^long sr ^long bit-rate ^long channels] 
   (let [^ByteArrayOutputStream baos(:byte-array wav-data)
-        fos (:fos wav-data)
+        bos (:bos wav-data)
         dos (:dos wav-data)
         byte-rate (:byte-rate wav-data)
         block-align (* channels byte-rate)
@@ -167,7 +166,7 @@
 
     (.write baos (.array bbuffer))
 
-    (.writeTo baos fos))
+    (.writeTo baos bos))
 
     wav-data)
 
@@ -180,11 +179,12 @@
         bbuffer (ByteBuffer/allocate 
                   (* channels byte-rate block-size))
         baos (ByteArrayOutputStream.)
+        fos (FileOutputStream. (File. ^String filename)) 
         wav-data 
         {:byte-array baos 
          :filename filename
-         :fos (FileOutputStream. (File. ^String filename))
-         :dos (DataOutputStream. baos)
+         :fos fos
+         :bos (BufferedOutputStream. fos)
          :blocks-written (atom 0)
          :byte-rate byte-rate
          :bbuffer bbuffer
@@ -204,22 +204,23 @@
   [interleaved-audio wav-data ] 
   (let [^ByteBuffer bbuffer (:bbuffer wav-data)
         ^ByteArrayOutputStream baos (:byte-array wav-data)
-        ^FileOutputStream fos (:fos wav-data)]  
+        ^BufferedOutputStream bos (:bos wav-data)]  
     (.clear bbuffer)
     (.reset baos)
     (EngineUtils/writeDoublesToByteBufferAsShorts 
       interleaved-audio bbuffer)
     (.write baos (.array bbuffer))
-    (.writeTo baos fos) 
+    (.writeTo baos bos) 
     (swap! (:blocks-written wav-data) inc)
     wav-data
-    )
-  )
+    ))
 
 (defn close-wav-data
   "Rewrites WAV file header with appropriate values for samples written."
   [wav-data]
   (.close ^ByteArrayOutputStream (:byte-array wav-data)) 
+  (.flush ^BufferedOutputStream (:bos wav-data)) 
+  (.close ^BufferedOutputStream (:bos wav-data)) 
   (.close ^FileOutputStream (:fos wav-data)) 
   (let [bbuffer (ByteBuffer/allocate 4)
         rafile (RandomAccessFile. 
