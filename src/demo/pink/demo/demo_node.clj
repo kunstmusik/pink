@@ -17,7 +17,7 @@
   ;(require '[pink.noise :refer :all])
   ;(engine-add-afunc e (white-noise))
 
-  (def root-node (audio-node :channels 2))
+  (def root-node (gain-node))
   (engine-add-afunc e root-node)
  
   (def my-score 

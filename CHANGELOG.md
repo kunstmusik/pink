@@ -45,8 +45,11 @@ change log follows the conventions of
     conventions (simplifies creation and use of nodes)
   * added mixer-node that uses mono-channel audio functions as inputs and
     applies its own gain and stereo panning; mixer-node responds to all Node
-    protocol functions as well as StereoMixerNode protocol (set-gain!,
-    set-pan!)
+    protocol functions as well as GainNode and StereoMixerNode protocols 
+    (set-gain!, set-pan!)
+  * added gain-node that takes in stereo-channel audio functions as inputs
+    and applies its own gain before stereo-channel output. Respondes to all
+    Node and GainNode protocol functions.
 
 * pink.config
   * added new \*beat\* config variable that has the current beat time of the

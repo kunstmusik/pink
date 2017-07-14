@@ -215,6 +215,7 @@
   dest)
 
 (defn clear-buffer 
+  "Resets double-array to 0.0. Works with double[] and double[][]."
   [b]
   (if (multi-channel? b)
     (loop [i (int 0) cnt (count b)]

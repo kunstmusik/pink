@@ -27,8 +27,10 @@
     [n] 
     "Returns state map for Node"))
 
+(defprotocol GainNode
+  (set-gain! [n gain-val] "Set gain [0,1] to apply to signal"))
+
 (defprotocol StereoMixerNode
-  (set-gain! [n gain-val] "Set gain [0,1] to apply to signal")
   (set-pan! [n pan-val] "Set pan [-1,1] to apply to signal"))
 
 (defn- create-node-state
@@ -242,11 +244,13 @@
              (empty? @(:pending-adds state))))
       (node-state [this] state)
 
+      GainNode
+      (set-gain! [this gain-val] 
+        (aset gain 0 (double gain-val)))
+
       StereoMixerNode
       (set-pan! [this pan-val] 
         (aset pan 0 (double pan-val)))
-      (set-gain! [this gain-val] 
-        (aset gain 0 (double gain-val)))
 
       clojure.lang.IFn
       (invoke [this]
@@ -272,6 +276,60 @@
                   (aset left indx (* new-l samp)) 
                   (aset right indx (* new-r samp)) 
                   (recur (+ indx 1))))) 
+            (reset! node-funcs afs)))
+        out-buffer))))
+
+(defn gain-node
+  "Creates an audio node that accepts stereo-signal audio functions. gain-node
+  sums the generated signals from the audio functions, multiplies by gain, and
+  outputs the stereo-signal output."
+  []
+  (let [state (create-node-state 2)
+        ^doubles left (create-buffer)
+        ^doubles right (create-buffer)
+        out-buffer (into-array [left right])
+        node-funcs (:funcs state)
+        pending-adds (:pending-adds state)
+        pending-removes (:pending-removes state)
+        status (:status state)
+        ^doubles gain (double-array 1 1.0)] 
+    (reify 
+      Node
+      (node-add-func [this func]
+        (swap! (:pending-adds state) conj func))
+      (node-remove-func [this func]
+        (swap! (:pending-removes state) conj func))
+      (node-clear [this]
+        (reset! (:status state) :clear))
+      (node-empty?  [this]
+        (and (empty? @(:funcs state)) 
+             (empty? @(:pending-adds state))))
+      (node-state [this] state)
+
+      GainNode
+      (set-gain! [this gain-val] 
+        (aset gain 0 (double gain-val)))
+
+      clojure.lang.IFn
+      (invoke [this]
+        (clear-buffer out-buffer)
+        (if (= :clear @status)
+          (do 
+            (reset! node-funcs [])
+            (reset! pending-adds [])
+            (reset! pending-removes [])
+            (reset! status nil)) 
+          (let [afs (run-node-funcs 
+                      (update-funcs @node-funcs pending-adds pending-removes) 
+                      out-buffer)
+                ksmps (long *buffer-size*)
+                g (aget gain 0)]
+            (loop [indx 0]
+              (when (< indx ksmps)
+                  (aset left indx (* g (aget left indx))) 
+                  (aset right indx (* g (aget right indx))) 
+                  (recur (+ indx 1))  
+                )) 
             (reset! node-funcs afs)))
         out-buffer))))
 
