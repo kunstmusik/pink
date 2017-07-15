@@ -7,6 +7,9 @@
             [pink.delays :refer :all]
             [pink.util :refer :all]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (def ^:private ^:const ^{:tag 'double} LEVEL 0.3)
 (def ^:private ^:const ^{:tag 'double} DELAY-MS 0.01)
 (def ^:private ^:const ^{:tag 'double} DEPTH-MS 0.002)

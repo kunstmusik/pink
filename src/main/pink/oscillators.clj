@@ -5,7 +5,8 @@
             [pink.gen :refer [gen-sine]])
   (:import [clojure.lang IFn$DD]))
 
-(set! *unchecked-math* true)
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (def ^:const ^:private ^{:tag 'double} PI Math/PI)
 (def ^:const ^:private ^{:tag 'double} TWO_PI (* 2.0 PI))

@@ -5,7 +5,8 @@
             [diff-eq.core :refer :all])
   (:import [clojure.lang IFn$DDDLO IFn$LD IFn$DD IFn$DDD IFn$DDO]))
 
-(set! *unchecked-math* true)
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (defn one-zero 
   "One-zero filter.
@@ -1107,7 +1108,8 @@
         calc-G ^IFn$DD (ss-zdf-G) 
         lpf1 ^IFn$DDO (ss-zdf-lpf) 
         lpf2 ^IFn$DDO (ss-zdf-lpf) 
-        hpf1 ^IFn$DDO (ss-zdf-hpf)]
+        hpf1 ^IFn$DDO (ss-zdf-hpf)
+        sat (double saturation)]
     (generator
       [last-cut 0 last-q -1 last-g 0 last-S35 0 last-K 0]
       [asig afn, cut cfn, qval qfn]
@@ -1132,7 +1134,7 @@
             u (* alpha (+ y1 last-S35 )) 
 
             u (if non-linear-processing 
-                 (Math/tanh (* saturation u)) 
+                 (Math/tanh (* sat u)) 
                  u)
 
             lpf2-sig ^doubles (.invokePrim lpf2 u G)

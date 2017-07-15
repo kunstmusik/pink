@@ -6,6 +6,9 @@
   (:import [java.util Arrays])
   )
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (defn- make-env-data 
   "Takes in a list of time tagged pairs (time value) and function for
   calculating the cached value and then creates a list with initial value,

@@ -4,6 +4,8 @@
            [pink.util :refer :all])
   (:import [clojure.lang IFn$DD]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (defn distort
   "Hyperbolic tangent distortion. Provides normalized (i.e. in range (-1,+1))

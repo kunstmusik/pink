@@ -11,6 +11,9 @@
             [diff-eq.core :refer [dfn]])
   (:import [clojure.lang IFn$LD IFn$DD]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (defn ss-one-pole
   [^double pole ^double gain]
   (let [b0 (if (> pole 0.0) (- 1.0 pole) (+ 1.0 pole))

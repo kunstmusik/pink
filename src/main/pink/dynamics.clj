@@ -3,6 +3,9 @@
   (:require [pink.util :refer [create-buffer getd generator gen-recur]]
             [pink.config :refer [*buffer-size* *sr*]]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (def ^:const ^:private ^{:tag 'double} 
   LOG10D20 (/ (Math/log 10) 20))
 

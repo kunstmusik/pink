@@ -6,6 +6,8 @@
   (:require [pink.config :refer :all]
             [pink.util :refer [shared create-buffer not==]]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (def mouse-x-val (atom 0.0))
 (def mouse-y-val (atom 0.0))
@@ -22,24 +24,25 @@
 (defn mouse-read-impl
   [mouse-atom]
   (let [out ^doubles (create-buffer) 
-        last-val (double-array 1 @mouse-atom)]
+        last-val (double-array 1 @mouse-atom)
+        buffer-size (double *buffer-size*) ]
     (Arrays/fill out ^double @mouse-atom)
     (fn []
       (update-mouse-vals!)
       (let [last-x (aget last-val 0)
-            cur-x ^double @mouse-atom] 
+            cur-x (double @mouse-atom)] 
         (if (not= last-x cur-x) 
          (do 
            (loop [i 0
                  v last-x
                  incr (/ (- cur-x last-x) (double *buffer-size*))]
-            (when (< i *buffer-size*)
+            (when (< i buffer-size)
               (aset out i v)
               (recur (unchecked-inc i)
                      (+ v incr)
                      incr)))
-          (aset last-val 0 ^double cur-x))
-         (Arrays/fill out ^double cur-x)))      
+          (aset last-val 0 cur-x))
+         (Arrays/fill out cur-x)))      
       out))) 
 
 (defn mouse-x [] 

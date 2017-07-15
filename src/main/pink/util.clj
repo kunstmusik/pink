@@ -5,6 +5,9 @@
            [pink Operator]
            [clojure.lang IFn IDeref]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 ;; Dynamic argument resolution
 (deftype DynamicArg [func args])
 

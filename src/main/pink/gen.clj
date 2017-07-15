@@ -2,6 +2,9 @@
   "Table generator Functions"
   (:import [java.util Arrays]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (def ^:const ^:private ^{:tag 'double} TWO_PI (* 2.0 Math/PI))
 
 (defn get-sine-value

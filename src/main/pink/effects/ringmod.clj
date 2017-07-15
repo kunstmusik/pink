@@ -1,6 +1,8 @@
 (ns pink.effects.ringmod
-  (:require [pink.util :refer [generator gen-recur create-buffer]])  
-  )
+  (:require [pink.util :refer [generator gen-recur create-buffer]])) 
+
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (defn- create-ringmod-table
   ([] (create-ringmod-table 1.0))

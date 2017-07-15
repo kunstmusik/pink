@@ -9,6 +9,9 @@
            [pink EngineUtils]
            ))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (defn- locate-file
   [f]
   (cond 
@@ -120,7 +123,7 @@
   (let [^ByteArrayOutputStream baos(:byte-array wav-data)
         bos (:bos wav-data)
         dos (:dos wav-data)
-        byte-rate (:byte-rate wav-data)
+        byte-rate (long (:byte-rate wav-data))
         block-align (* channels byte-rate)
         bbuffer (ByteBuffer/allocate 44)
         ]
@@ -175,9 +178,9 @@
   that will have full information written when close-wav-data is called."
   [filename sr bit-rate channels block-size]
 
-  (let [byte-rate (long (/ bit-rate 8))
+  (let [byte-rate (long (/ (long bit-rate) 8)) 
         bbuffer (ByteBuffer/allocate 
-                  (* channels byte-rate block-size))
+                  (* (long channels) byte-rate (long block-size)))
         baos (ByteArrayOutputStream.)
         fos (FileOutputStream. (File. ^String filename)) 
         wav-data 
@@ -225,12 +228,11 @@
   (let [bbuffer (ByteBuffer/allocate 4)
         rafile (RandomAccessFile. 
                  ^String (:filename wav-data) "rw")
-        blocks-written @(:blocks-written wav-data)
-        data-len (* (:byte-rate wav-data) 
+        blocks-written (long @(:blocks-written wav-data))
+        data-len (* (long (:byte-rate wav-data)) 
                     blocks-written 
-                    (:block-size wav-data)
-                    (:channels wav-data)
-                    ) 
+                    (long (:block-size wav-data))
+                    (long (:channels wav-data))) 
         file-len (+ data-len 36)]
     (.order bbuffer ByteOrder/LITTLE_ENDIAN)
     (.putInt bbuffer file-len) 

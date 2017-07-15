@@ -25,25 +25,21 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/core.async "0.2.374"]
-                 [kunstmusik/diff-eq "0.1.1"]]
+                 [kunstmusik/diff-eq "0.1.2"]]
 
+  :global-vars  {*warn-on-reflection* true}
 
   :profiles  { 
               :dev  {
-                     :global-vars  {*warn-on-reflection* true}
                      :dependencies [[criterium "0.4.4"]] 
                      :plugins [[lein-codox "0.9.6"]] 
                      :source-paths ["src/demo"]
                      } 
 
               :profiling {
-                     :plugins [[lein-nodisassemble "0.1.3"]] 
-                     :global-vars  {*warn-on-reflection* true
-                                    *unchecked-math* :warn-on-boxed
-                                    }
-                     }      
+                     :plugins [[lein-nodisassemble "0.1.3"]] }      
 
               :benchmarking {
                              :source-paths ["src/benchmarks"]

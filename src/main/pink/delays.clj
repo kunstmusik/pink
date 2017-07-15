@@ -4,6 +4,9 @@
   (:import [clojure.lang IFn$LD])
   )
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 ;; feedback functions
 
 (defn feedback-read 

@@ -1,8 +1,10 @@
 (ns pink.effects.reverb
   (:require [pink.config :refer [*sr*]]
-           [pink.util :refer :all])
-  (:import [clojure.lang IFn$DD]
-           ))
+            [pink.util :refer :all])
+  (:import [clojure.lang IFn$DD]))
+
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (def ^:private ^{:tag 'double} ORIG-SR 44100.0)
 (def ^:private ^{:tag 'double} ALLPASS-FEEDBACK 0.5)

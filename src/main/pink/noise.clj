@@ -5,6 +5,9 @@
     [pink.util :refer [create-buffer generator 
                        gen-recur not== arg]]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (defn white-noise  
   "Create white-noise generator."
   []

@@ -6,6 +6,9 @@
             [pink.oscillators :refer :all]
             [pink.noise :refer :all]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (defn exp-decay [^double decay ^double length]
   (let [out (create-buffer)] 
     (generator 

@@ -11,8 +11,10 @@
             [pink.effects.reverb :refer :all]
             [pink.io.sound-file :refer :all]
             [clojure.string :refer [join]]
-            ) 
-  )
+            ))
+
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 ;; One-shot Sample Player 
 

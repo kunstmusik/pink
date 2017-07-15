@@ -7,8 +7,8 @@
             [pink.envelopes :refer [hold]])
   (:import [clojure.lang IFn$LD IFn$DD]))
 
-(set! *unchecked-math* true)
-(set! *warn-on-reflection* true)
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (def number-of-stiffness-allpasses 8)
 (def longitudinal-mode-cutoff-keynum 29)

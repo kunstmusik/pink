@@ -9,6 +9,8 @@
             [pink.dynamics :refer [db->amp]])
   (:import [pink.event Event]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (defprotocol Node
   (node-add-func 

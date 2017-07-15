@@ -3,6 +3,9 @@
             [pink.config :refer [*tempo* *beat*]]  )
   (:import [java.util Collection PriorityQueue]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (deftype Event [event-func ^double start event-args ]
   Object
   (toString [_]  (format "\t%s\t%s\t%s\n" event-func start event-args ))

@@ -4,6 +4,9 @@
             [pink.util :refer [create-buffer arg generator gen-recur not==]]
             [pink.dynamics :refer [db->amp]]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (defn pan 
   "Stereo panning using formula from MIDI GM-2 Default Pan Curve (RP-036)
 

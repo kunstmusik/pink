@@ -4,6 +4,9 @@
   (:require [pink.config :refer :all])
   )
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 ;; Chain
 
 (defn chain

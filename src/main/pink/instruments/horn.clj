@@ -12,6 +12,8 @@
           [pink.dynamics :refer [balance]]
           ))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (def ^:const ^:private ^{:tag 'long} 
   hwt-size 4096)

@@ -14,6 +14,8 @@
            [pink EngineUtils]
            [pink.event Event]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
 
 (def ^:const windows? 
   (-> (System/getProperty "os.name")
@@ -234,7 +236,7 @@
         buffer-size (.buffer-size engine)
         nchnls (.nchnls engine)
         baos (ByteArrayOutputStream.)
-        buf (ByteBuffer/allocate (* buffer-size (/ Double/SIZE Byte/SIZE)))
+        buf (ByteBuffer/allocate (* buffer-size (long (/ Double/SIZE Byte/SIZE))))
         out-buffer (double-array (.out-buffer-size engine))
         start-time (System/currentTimeMillis)
         pre-control (.pre-cfunc-node engine)
@@ -283,7 +285,7 @@
             (println "engine->buffer Elapsed time: " 
                      (/ (- (System/currentTimeMillis) start-time) 1000.0))
             (let [barray (.toByteArray baos)
-                  blen (/ (alength barray) (/ Double/SIZE Byte/SIZE))
+                  blen (/ (alength barray) (double (/ Double/SIZE Byte/SIZE)))
                   out (double-array blen)
                   dbuf (->
                          barray 

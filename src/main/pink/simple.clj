@@ -8,6 +8,9 @@
   (:import [pink.engine Engine]
            [pink.event EventList]))
 
+;; Ensure unchecked math used for this namespace
+(set! *unchecked-math* :warn-on-boxed)
+
 (def engine (engine-create :nchnls 2))
 
 (defn start-engine 
