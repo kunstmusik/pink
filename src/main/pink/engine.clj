@@ -11,7 +11,7 @@
            [java.util Arrays]
            [javax.sound.sampled AudioFormat AudioSystem SourceDataLine
                                 AudioFileFormat$Type AudioInputStream]
-           [pink EngineUtils Operator]
+           [pink EngineUtils]
            [pink.event Event]))
 
 

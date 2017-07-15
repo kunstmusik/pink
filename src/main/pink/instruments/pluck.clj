@@ -41,11 +41,11 @@
         imag (- 0.0 
                 (* b0 (Math/sin 0.0))
                 (* b1 (Math/sin omegaT)))
-        phase (mod (Math/atan2 real imag) (* 2 Math/PI))]
+        phase (rem (Math/atan2 real imag) (* 2.0 Math/PI))]
     (/ phase omegaT)))
 
 (defn- create-noise-buffer
-  ^doubles [^double amp len]
+  ^doubles [^double amp ^long len]
   (let [^doubles b (double-array len)
         pick-filter (ss-one-pole
                       (- 0.999 (* amp 0.15))

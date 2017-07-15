@@ -374,7 +374,7 @@
   (let [args (filter #(not (or (= 1 %) (= 1.0 %))) a)]
     (cond 
       (empty? args) 0.0 
-      (some #(and (number? %) (zero? %)) args) 0.0 
+      (some #(and (number? %) (zero? ^double %)) args) 0.0 
       (< (count args) 2)
       (first args)
       :else
@@ -393,12 +393,12 @@
 
 (defn sum 
   [& a]
-  (let [args (filter #(or (not (number? %)) (not (zero? %))) a)
+  (let [args (filter #(or (not (number? %)) (not (zero? ^double %))) a)
         [c oargs] (constant-fold args +)]
     (cond
       (and (nil? c) (empty? oargs)) 0.0 
       (empty? oargs) c 
-      (or (nil? c) (zero? c)) 
+      (or (nil? c) (zero? ^double c)) 
       (if (< (count oargs) 2) 
         (first oargs)
         (native-operator Operator/sum oargs)) 
@@ -683,7 +683,7 @@
   emits end-value. duration is given in seconds. end-value may be a
   double or audio function; if the latter, the audio function will be
   called to process once the hold time is complete."
-  [delay-time ^double start-value end-value]
+  [^double delay-time ^double start-value end-value]
   (let [end-sample (long (+ 1.0 (* delay-time (double *sr*))))]
     (if (fn? end-value)
       ;; case where generator is passed in for end-value
@@ -725,7 +725,7 @@
             buf-size (long *buffer-size*)
             counter (long-array 1 end-sample)]
           (Arrays/fill transition-out 
-                       (long (mod end-sample buf-size))
+                       (rem end-sample buf-size) 
                        buf-size 
                        (double end-value)) 
           (fn []

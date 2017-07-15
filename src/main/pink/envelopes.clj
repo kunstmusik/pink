@@ -144,7 +144,7 @@
 
   where i_ is a value, dur is time in seconds, and itype affects the curve of the segment (0 = straight line, < 0 = conve, > 0 = concave))"
   [[start & segments]] 
-  {:pre (zero? (mod (count segments) 3))}
+  {:pre (zero? (rem (count segments) 3))}
   (let [out (create-buffer)]
     (fn []
 
@@ -343,7 +343,7 @@
   completion."
   [^double value ^double duration]
   (let [out (create-buffer)
-        samps (long (* duration *sr*))]
+        samps (long (* duration (double *sr*)))]
     (generator
       [c (long 0) v 1.0] []
       (if (not (and (= v 0.0) (= int-indx 0))) 

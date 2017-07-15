@@ -1,7 +1,8 @@
 (ns pink.effects.reverb
   (:require [pink.config :refer [*sr*]]
            [pink.util :refer :all])
-  (:import [clojure.lang IFn$DD]))
+  (:import [clojure.lang IFn$DD]
+           ))
 
 (def ^:private ^{:tag 'double} ORIG-SR 44100.0)
 (def ^:private ^{:tag 'double} ALLPASS-FEEDBACK 0.5)
@@ -22,12 +23,12 @@
   ^IFn$DD [^long del-time ^double feedback ^double damp] 
   (let [^doubles buffer (double-array del-time)
         ^doubles last-filt (double-array 1)
-        ^ints indx (int-array 1 0)
+        ^longs indx (long-array 1 0)
         damp2 (- 1.0 damp)]
     (fn ^double [^double input]
       (let [i (aget indx 0)
             output (aget buffer i)
-            new-i (int (mod (inc i) del-time))
+            new-i (rem (inc i) del-time) 
             filt-store (+ (* output damp2) (* (aget last-filt 0) damp))]
         (aset buffer i (+ input (* filt-store feedback))) 
         (aset last-filt 0 filt-store)
@@ -37,11 +38,11 @@
 (defn- frvb-allpass
   ^IFn$DD [^long del-time ^double feedback] 
   (let [^doubles buffer (double-array del-time)
-        ^ints indx (int-array 1 0)]
+        ^longs indx (long-array 1 0)]
     (fn ^double [^double input]
       (let [i (aget indx 0)
             bufout (aget buffer i)
-            new-i (int (mod (inc i) del-time))
+            new-i (rem (inc i) del-time) 
             output (- bufout input)]
         (aset buffer i (+ input (* bufout feedback))) 
         (aset indx 0 new-i)

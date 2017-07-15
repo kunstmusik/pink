@@ -18,7 +18,7 @@
 
 (defn sample-duration 
   "Return duration of audio sample"
-  [wave]
+  ^double [wave]
   (let [d ^doubles (aget ^"[[D"(:data wave) 0)]
     ;; TODO - *sr* may require replacement with an (sr) function
     ;; to simplify getting sr value from pink.simple engine
@@ -112,8 +112,8 @@
   is used, it will provide a value of 3.8, so that the event function will fire
   at beat 84."
   (^double [] (next-beat (now) 1.0))
-  (^double [b] (next-beat (now) b))
-  (^double [cur-beat-time b]
+  (^double [^double b] (next-beat (now) b))
+  (^double [^double cur-beat-time ^double b]
            (let [beat cur-beat-time 
                  base (Math/floor (double (/ (+ beat (* 0.05 b)) b)))]
              (double (- (* (inc base) b) beat)))))
@@ -125,8 +125,8 @@
   
   For example, to calculate 7 16th notes ahead in time, use (beat-advance 1/4
   7)."
-  ([subdiv] (beat-advance subdiv 1.0))
-  ([subdiv units]
+  ([^double subdiv] (beat-advance subdiv 1.0))
+  ([^double subdiv ^double units]
   (+ (next-beat subdiv) (* subdiv (dec units)))))
 
 (defn beat-mod 
@@ -134,9 +134,9 @@
   number beats. Defaults to using (now) if only mod-val is given. 2-arity
   version useful with multiplied versions of (now) to get sub-divisions of
   beat."
-  ([mod-val] (beat-mod (now) mod-val))
-  ([beat-time mod-val]
-  (long (Math/round (double (mod beat-time mod-val))))))
+  (^long [^double mod-val] (beat-mod (now) mod-val))
+  (^long [^double beat-time ^double mod-val]
+   (long (Math/round (rem beat-time mod-val)))))
 
 
 (defn beats 
@@ -148,15 +148,15 @@
 (defn bars
   "Returns time in seconds for num bars given. Useful for converting times
   appropriate for audio functions."
-  ([b]
+  (^double [^double b]
    (bars b 4))
-  ([b beats-per-bar]
+  (^double [^double b ^double beats-per-bar]
    (beats (* b beats-per-bar))))
 
 
 (defn sub-beat 
   "Returns current sub-beat time."
-  [n]
+  [^double n]
   (* (now) n))
 
 

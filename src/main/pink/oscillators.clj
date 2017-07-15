@@ -137,7 +137,7 @@
            (gen-recur))
          (let [phs (* p tbl-len)
                pt0 (int phs)
-               pt1 (mod (inc pt0) tbl-len)  
+               pt1 (rem (inc pt0) tbl-len)  
                frac (if (zero? pt0) 
                       phs
                       (rem phs pt0))
