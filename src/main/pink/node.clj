@@ -213,9 +213,8 @@
   "Creates an audio node that accepts mono-signal audio functions. mixer-node
   has properties for gain and panning which will be applied to all generated signals.
   Output is a stereo signal."
-  [& { :keys [channels max-messages] 
-      :or {channels *nchnls* 
-           max-messages 512} }]   
+  [& { :keys [ max-messages] 
+      :or {max-messages 512} }]   
    (let [state (create-node-state 1 max-messages)
          mono-buffer (create-buffer)
          ^doubles left (create-buffer)
@@ -251,7 +250,7 @@
          (clear-buffer mono-buffer)
          (let [afs (->
                      (process-messages! @node-funcs mbuf)
-                     (run-node-funcs out-buffer))
+                     (run-node-funcs mono-buffer))
                ksmps (long *buffer-size*)
                g (aget gain 0)
                p (aget pan 0)
