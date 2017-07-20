@@ -7,7 +7,9 @@
             [pink.event :refer :all]
             [pink.util :refer :all]
             [pink.dynamics :refer [db->amp]])
-  (:import [pink.event Event]))
+  (:import [pink.event Event]
+           [pink MessageBuffer Message]
+           ))
 
 ;; Ensure unchecked math used for this namespace
 (set! *unchecked-math* :warn-on-boxed)
@@ -35,12 +37,13 @@
 (defprotocol StereoMixerNode
   (set-pan! [n pan-val] "Set pan [-1,1] to apply to signal"))
 
+
+;; NODE
+
 (defn- create-node-state
   [channels]
   { :funcs (atom []) 
-   :pending-adds (atom [])
-   :pending-removes (atom [])
-   :status (atom nil)
+   :messages (MessageBuffer.)
    :channels channels
    })
 
@@ -48,26 +51,45 @@
   [& { :keys [channels] 
       :or {channels *nchnls*}
       }]
-  (let [state (create-node-state channels)] 
+  (let [state (create-node-state channels)
+        ^MessageBuffer mbuf (:messages state)] 
     (reify 
       Node
       (node-add-func [this func]
-        (swap! (:pending-adds state) conj func))
+        (.postMessage mbuf :add func))
       (node-remove-func [this func]
-        (swap! (:pending-removes state) conj func))
+        (.postMessage mbuf :remove func))
       (node-clear [this]
-        (reset! (:status state) :clear))
+        (.postMessage mbuf :clear nil))
       (node-empty?  [this]
-        (and (empty? @(:funcs state)) 
-             (empty? @(:pending-adds state))))
+        (.isEmpty mbuf))
       (node-state [this] state)
       )))
 
-(defn- update-funcs
-  [v adds-atm removes-atm]
-  (let [removes (drain-atom! removes-atm)]
-    (filter #(< (.indexOf ^"clojure.lang.PersistentVector" removes %) 0)
-           (concat-drain! v adds-atm))))
+(defn- process-messages!
+  [v ^MessageBuffer mbuf]
+  (let [start (.getReadStart mbuf) 
+        end (.getReadEnd mbuf)
+        adj-end (long (if (< end start) (+ end 512) end))]
+    (if (< start adj-end)
+     (loop [indx start 
+            out v]
+       (if (< indx adj-end)
+         (let [^Message msg (.getMessage mbuf (rem indx 512))
+               msgType (.getMsgType msg)
+               msgMsg (.getMsg msg)]
+            (.reset msg)
+            (case msgType
+              :add 
+              (recur (inc indx) (conj out msgMsg))
+              :clear
+              (recur (inc indx) [])
+              (recur (inc indx) v)))
+         (do
+           (.setReadStart mbuf end)
+           out)
+         ))
+     v)))
 
 (defn run-node-funcs 
   [afs buffer]
@@ -102,22 +124,15 @@
   [node] 
   (let [state (node-state node)
         out-buffer (create-buffers (:channels state))
+        ^MessageBuffer mbuf (:messages state)
         node-afuncs (:funcs state)
-        pending-adds (:pending-adds state)
-        pending-removes (:pending-removes state)
         status (:status state)]
     (fn []
       (clear-buffer out-buffer)
-      (if (= :clear @status)
-        (do 
-          (reset! node-afuncs [])
-          (reset! pending-adds [])
-          (reset! pending-removes [])
-          (reset! status nil)) 
-        (let [afs (run-node-funcs 
-                    (update-funcs @node-afuncs pending-adds pending-removes) 
-                    out-buffer)]
-          (reset! node-afuncs afs)))
+      (let [afs (->
+                  (process-messages! @node-afuncs mbuf)
+                  (run-node-funcs out-buffer))]
+        (reset! node-afuncs afs))
       out-buffer
       )))
 
@@ -127,93 +142,66 @@
   [node]
   (let [state (node-state node)
         node-funcs (:funcs state)
-        pending-adds (:pending-adds state)
-        pending-removes (:pending-removes state)
-        status (:status state)]
+        ^MessageBuffer mbuf (:messages state)]
     (fn []
-      (if (= :clear @status)
-        (do 
-          (reset! node-funcs [])
-          (reset! pending-adds [])
-          (reset! pending-removes [])
-          (reset! status nil))
-        (let [newfns (process-cfuncs 
-                       (update-funcs @node-funcs pending-adds pending-removes))] 
-          (reset! node-funcs newfns))
-        ))))
+      (let [newfns (-> 
+                     (process-messages! @node-funcs mbuf)
+                     (process-cfuncs))] 
+        (reset! node-funcs newfns)))))
 
 (defn control-node
   "Creates a Node that also adheres to control function convention (0-arity IFn that
   returns true or nil)."
- []
+  []
   (let [state (create-node-state *nchnls*)
         node-funcs (:funcs state)
-        pending-adds (:pending-adds state)
-        pending-removes (:pending-removes state)
-        status (:status state)] 
+        ^MessageBuffer mbuf (:messages state)]
     (reify 
       Node
       (node-add-func [this func]
-        (swap! (:pending-adds state) conj func))
+        (.postMessage mbuf :add func))
       (node-remove-func [this func]
-        (swap! (:pending-removes state) conj func))
+        (.postMessage mbuf :remove func))
       (node-clear [this]
-        (reset! (:status state) :clear))
+        (.postMessage mbuf :clear nil))
       (node-empty?  [this]
-        (and (empty? @(:funcs state)) 
-             (empty? @(:pending-adds state))))
+        (.isEmpty mbuf))
       (node-state [this] state)
       clojure.lang.IFn
       (invoke [this]
-        (if (= :clear @status)
-          (do 
-            (reset! node-funcs [])
-            (reset! pending-adds [])
-            (reset! pending-removes [])
-            (reset! status nil))
-          (let [newfns (process-cfuncs 
-                         (update-funcs @node-funcs pending-adds pending-removes))] 
-            (reset! node-funcs newfns))
-          )))))
+        (let [newfns (-> 
+                       (process-messages! @node-funcs mbuf)
+                       (process-cfuncs))] 
+          (reset! node-funcs newfns))))))
 
 (defn audio-node
   "Creates a Node that also adheres to audio function convention (0-arity IFn that
   returns audio buffer or nil)."
   [& { :keys [channels] 
-      :or {channels *nchnls*}
-      }]
+      :or {channels *nchnls*} }]
   (let [state (create-node-state channels)
         out-buffer (create-buffers (:channels state))
-        node-funcs (:funcs state)
-        pending-adds (:pending-adds state)
-        pending-removes (:pending-removes state)
-        status (:status state)] 
+        ^MessageBuffer mbuf (:messages state)
+        node-funcs (:funcs state)] 
     (reify 
       Node
       (node-add-func [this func]
-        (swap! (:pending-adds state) conj func))
+        (.postMessage mbuf :add func))
       (node-remove-func [this func]
-        (swap! (:pending-removes state) conj func))
+        (.postMessage mbuf :remove func))
       (node-clear [this]
-        (reset! (:status state) :clear))
+        (.postMessage mbuf :clear nil))
       (node-empty?  [this]
-        (and (empty? @(:funcs state)) 
-             (empty? @(:pending-adds state))))
+        (.isEmpty mbuf))
       (node-state [this] state)
 
       clojure.lang.IFn
       (invoke [this]
         (clear-buffer out-buffer)
-        (if (= :clear @status)
-          (do 
-            (reset! node-funcs [])
-            (reset! pending-adds [])
-            (reset! pending-removes [])
-            (reset! status nil)) 
-          (let [afs (run-node-funcs 
-                      (update-funcs @node-funcs pending-adds pending-removes) 
-                      out-buffer)]
-            (reset! node-funcs afs)))
+        (let [afs (->
+                    (process-messages! @node-funcs mbuf)
+                    (run-node-funcs out-buffer))]
+          (reset! node-funcs afs))
         out-buffer))))
 
 (defn mixer-node
@@ -226,24 +214,21 @@
         ^doubles left (create-buffer)
         ^doubles right (create-buffer)
         out-buffer (into-array [left right])
+        ^MessageBuffer mbuf (:messages state)
         node-funcs (:funcs state)
-        pending-adds (:pending-adds state)
-        pending-removes (:pending-removes state)
-        status (:status state)
         ^doubles pan (double-array 1 0.0)
         ^doubles gain (double-array 1 1.0)
         PI2 (/ Math/PI 2)] 
     (reify 
       Node
       (node-add-func [this func]
-        (swap! (:pending-adds state) conj func))
+        (.postMessage mbuf :add func))
       (node-remove-func [this func]
-        (swap! (:pending-removes state) conj func))
+        (.postMessage mbuf :remove func))
       (node-clear [this]
-        (reset! (:status state) :clear))
+        (.postMessage mbuf :clear nil))
       (node-empty?  [this]
-        (and (empty? @(:funcs state)) 
-             (empty? @(:pending-adds state))))
+        (.isEmpty mbuf))
       (node-state [this] state)
 
       GainNode
@@ -257,28 +242,22 @@
       clojure.lang.IFn
       (invoke [this]
         (clear-buffer mono-buffer)
-        (if (= :clear @status)
-          (do 
-            (reset! node-funcs [])
-            (reset! pending-adds [])
-            (reset! pending-removes [])
-            (reset! status nil)) 
-          (let [afs (run-node-funcs 
-                      (update-funcs @node-funcs pending-adds pending-removes) 
-                      mono-buffer)
-                ksmps (long *buffer-size*)
-                g (aget gain 0)
-                p (aget pan 0)
-                new-loc-v (+ 0.5 (* 0.5 p))
-                new-l (db->amp (* 20 (Math/log (Math/cos (* PI2 new-loc-v )))))
-                new-r (db->amp (* 20 (Math/log (Math/sin (* PI2 new-loc-v )))))]
-            (loop [indx 0]
-              (when (< indx ksmps)
-                (let [samp (* g (aget mono-buffer indx))]
-                  (aset left indx (* new-l samp)) 
-                  (aset right indx (* new-r samp)) 
-                  (recur (+ indx 1))))) 
-            (reset! node-funcs afs)))
+        (let [afs (->
+                    (process-messages! @node-funcs mbuf)
+                    (run-node-funcs out-buffer))
+              ksmps (long *buffer-size*)
+              g (aget gain 0)
+              p (aget pan 0)
+              new-loc-v (+ 0.5 (* 0.5 p))
+              new-l (db->amp (* 20 (Math/log (Math/cos (* PI2 new-loc-v )))))
+              new-r (db->amp (* 20 (Math/log (Math/sin (* PI2 new-loc-v )))))]
+          (loop [indx 0]
+            (when (< indx ksmps)
+              (let [samp (* g (aget mono-buffer indx))]
+                (aset left indx (* new-l samp)) 
+                (aset right indx (* new-r samp)) 
+                (recur (+ indx 1)))))
+          (reset! node-funcs afs))
         out-buffer))))
 
 (defn gain-node
@@ -291,21 +270,18 @@
         ^doubles right (create-buffer)
         out-buffer (into-array [left right])
         node-funcs (:funcs state)
-        pending-adds (:pending-adds state)
-        pending-removes (:pending-removes state)
-        status (:status state)
+        ^MessageBuffer mbuf (:messages state)
         ^doubles gain (double-array 1 1.0)] 
     (reify 
       Node
       (node-add-func [this func]
-        (swap! (:pending-adds state) conj func))
+        (.postMessage mbuf :add func))
       (node-remove-func [this func]
-        (swap! (:pending-removes state) conj func))
+        (.postMessage mbuf :remove func))
       (node-clear [this]
-        (reset! (:status state) :clear))
+        (.postMessage mbuf :clear nil))
       (node-empty?  [this]
-        (and (empty? @(:funcs state)) 
-             (empty? @(:pending-adds state))))
+        (.isEmpty mbuf))
       (node-state [this] state)
 
       GainNode
@@ -315,24 +291,18 @@
       clojure.lang.IFn
       (invoke [this]
         (clear-buffer out-buffer)
-        (if (= :clear @status)
-          (do 
-            (reset! node-funcs [])
-            (reset! pending-adds [])
-            (reset! pending-removes [])
-            (reset! status nil)) 
-          (let [afs (run-node-funcs 
-                      (update-funcs @node-funcs pending-adds pending-removes) 
-                      out-buffer)
-                ksmps (long *buffer-size*)
-                g (aget gain 0)]
+        (let [afs (->
+                    (process-messages! @node-funcs mbuf)
+                    (run-node-funcs out-buffer))
+              ksmps (long *buffer-size*)
+              g (aget gain 0)]
+          (loop [indx 0]
             (loop [indx 0]
-              (when (< indx ksmps)
-                  (aset left indx (* g (aget left indx))) 
-                  (aset right indx (* g (aget right indx))) 
-                  (recur (+ indx 1))  
-                )) 
-            (reset! node-funcs afs)))
+            (when (< indx ksmps)
+              (aset left indx (* g (aget left indx))) 
+              (aset right indx (* g (aget right indx))) 
+              (recur (+ indx 1)))))
+          (reset! node-funcs afs))
         out-buffer))))
 
 ;; Event functions dealing with nodes

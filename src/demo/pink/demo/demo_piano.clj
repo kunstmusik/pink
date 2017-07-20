@@ -2,7 +2,7 @@
  (:require [pink.simple :refer :all]
              [pink.event :refer :all] 
              [pink.instruments.piano :refer :all]
-             [pink.util :refer [mul try-func hold-until]]
+             [pink.util :refer [mul try-func hold-until with-duration]]
              [pink.filters :refer :all]
              [pink.node :refer :all]
              [pink.space :refer :all]
@@ -24,11 +24,13 @@
   (start-engine)
 
   (add-audio-events
-    (i instr 0.0 4.0 0.25 60))
+    (i instr 0.0 4.0 0.25 62))
   (add-audio-events
     (i instr 0.0 1.0 0.25 60)
     (i instr 0.5 1.0 0.25 64))
 
+  (add-afunc (with-duration 4 (instr 0.5 60)))
+  (add-afunc (with-duration 4 (instr 0.5 63)))
 
   (doseq [x (range 25)]
     (add-audio-events (i instr (* x 0.25) 1.0 0.25 (+ 60 x))))
