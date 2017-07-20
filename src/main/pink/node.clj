@@ -63,7 +63,8 @@
       (node-clear [this]
         (.postMessage mbuf :clear nil))
       (node-empty?  [this]
-        (.isEmpty mbuf))
+        (and (.isEmpty mbuf)
+             (empty? @(:funcs state))))
       (node-state [this] state)
       )))
 
@@ -169,7 +170,8 @@
        (node-clear [this]
          (.postMessage mbuf :clear nil))
        (node-empty?  [this]
-         (.isEmpty mbuf))
+         (and (.isEmpty mbuf)
+              (empty? @(:funcs state))))
        (node-state [this] state)
        clojure.lang.IFn
        (invoke [this]
@@ -197,7 +199,8 @@
       (node-clear [this]
         (.postMessage mbuf :clear nil))
       (node-empty?  [this]
-        (.isEmpty mbuf))
+         (and (.isEmpty mbuf)
+              (empty? @(:funcs state))))
       (node-state [this] state)
 
       clojure.lang.IFn
@@ -234,7 +237,8 @@
        (node-clear [this]
          (.postMessage mbuf :clear nil))
        (node-empty?  [this]
-         (.isEmpty mbuf))
+         (and (.isEmpty mbuf)
+              (empty? @(:funcs state))))
        (node-state [this] state)
 
        GainNode
@@ -289,7 +293,8 @@
       (node-clear [this]
         (.postMessage mbuf :clear nil))
       (node-empty?  [this]
-        (.isEmpty mbuf))
+        (and (.isEmpty mbuf)
+             (empty? @(:funcs state))))
       (node-state [this] state)
 
       GainNode
