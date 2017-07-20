@@ -8,7 +8,7 @@
             [pink.util :refer :all]
             [pink.dynamics :refer [db->amp]])
   (:import [pink.event Event]
-           [pink MessageBuffer Message]
+           [pink.node MessageBuffer Message]
            ))
 
 ;; Ensure unchecked math used for this namespace
@@ -41,17 +41,18 @@
 ;; NODE
 
 (defn- create-node-state
-  [channels]
-  { :funcs (atom []) 
-   :messages (MessageBuffer.)
-   :channels channels
-   })
+  ([channels] (create-node-state channels 512))
+  ([channels max-messages]
+   { :funcs (atom []) 
+    :messages (MessageBuffer. max-messages)
+    :channels channels
+    }))
 
 (defn create-node 
-  [& { :keys [channels] 
-      :or {channels *nchnls*}
-      }]
-  (let [state (create-node-state channels)
+  [& { :keys [channels max-messages] 
+      :or {channels *nchnls*
+           max-messages 512 }}]
+  (let [state (create-node-state channels max-messages)
         ^MessageBuffer mbuf (:messages state)] 
     (reify 
       Node
@@ -70,12 +71,13 @@
   [v ^MessageBuffer mbuf]
   (let [start (.getReadStart mbuf) 
         end (.getReadEnd mbuf)
-        adj-end (long (if (< end start) (+ end 512) end))]
+        capacity (.getCapacity mbuf)
+        adj-end (long (if (< end start) (+ end capacity) end))]
     (if (< start adj-end)
      (loop [indx start 
             out v]
        (if (< indx adj-end)
-         (let [^Message msg (.getMessage mbuf (rem indx 512))
+         (let [^Message msg (.getMessage mbuf (rem indx capacity))
                msgType (.getMsgType msg)
                msgMsg (.getMsg msg)]
             (.reset msg)
@@ -152,33 +154,36 @@
 (defn control-node
   "Creates a Node that also adheres to control function convention (0-arity IFn that
   returns true or nil)."
-  []
-  (let [state (create-node-state *nchnls*)
-        node-funcs (:funcs state)
-        ^MessageBuffer mbuf (:messages state)]
-    (reify 
-      Node
-      (node-add-func [this func]
-        (.postMessage mbuf :add func))
-      (node-remove-func [this func]
-        (.postMessage mbuf :remove func))
-      (node-clear [this]
-        (.postMessage mbuf :clear nil))
-      (node-empty?  [this]
-        (.isEmpty mbuf))
-      (node-state [this] state)
-      clojure.lang.IFn
-      (invoke [this]
-        (let [newfns (-> 
-                       (process-messages! @node-funcs mbuf)
-                       (process-cfuncs))] 
-          (reset! node-funcs newfns))))))
+  ([& { :keys [channels max-messages] 
+      :or {channels *nchnls* 
+           max-messages 512} }]
+   (let [state (create-node-state *nchnls* max-messages)
+         node-funcs (:funcs state)
+         ^MessageBuffer mbuf (:messages state)]
+     (reify 
+       Node
+       (node-add-func [this func]
+         (.postMessage mbuf :add func))
+       (node-remove-func [this func]
+         (.postMessage mbuf :remove func))
+       (node-clear [this]
+         (.postMessage mbuf :clear nil))
+       (node-empty?  [this]
+         (.isEmpty mbuf))
+       (node-state [this] state)
+       clojure.lang.IFn
+       (invoke [this]
+         (let [newfns (-> 
+                        (process-messages! @node-funcs mbuf)
+                        (process-cfuncs))] 
+           (reset! node-funcs newfns)))))))
 
 (defn audio-node
   "Creates a Node that also adheres to audio function convention (0-arity IFn that
   returns audio buffer or nil)."
-  [& { :keys [channels] 
-      :or {channels *nchnls*} }]
+  [& { :keys [channels max-messages] 
+      :or {channels *nchnls* 
+           max-messages 512} }]
   (let [state (create-node-state channels)
         out-buffer (create-buffers (:channels state))
         ^MessageBuffer mbuf (:messages state)
@@ -208,64 +213,68 @@
   "Creates an audio node that accepts mono-signal audio functions. mixer-node
   has properties for gain and panning which will be applied to all generated signals.
   Output is a stereo signal."
-  []
-  (let [state (create-node-state 1)
-        mono-buffer (create-buffer)
-        ^doubles left (create-buffer)
-        ^doubles right (create-buffer)
-        out-buffer (into-array [left right])
-        ^MessageBuffer mbuf (:messages state)
-        node-funcs (:funcs state)
-        ^doubles pan (double-array 1 0.0)
-        ^doubles gain (double-array 1 1.0)
-        PI2 (/ Math/PI 2)] 
-    (reify 
-      Node
-      (node-add-func [this func]
-        (.postMessage mbuf :add func))
-      (node-remove-func [this func]
-        (.postMessage mbuf :remove func))
-      (node-clear [this]
-        (.postMessage mbuf :clear nil))
-      (node-empty?  [this]
-        (.isEmpty mbuf))
-      (node-state [this] state)
+  [& { :keys [channels max-messages] 
+      :or {channels *nchnls* 
+           max-messages 512} }]   
+   (let [state (create-node-state 1 max-messages)
+         mono-buffer (create-buffer)
+         ^doubles left (create-buffer)
+         ^doubles right (create-buffer)
+         out-buffer (into-array [left right])
+         ^MessageBuffer mbuf (:messages state)
+         node-funcs (:funcs state)
+         ^doubles pan (double-array 1 0.0)
+         ^doubles gain (double-array 1 1.0)
+         PI2 (/ Math/PI 2)] 
+     (reify 
+       Node
+       (node-add-func [this func]
+         (.postMessage mbuf :add func))
+       (node-remove-func [this func]
+         (.postMessage mbuf :remove func))
+       (node-clear [this]
+         (.postMessage mbuf :clear nil))
+       (node-empty?  [this]
+         (.isEmpty mbuf))
+       (node-state [this] state)
 
-      GainNode
-      (set-gain! [this gain-val] 
-        (aset gain 0 (double gain-val)))
+       GainNode
+       (set-gain! [this gain-val] 
+         (aset gain 0 (double gain-val)))
 
-      StereoMixerNode
-      (set-pan! [this pan-val] 
-        (aset pan 0 (double pan-val)))
+       StereoMixerNode
+       (set-pan! [this pan-val] 
+         (aset pan 0 (double pan-val)))
 
-      clojure.lang.IFn
-      (invoke [this]
-        (clear-buffer mono-buffer)
-        (let [afs (->
-                    (process-messages! @node-funcs mbuf)
-                    (run-node-funcs out-buffer))
-              ksmps (long *buffer-size*)
-              g (aget gain 0)
-              p (aget pan 0)
-              new-loc-v (+ 0.5 (* 0.5 p))
-              new-l (db->amp (* 20 (Math/log (Math/cos (* PI2 new-loc-v )))))
-              new-r (db->amp (* 20 (Math/log (Math/sin (* PI2 new-loc-v )))))]
-          (loop [indx 0]
-            (when (< indx ksmps)
-              (let [samp (* g (aget mono-buffer indx))]
-                (aset left indx (* new-l samp)) 
-                (aset right indx (* new-r samp)) 
-                (recur (+ indx 1)))))
-          (reset! node-funcs afs))
-        out-buffer))))
+       clojure.lang.IFn
+       (invoke [this]
+         (clear-buffer mono-buffer)
+         (let [afs (->
+                     (process-messages! @node-funcs mbuf)
+                     (run-node-funcs out-buffer))
+               ksmps (long *buffer-size*)
+               g (aget gain 0)
+               p (aget pan 0)
+               new-loc-v (+ 0.5 (* 0.5 p))
+               new-l (db->amp (* 20 (Math/log (Math/cos (* PI2 new-loc-v )))))
+               new-r (db->amp (* 20 (Math/log (Math/sin (* PI2 new-loc-v )))))]
+           (loop [indx 0]
+             (when (< indx ksmps)
+               (let [samp (* g (aget mono-buffer indx))]
+                 (aset left indx (* new-l samp)) 
+                 (aset right indx (* new-r samp)) 
+                 (recur (+ indx 1)))))
+           (reset! node-funcs afs))
+         out-buffer))))
 
 (defn gain-node
   "Creates an audio node that accepts stereo-signal audio functions. gain-node
   sums the generated signals from the audio functions, multiplies by gain, and
   outputs the stereo-signal output."
-  []
-  (let [state (create-node-state 2)
+  [& { :keys [channels max-messages] 
+      :or {channels *nchnls* 
+           max-messages 512} }]
+  (let [state (create-node-state 2 max-messages)
         ^doubles left (create-buffer)
         ^doubles right (create-buffer)
         out-buffer (into-array [left right])
@@ -298,10 +307,10 @@
               g (aget gain 0)]
           (loop [indx 0]
             (loop [indx 0]
-            (when (< indx ksmps)
-              (aset left indx (* g (aget left indx))) 
-              (aset right indx (* g (aget right indx))) 
-              (recur (+ indx 1)))))
+              (when (< indx ksmps)
+                (aset left indx (* g (aget left indx))) 
+                (aset right indx (* g (aget right indx))) 
+                (recur (+ indx 1)))))
           (reset! node-funcs afs))
         out-buffer))))
 

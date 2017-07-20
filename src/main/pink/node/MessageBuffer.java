@@ -1,4 +1,4 @@
-package pink;
+package pink.node;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import clojure.lang.IFn;

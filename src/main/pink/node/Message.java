@@ -1,4 +1,4 @@
-package pink;
+package pink.node;
 
 import clojure.lang.IFn;
 import clojure.lang.Keyword;

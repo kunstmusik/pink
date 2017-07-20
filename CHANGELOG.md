@@ -84,6 +84,17 @@ change log follows the conventions of
 
 ### Changed
 
+* pink.node - node messages (adds, removes, clears) are now stored in a single
+  pre-allocated message ring buffer. This addresses processing messages in
+  order (e.g., one can do a clear then push adds and this will work all within
+  the same process pass) as well as reduces object allocations to zero at
+  runtime. However, message buffer size must now be considered when creating a
+  node as the message buffer does not support back pressure and message
+  processing will go awry if more messages than buffer capacity are scheduled
+  before the reader (i.e, the node) processes pending messages.  The default is
+  512, but the user may provide a :max-messages keyword argument to any of the
+  node creation functions in pink.node to increase the max capacity.
+
 * pink.util
   * updated try-func to catch Throwable instead of Exception; fixes issue with
     assertion errors causing engine to die while live coding 
