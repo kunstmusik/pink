@@ -81,21 +81,4 @@ public class MessageBuffer {
     return capacity;
   }
 
-  //static class Message {
-  //  private Keyword msgType;
-  //  private IFn msg;
-
-  //  public void setMessage(Keyword msgType, IFn msg) { 
-  //    this.msgType = msgType; 
-  //    this.msg = msg; 
-  //  }
-
-  //  public IFn getMsg() { 
-  //    return msg; 
-  //  }
-
-  //  public Keyword getMsgType() { 
-  //    return msgType; 
-  //  }
-  //}
 }
