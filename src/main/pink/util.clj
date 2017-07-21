@@ -43,15 +43,11 @@
 
 ;; utility for running audio-funcs and control-funcs
 
-(defmacro try-func
+(defn try-func
   "Trys to call a function, returns the func's return value or
   nil if an exception was caught."
-  [f]
-  `(try 
-    ~f
-    (catch Throwable e# 
-      (.printStackTrace e#)
-      nil)))
+  [^IFn f]
+  (pink.Utils/tryFunc f))
 
 
 ;; not== macro for fast != comparison of doubles

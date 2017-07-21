@@ -8,7 +8,9 @@
             [pink.util :refer :all]
             [pink.dynamics :refer [db->amp]])
   (:import [pink.event Event]
-           [pink.node MessageBuffer Message]
+           [pink.node MessageBuffer Message IFnList]
+           [clojure.lang IFn]
+           [java.util ArrayList]
            ))
 
 ;; Ensure unchecked math used for this namespace
@@ -43,7 +45,7 @@
 (defn- create-node-state
   ([channels] (create-node-state channels 512))
   ([channels max-messages]
-   { :funcs (atom []) 
+   {:funcs (IFnList.) 
     :messages (MessageBuffer. max-messages)
     :channels channels
     }))
@@ -53,7 +55,8 @@
       :or {channels *nchnls*
            max-messages 512 }}]
   (let [state (create-node-state channels max-messages)
-        ^MessageBuffer mbuf (:messages state)] 
+        ^MessageBuffer mbuf (:messages state)
+        ^IFnList node-funcs (:funcs state)] 
     (reify 
       Node
       (node-add-func [this func]
@@ -64,19 +67,19 @@
         (.postMessage mbuf :clear nil))
       (node-empty?  [this]
         (and (.isEmpty mbuf)
-             (empty? @(:funcs state))))
+             (.isEmpty node-funcs)))
       (node-state [this] state)
       )))
 
 (defn- process-messages!
-  [v ^MessageBuffer mbuf]
+  [^IFnList node-funcs ^MessageBuffer mbuf]
   (let [start (.getReadStart mbuf) 
         end (.getReadEnd mbuf)
         capacity (.getCapacity mbuf)
-        adj-end (long (if (< end start) (+ end capacity) end))]
-    (if (< start adj-end)
-     (loop [indx start 
-            out v]
+        adj-end (long (if (< end start) (+ end capacity) end))
+        ^ArrayList active-funcs (.getActiveList node-funcs) ]
+    (when (< start adj-end)
+     (loop [indx start]
        (if (< indx adj-end)
          (let [^Message msg (.getMessage mbuf (rem indx capacity))
                msgType (.getMsgType msg)
@@ -84,38 +87,43 @@
             (.reset msg)
             (case msgType
               :add 
-              (recur (inc indx) (conj out msgMsg))
+              (.add active-funcs msgMsg)
+              :remove
+              (.remove active-funcs msgMsg)
               :clear
-              (recur (inc indx) [])
-              (recur (inc indx) v)))
-         (do
-           (.setReadStart mbuf end)
-           out)
-         ))
-     v)))
+              (.clear active-funcs) 
+              (println "Error: Unknown msgType found for node: " msgType))
+            (recur (inc indx)))
+         (.setReadStart mbuf end))))))
 
-(defn run-node-funcs 
-  [afs buffer]
-  (loop [[x & xs] afs 
-         ret (transient [])]
-    (if x 
-      (let [b (try-func (x))]
-        (if b
-          (do 
-            (mix-buffers b buffer)
-            (recur xs (conj! ret x)))
-          (recur xs ret)))
-      (persistent! ret)))) 
+(defn run-afuncs!
+  [^IFnList afs buffer]
+  (let [^ArrayList active-funcs (.getActiveList afs)
+        size (.size active-funcs)]
+    (when (> size 0)
+      (loop [i 0]
+        (when (< i size)
+          (let [^IFn x (.get active-funcs i) 
+                b (try-func x)]
+            (when b
+              (mix-buffers b buffer)
+              (.putBack afs x)))
+          (recur (inc i))))
+      (.swap afs)
+      ))) 
 
-(defn- process-cfuncs
-  [cfuncs]
-  (loop [[x & xs] cfuncs
-         ret (transient [])]
-    (if x
-      (if (try-func (x)) 
-        (recur xs (conj! ret x))
-        (recur xs ret))
-      (persistent! ret))))
+(defn- run-cfuncs!
+  [^IFnList cfuncs]
+  (let [^ArrayList active-funcs (.getActiveList cfuncs)
+        size (.size active-funcs)]
+    (when (> size 0)
+      (loop [i 0]
+        (when (< i size)
+          (let [^IFn x (.get active-funcs i)]
+            (when (try-func x) 
+              (.putBack cfuncs x)))
+          (recur (inc i))))
+      (.swap cfuncs))))
 
 ; currently will continue rendering even if afs are empty. need to have
 ; option to return nil when afs are empty, for the scenario of disk render.
@@ -128,29 +136,24 @@
   (let [state (node-state node)
         out-buffer (create-buffers (:channels state))
         ^MessageBuffer mbuf (:messages state)
-        node-afuncs (:funcs state)
+        ^IFnList node-afuncs (:funcs state)
         status (:status state)]
     (fn []
       (clear-buffer out-buffer)
-      (let [afs (->
-                  (process-messages! @node-afuncs mbuf)
-                  (run-node-funcs out-buffer))]
-        (reset! node-afuncs afs))
-      out-buffer
-      )))
+      (process-messages! node-afuncs mbuf)
+      (run-afuncs! node-afuncs out-buffer)
+      out-buffer)))
 
 (defn control-node-processor
   "Creates a control node processing functions that runs controls functions, 
   handling pending adds and removes, as well as filters out done functions."
   [node]
   (let [state (node-state node)
-        node-funcs (:funcs state)
+        ^IFnList node-funcs (:funcs state)
         ^MessageBuffer mbuf (:messages state)]
     (fn []
-      (let [newfns (-> 
-                     (process-messages! @node-funcs mbuf)
-                     (process-cfuncs))] 
-        (reset! node-funcs newfns)))))
+      (process-messages! node-funcs mbuf)
+      (run-cfuncs! node-funcs))))
 
 (defn control-node
   "Creates a Node that also adheres to control function convention (0-arity IFn that
@@ -159,7 +162,7 @@
       :or {channels *nchnls* 
            max-messages 512} }]
    (let [state (create-node-state *nchnls* max-messages)
-         node-funcs (:funcs state)
+         ^IFnList node-funcs (:funcs state)
          ^MessageBuffer mbuf (:messages state)]
      (reify 
        Node
@@ -171,14 +174,12 @@
          (.postMessage mbuf :clear nil))
        (node-empty?  [this]
          (and (.isEmpty mbuf)
-              (empty? @(:funcs state))))
+              (.isEmpty node-funcs)))
        (node-state [this] state)
        clojure.lang.IFn
        (invoke [this]
-         (let [newfns (-> 
-                        (process-messages! @node-funcs mbuf)
-                        (process-cfuncs))] 
-           (reset! node-funcs newfns)))))))
+         (process-messages! node-funcs mbuf)
+         (run-cfuncs! node-funcs))))))
 
 (defn audio-node
   "Creates a Node that also adheres to audio function convention (0-arity IFn that
@@ -189,7 +190,7 @@
   (let [state (create-node-state channels)
         out-buffer (create-buffers (:channels state))
         ^MessageBuffer mbuf (:messages state)
-        node-funcs (:funcs state)] 
+        ^IFnList node-funcs (:funcs state)] 
     (reify 
       Node
       (node-add-func [this func]
@@ -199,17 +200,15 @@
       (node-clear [this]
         (.postMessage mbuf :clear nil))
       (node-empty?  [this]
-         (and (.isEmpty mbuf)
-              (empty? @(:funcs state))))
+        (and (.isEmpty mbuf)
+             (.isEmpty node-funcs)))
       (node-state [this] state)
 
       clojure.lang.IFn
       (invoke [this]
         (clear-buffer out-buffer)
-        (let [afs (->
-                    (process-messages! @node-funcs mbuf)
-                    (run-node-funcs out-buffer))]
-          (reset! node-funcs afs))
+        (process-messages! node-funcs mbuf)
+        (run-afuncs! node-funcs out-buffer)
         out-buffer))))
 
 (defn mixer-node
@@ -224,7 +223,7 @@
          ^doubles right (create-buffer)
          out-buffer (into-array [left right])
          ^MessageBuffer mbuf (:messages state)
-         node-funcs (:funcs state)
+         ^IFnList node-funcs (:funcs state)
          ^doubles pan (double-array 1 0.0)
          ^doubles gain (double-array 1 1.0)
          PI2 (/ Math/PI 2)] 
@@ -238,7 +237,7 @@
          (.postMessage mbuf :clear nil))
        (node-empty?  [this]
          (and (.isEmpty mbuf)
-              (empty? @(:funcs state))))
+              (.isEmpty node-funcs)))
        (node-state [this] state)
 
        GainNode
@@ -252,10 +251,9 @@
        clojure.lang.IFn
        (invoke [this]
          (clear-buffer mono-buffer)
-         (let [afs (->
-                     (process-messages! @node-funcs mbuf)
-                     (run-node-funcs mono-buffer))
-               ksmps (long *buffer-size*)
+         (process-messages! node-funcs mbuf)
+         (run-afuncs! node-funcs mono-buffer) 
+         (let [ksmps (long *buffer-size*)
                g (aget gain 0)
                p (aget pan 0)
                new-loc-v (+ 0.5 (* 0.5 p))
@@ -266,8 +264,7 @@
                (let [samp (* g (aget mono-buffer indx))]
                  (aset left indx (* new-l samp)) 
                  (aset right indx (* new-r samp)) 
-                 (recur (+ indx 1)))))
-           (reset! node-funcs afs))
+                 (recur (+ indx 1))))))
          out-buffer))))
 
 (defn gain-node
@@ -281,7 +278,7 @@
         ^doubles left (create-buffer)
         ^doubles right (create-buffer)
         out-buffer (into-array [left right])
-        node-funcs (:funcs state)
+        ^IFnList node-funcs (:funcs state)
         ^MessageBuffer mbuf (:messages state)
         ^doubles gain (double-array 1 1.0)] 
     (reify 
@@ -294,7 +291,7 @@
         (.postMessage mbuf :clear nil))
       (node-empty?  [this]
         (and (.isEmpty mbuf)
-             (empty? @(:funcs state))))
+             (.isEmpty node-funcs)))
       (node-state [this] state)
 
       GainNode
@@ -304,18 +301,16 @@
       clojure.lang.IFn
       (invoke [this]
         (clear-buffer out-buffer)
-        (let [afs (->
-                    (process-messages! @node-funcs mbuf)
-                    (run-node-funcs out-buffer))
-              ksmps (long *buffer-size*)
+        (process-messages! node-funcs mbuf)
+        (run-afuncs! node-funcs out-buffer) 
+        (let [ksmps (long *buffer-size*)
               g (aget gain 0)]
           (loop [indx 0]
             (loop [indx 0]
               (when (< indx ksmps)
                 (aset left indx (* g (aget left indx))) 
                 (aset right indx (* g (aget right indx))) 
-                (recur (+ indx 1)))))
-          (reset! node-funcs afs))
+                (recur (+ indx 1))))))
         out-buffer))))
 
 ;; Event functions dealing with nodes

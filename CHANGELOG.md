@@ -23,15 +23,16 @@ change log follows the conventions of
     class from STK)
 
 * pink.io.sound-file 
-  * implemented new streaming wav file writing code  
+  * Implemented new streaming wav file writing code  
   
 * pink.engine 
-  * rewrote engine-\>disk to use streaming wav writer
+  * Rewrote engine-\>disk to use buffered, streaming wav writer (better
+    performance, does not hold total audio for engine in memory)
   * engine-\>buffer - renders an engine to double[]. Useful for building
     in-memory caches of pre-rendered score material. 
 
 * pink.event
-  * added user-settable event processing function to EventList and utility
+  * Added user-settable event processing function to EventList and utility
     functions for setting event list processing to process incoming events as
     having relative (the default) or absolute times according to the cur-beat
     of the event list. Additional use-absolute-time-events! function added to
@@ -39,24 +40,24 @@ change log follows the conventions of
     tracker. 
 
 * pink.node
-  * refactored and introduced new Node protocol
-  * added control-node and audio-node utility functions that return reified
+  * Refactored and introduced new Node protocol
+  * Added control-node and audio-node utility functions that return reified
     Nodes that also implement IFn to adhere to control and audio function
     conventions (simplifies creation and use of nodes)
-  * added mixer-node that uses mono-channel audio functions as inputs and
+  * Added mixer-node that uses mono-channel audio functions as inputs and
     applies its own gain and stereo panning; mixer-node responds to all Node
     protocol functions as well as GainNode and StereoMixerNode protocols 
     (set-gain!, set-pan!)
-  * added gain-node that takes in stereo-channel audio functions as inputs
+  * Added gain-node that takes in stereo-channel audio functions as inputs
     and applies its own gain before stereo-channel output. Respondes to all
     Node and GainNode protocol functions.
 
 * pink.config
-  * added new \*beat\* config variable that has the current beat time of the
+  * Added new \*beat\* config variable that has the current beat time of the
     event list.
-  * added new \*engine\* config variable that points to the currently running
+  * Added new \*engine\* config variable that points to the currently running
     engine.
-  * documentation added for each config variable
+  * Documentation added for each config variable
 
 * pink.filter
   * zdf-ladder - a Zero-delay feedback Moog Ladder filter (4-pole 24db/oct)
@@ -84,21 +85,27 @@ change log follows the conventions of
 
 ### Changed
 
-* pink.node - node messages (adds, removes, clears) are now stored in a single
-  pre-allocated message ring buffer. This addresses processing messages in
-  order (e.g., one can do a clear then push adds and this will work all within
-  the same process pass) as well as reduces object allocations to zero at
-  runtime. However, message buffer size must now be considered when creating a
-  node as the message buffer does not support back pressure and message
-  processing will go awry if more messages than buffer capacity are scheduled
-  before the reader (i.e, the node) processes pending messages.  The default is
-  512, but the user may provide a :max-messages keyword argument to any of the
-  node creation functions in pink.node to increase the max capacity.
+* pink.node 
+  * Node messages (adds, removes, clears) are now stored in a single
+    pre-allocated message ring buffer. This addresses processing messages in
+    order (e.g., one can do a clear then push adds and this will work all
+    within the same process pass) as well as reduces object allocations to zero
+    at runtime. However, message buffer size must now be considered when
+    creating a node as the message buffer does not support back pressure and
+    message processing will go awry if more messages than buffer capacity are
+    scheduled before the reader (i.e, the node) processes pending messages.
+    The default is 512, but the user may provide a :max-messages keyword
+    argument to any of the node creation functions in pink.node to increase the
+    max capacity.
+  * Active function list and processing code moved to Java class backed by
+    ArrayLists to remove object allocations at runtime.
 
 * pink.util
-  * updated try-func to catch Throwable instead of Exception; fixes issue with
-    assertion errors causing engine to die while live coding 
-  * added constant folding to mul and sum. These functions may now return 
+  * Updated try-func to use new Utils.tryFunc() static method to remove object
+    allocations related to Clojure try/catch compilation. Also modified to
+    catch Throwable instead of Exception, which fixes issue with assertion
+    errors causing engine to die while live coding.
+  * Added constant folding to mul and sum. These functions may now return 
     numbers in addition to audio functions. This allows for further 
     folding for mul/sum nested expressions but could possibly break older code. 
     (The risk of breakage is assumed minimal, but please raise an issue if you
