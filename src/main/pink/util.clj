@@ -47,7 +47,11 @@
   "Trys to call a function, returns the func's return value or
   nil if an exception was caught."
   [^IFn f]
-  (pink.Utils/tryFunc f))
+  (try 
+    (f)
+    (catch Throwable t
+      (.printStackTrace t)
+      nil)))
 
 
 ;; not== macro for fast != comparison of doubles

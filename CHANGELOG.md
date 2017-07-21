@@ -101,10 +101,10 @@ change log follows the conventions of
     ArrayLists to remove object allocations at runtime.
 
 * pink.util
-  * Updated try-func to use new Utils.tryFunc() static method to remove object
-    allocations related to Clojure try/catch compilation. Also modified to
-    catch Throwable instead of Exception, which fixes issue with assertion
-    errors causing engine to die while live coding.
+  * Modified try-func to be a function rather than a macro as non-tail
+    try-blocks result in closures being produced. Also modified to catch
+    Throwable instead of Exception, which fixes issue with assertion errors
+    causing engine to die while live coding.
   * Added constant folding to mul and sum. These functions may now return 
     numbers in addition to audio functions. This allows for further 
     folding for mul/sum nested expressions but could possibly break older code. 

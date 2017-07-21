@@ -18,15 +18,4 @@ public class Utils {
     return a != b;
   }
 
-  /* Trys to call a function, returns the func's return value or
-   * nil if an exception was caught.
-   */
-  public static Object tryFunc(IFn fn) {
-    try {
-      return fn.invoke();
-    } catch (Throwable t) {
-      t.printStackTrace();
-      return null;
-    }
-  }
 }
