@@ -4,7 +4,7 @@
   pink.simple
   (:require [pink.engine :refer :all]
             [pink.util :refer [with-duration apply!*!]]
-            [pink.event :refer [event event-list-beat-time use-absolute-time!]])
+            [pink.event :refer [event use-absolute-time!]])
   (:import [pink.engine Engine]
            [pink.event EventList]))
 
@@ -61,17 +61,12 @@
 
 (defn get-tempo
   "Get the current tempo from the engine's built-in event-list."
-  []
+  ^double []
   (engine-get-tempo engine))
-
-(defn get-tempo-atom
-  "Get the current tempo-atom from the engine's built-in event-list."
-  []
-  (engine-get-tempo-atom engine))
 
 (defn set-tempo 
   "Set the current tempo on the engine's built-in event-list."
-  [tempo]
+  [^double tempo]
   (engine-set-tempo engine tempo))
 
 (defn add-events 
@@ -103,7 +98,7 @@
 (defn now 
   "Returns the current *beat* time of the engine."
   ^double []
-  (event-list-beat-time (.event-list ^Engine engine)))
+  (.getCurBeat ^EventList (.event-list ^Engine engine)))
 
 (defn tempo 
   "Returns the current *tempo* of the engine."

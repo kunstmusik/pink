@@ -12,7 +12,7 @@
            [javax.sound.sampled AudioFormat AudioSystem SourceDataLine
                                 AudioFileFormat$Type AudioInputStream]
            [pink EngineUtils]
-           [pink.event Event]))
+           [pink.event Event EventList]))
 
 ;; Ensure unchecked math used for this namespace
 (set! *unchecked-math* :warn-on-boxed)
@@ -45,18 +45,19 @@
   "Creates an audio engine"
   [& {:keys [sample-rate nchnls buffer-size] 
       :or {sample-rate 44100 nchnls 1 buffer-size 64}}] 
-  (let  [bsize (long buffer-size)
-         channels (long nchnls)
-         e 
-          (Engine. (atom :stopped) (atom false) 
-            (create-node)
-            (create-node :channels channels)
-            (create-node)
-            sample-rate channels bsize 
-            (* bsize channels) (* (long BYTE-SIZE) bsize channels)
-            (event-list bsize sample-rate))]
-    (swap! engines conj e) 
-    e))
+  (binding [*sr* sample-rate *buffer-size* buffer-size *nchnls* nchnls]
+    (let  [bsize (long buffer-size)
+           channels (long nchnls)
+           e 
+           (Engine. (atom :stopped) (atom false) 
+                    (control-node)
+                    (audio-node :channels channels)
+                    (control-node)
+                    (long sample-rate) channels bsize 
+                    (* bsize channels) (* (long BYTE-SIZE) bsize channels)
+                    (event-list bsize sample-rate))]
+      (swap! engines conj e) 
+      e)))
 
 ;; should do initialization of f on separate thread?
 (defn engine-add-afunc 
@@ -85,19 +86,15 @@
 
 (defn engine-add-events 
   [^Engine engine events]
-  (event-list-add (.event-list engine) events))
-
-(defn engine-get-tempo-atom
-  [^Engine engine]
-  (event-list-get-tempo-atom (.event-list engine)))
+  (event-list-add ^EventList (.event-list engine) events))
 
 (defn engine-get-tempo
   ^double [^Engine engine]
-  (double @(engine-get-tempo-atom engine)))
+  (.getTempo ^EventList (.event-list engine)))
 
 (defn engine-set-tempo
   [^Engine engine ^double tempo]
-  (reset! (engine-get-tempo-atom engine) tempo))
+  (.setTempo ^EventList(.event-list engine) tempo))
 
 ;;;; JAVASOUND CODE
 
@@ -129,12 +126,6 @@
   (.write line (.array buffer) 0 out-buffer-size)
   (.clear buffer))
 
-(defn update-funcs
-  [v adds-atm removes-atm]
-  (let [removes (drain-atom! removes-atm)]
-    (filter #(< (.indexOf ^"clojure.lang.PersistentVector" removes %) 0)
-           (concat-drain! v adds-atm))))
-
 (defn engine-run 
   "Main realtime engine running function. Called within a thread from
   engine-start."
@@ -146,15 +137,11 @@
         #^SourceDataLine line (open-line af (* 16 nchnls (long *hardware-buffer-size*)))        
         out-buffer (double-array (.out-buffer-size engine))
         buf (ByteBuffer/allocate (.byte-buffer-size engine))
-        pre-control (.pre-cfunc-node engine)
+        pre-control-node (.pre-cfunc-node engine)
         root-audio-node (.root-audio-node engine)
-        post-control (.post-cfunc-node engine)
+        post-control-node (.post-cfunc-node engine)
         clear-flag (.clear engine)
-        run-engine-events (event-list-processor (.event-list engine))
-        run-pre-control-funcs (control-node-processor pre-control)
-        run-audio-funcs (binding [*buffer-size* buffer-size] 
-                          (node-processor root-audio-node))
-        run-post-control-funcs (control-node-processor post-control)]
+        ^EventList event-list (.event-list engine)]
 
     (binding [*engine* engine *sr* sr *buffer-size* buffer-size *nchnls* nchnls]
 
@@ -162,17 +149,17 @@
         (if (= @(.status engine) :running)
           (do 
             (binding [*current-buffer-num* buffer-count]
-              (run-engine-events)
-              (run-pre-control-funcs)
+              (event-list-tick! event-list)
+              (pre-control-node)
               (-> out-buffer  
-                  (write-interleaved (run-audio-funcs) nchnls buffer-size)
+                  (write-interleaved (root-audio-node) nchnls buffer-size)
                   (doubles->byte-buffer buf))
-              (run-post-control-funcs)) 
+              (post-control-node)) 
             (buf->line buf line (.byte-buffer-size engine))
             (when @clear-flag 
-              (node-clear pre-control)
+              (node-clear pre-control-node)
               (node-clear root-audio-node)
-              (node-clear post-control)
+              (node-clear post-control-node)
               (reset! clear-flag false)
               (event-list-clear (.event-list engine)))
             (recur (unchecked-inc buffer-count)))
@@ -239,16 +226,11 @@
         buf (ByteBuffer/allocate (* buffer-size (long (/ Double/SIZE Byte/SIZE))))
         out-buffer (double-array (.out-buffer-size engine))
         start-time (System/currentTimeMillis)
-        pre-control (.pre-cfunc-node engine)
-        root-audio-node (.root-audio-node engine)
-        post-control (.post-cfunc-node engine)
         clear-flag (.clear engine)
-        run-engine-events (event-list-processor (.event-list engine))
-        run-pre-control-funcs (control-node-processor pre-control)
-        run-audio-funcs (binding [*buffer-size* buffer-size] 
-                          (node-processor root-audio-node))
-        run-post-control-funcs (control-node-processor post-control) 
-        ]
+        ^EventList event-list (.event-list engine)
+        pre-control-node (.pre-cfunc-node engine)
+        root-audio-node (.root-audio-node engine)
+        post-control-node (.post-cfunc-node engine)]
 
     (reset! (.status engine) :running)
 
@@ -258,9 +240,9 @@
         (if (= @(.status engine) :running)
           (do 
             (binding [*current-buffer-num* buffer-count]
-              (run-engine-events)
-              (run-pre-control-funcs)
-              (let [^doubles b (run-audio-funcs)]
+              (event-list-tick! event-list)
+              (pre-control-node)
+              (let [^doubles b (root-audio-node)]
                 (loop [i 0]
                   (when (< i buffer-size)
                     (.putDouble buf (aget b i)) 
@@ -268,16 +250,16 @@
                     )))
               (.write baos (.array buf))
               (.clear buf)
-              (run-post-control-funcs)) 
+              (post-control-node)) 
             (when @clear-flag 
-              (node-clear pre-control)
+              (node-clear pre-control-node)
               (node-clear root-audio-node)
-              (node-clear post-control)
+              (node-clear post-control-node)
               (reset! clear-flag false)
               (event-list-clear (.event-list engine)))
-            (when (and (node-empty? pre-control) 
+            (when (and (node-empty? pre-control-node) 
                        (node-empty? root-audio-node) 
-                       (node-empty? post-control) 
+                       (node-empty? post-control-node) 
                        (event-list-empty? (.event-list engine)))
               (engine-stop engine))
             (recur (unchecked-inc buffer-count)))
@@ -310,15 +292,11 @@
         nchnls (.nchnls engine)
         out-buffer (double-array (.out-buffer-size engine))
         start-time (System/currentTimeMillis)
-        pre-control (.pre-cfunc-node engine)
+        pre-control-node (.pre-cfunc-node engine)
         root-audio-node (.root-audio-node engine)
-        post-control (.post-cfunc-node engine)
+        post-control-node (.post-cfunc-node engine)
         clear-flag (.clear engine)
-        run-engine-events (event-list-processor (.event-list engine))
-        run-pre-control-funcs (control-node-processor pre-control)
-        run-audio-funcs (binding [*buffer-size* buffer-size] 
-                          (node-processor root-audio-node))
-        run-post-control-funcs (control-node-processor post-control) 
+        ^EventList event-list (.event-list engine) 
         wav-out (open-wave-write 
                   filename sr 16 nchnls buffer-size)]
 
@@ -330,31 +308,23 @@
         (if (= @(.status engine) :running)
           (do 
             (binding [*current-buffer-num* buffer-count]
-              (run-engine-events)
-              (run-pre-control-funcs)
+              (event-list-tick! event-list)
+              (pre-control-node)
               (-> out-buffer  
-                  (write-interleaved (run-audio-funcs) nchnls buffer-size)
+                  (write-interleaved (root-audio-node) nchnls buffer-size)
                   (write-wav-data wav-out))
-              (run-post-control-funcs)) 
+              (post-control-node)) 
             (when @clear-flag 
-              (node-clear pre-control)
+              (node-clear pre-control-node)
               (node-clear root-audio-node)
-              (node-clear post-control)
+              (node-clear post-control-node)
               (reset! clear-flag false)
               (event-list-clear (.event-list engine)))
-            ;(println 
-            ;  (node-empty? pre-control) " : "
-            ;           (node-empty? root-audio-node) " : "
-            ;           (node-empty? post-control) " : " 
-            ;            (event-list-empty? (.event-list engine))
-
-            ;  )
-            (when (and (node-empty? pre-control) 
+            (when (and (node-empty? pre-control-node) 
                        (node-empty? root-audio-node) 
-                       (node-empty? post-control) 
+                       (node-empty? post-control-node) 
                        (event-list-empty? (.event-list engine)))
               (engine-stop engine))
-            ;(println "EVENTS: " (.events (.event-list engine)))
             (recur (unchecked-inc buffer-count)))
           (do
             (close-wav-data wav-out)
@@ -386,32 +356,4 @@
   ([eng x & args]
    (audio-events eng (list* x args))))
 
-;; Utility Functions
-
-(defn run-audio-block 
-  "TODO: Fix this function and document..."
-  [a-block & {:keys [sample-rate nchnls block-size] 
-              :or {sample-rate 44100 nchnls 1 block-size 256}}]
-  ;(let [af (AudioFormat. sample-rate 16 nchnls true true)
-  ;      #^SourceDataLine line (open-line af) 
-  ;      buffer (ByteBuffer/allocate buffer-size)
-  ;      write-buffer-size (/ buffer-size 2)
-  ;      frames (quot write-buffer-size *buffer-size*)]
-  ;  (loop [x 0]
-  ;    (if (< x frames)
-  ;      (if-let [buf ^doubles (a-block)]
-  ;        (do
-  ;          (doubles->byte-buffer buf buffer)
-  ;          (recur (unchecked-inc x)))
-  ;        (do
-  ;          (.write line (.array buffer) 0 buffer-size)
-  ;          (.clear buffer)))
-  ;      (do
-  ;        (.write line (.array buffer) 0 buffer-size)
-  ;        (.clear buffer)
-  ;        (recur 0))))
-  ;  (.flush line)
-  ;  (.close line))
-  
-  )
 

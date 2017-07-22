@@ -184,23 +184,24 @@
 (def MULTI-CHANNEL-TYPE 
   (type (into-array [(double-array 1) (double-array 1)])))
 
-(defmacro multi-channel?
+(defn multi-channel?
   "Returns if buffer is multi-channel"
   [buffer]
-  `(= MULTI-CHANNEL-TYPE (type ~buffer)))
+  (= MULTI-CHANNEL-TYPE (type buffer)))
 
-(defmacro buffer-channel-count
+(defn buffer-channel-count
   "Get the channel count for a buffer"
-  [buffer]
-  `(if (multi-channel? ~buffer) (count ~buffer) 1 ))
+  ^long [buffer]
+  (if (multi-channel? buffer) (alength ^"[[D" buffer) 1 ))
 
 (defn mix-buffers
   "Mix src audio buffer into dest audio buffer, taking into account 
   differences in channel counts"
   [src dest]
-  (let [^long src-count (buffer-channel-count src)
-        ^long dest-count (buffer-channel-count dest)]
-    (if (= src-count dest-count 1)
+  (let [src-count (buffer-channel-count src)
+        dest-count (buffer-channel-count dest)]
+    (if (and (= src-count 1) 
+             (= src-count dest-count))
       (Operator/sum ^doubles dest ^doubles src)
       (cond 
         (= src-count 1) 
@@ -210,21 +211,24 @@
         (Operator/sum ^doubles dest ^doubles (aget ^"[[D" src 0))
 
         :else
-        (loop [i 0 end (min src-count dest-count)]
-          (when (< i end)
-            (Operator/sum ^doubles (aget ^"[[D" dest i) 
-                          ^doubles (aget ^"[[D" src i))
-            (recur (unchecked-inc i) end))))))
+        (let [end (min src-count dest-count)] 
+          (loop [i 0]
+            (when (< i end)
+              (Operator/sum ^doubles (aget ^"[[D" dest i) 
+                            ^doubles (aget ^"[[D" src i))
+              (recur (unchecked-inc i))))))))
   dest)
 
 (defn clear-buffer 
   "Resets double-array to 0.0. Works with double[] and double[][]."
   [b]
   (if (multi-channel? b)
-    (loop [i (int 0) cnt (count b)]
-      (when (< i cnt)
-        (Arrays/fill ^doubles (aget ^"[[D" b i) 0.0)
-        (recur (unchecked-inc i) cnt)))
+    (let [cnt (buffer-channel-count b)
+          bufs ^"[[D" b]
+      (loop [i 0]
+        (when (< i cnt)
+          (Arrays/fill ^doubles (aget bufs i) 0.0)
+          (recur (unchecked-inc i)))))
     (Arrays/fill ^doubles b 0.0)))
 
 

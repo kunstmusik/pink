@@ -85,6 +85,14 @@ change log follows the conventions of
 
 ### Changed
 
+* pink.engine
+  * rewrote to use new control-node and audio-node
+  * fixed engine-create to bind pink.config variables when creating nodes
+
+* pink.event
+  * rewrote EventList to use ArrayBlockingQueue's to avoid object allocations
+  at runtime
+
 * pink.node 
   * Node messages (adds, removes, clears) are now stored in a single
     pre-allocated message ring buffer. This addresses processing messages in
@@ -99,6 +107,8 @@ change log follows the conventions of
     max capacity.
   * Active function list and processing code moved to Java class backed by
     ArrayLists to remove object allocations at runtime.
+  * Modified nodes to keep tempo and current beat as fields rather than atoms
+    to avoid boxing
 
 * pink.util
   * Modified try-func to be a function rather than a macro as non-tail
@@ -113,6 +123,12 @@ change log follows the conventions of
 
 * pink.oscillators
   * pulse - added optional amplitude argument
+
+* General
+  * Audited code for non-tail-position try-blocks (including where binding is 
+  used, which expands to a try-block) as the Clojure compiler instantiates 
+  new closures and auto-boxes closed over primitive variables.
+
 
 
 ## [0.3.0] - 2016-05-24

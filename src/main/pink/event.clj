@@ -1,7 +1,9 @@
 (ns pink.event
   (:require [pink.util :refer [create-buffer drain-atom! apply!*!]]
             [pink.config :refer [*tempo* *beat*]]  )
-  (:import [java.util Collection PriorityQueue]))
+  (:import [java.util Collection PriorityQueue]
+           [java.util.concurrent ArrayBlockingQueue]
+           ))
 
 ;; Ensure unchecked math used for this namespace
 (set! *unchecked-math* :warn-on-boxed)
@@ -19,21 +21,32 @@
      (compare t1 t2))))
 
 (definterface IEventList
-  (setEventProcFn 
+  (^void setEventProcFn 
     [proc-fn] 
     "Set event processing function. proc-fn should be an arity 2 function with
     input arguments of type double and Event. First argument will be the
     current beat time of the event list and the second argument will be the
     current Event to process.")
   (getEventProcFn 
-    [] "Returns the current event processing function for the EventList."))
+    [] "Returns the current event processing function for the EventList.")
+  (^double getCurBeat [] "Return current beat time")
+  (^void setCurBeat [^double beat] "Set current beat time")
+  (^double getTempo [] "Return tempo")
+  (^void setTempo [^double beat] "Set tempo"))
 
-(deftype EventList [^PriorityQueue events pending-events cur-beat
-                    buffer-size sr tempo-atom 
+(deftype EventList [^PriorityQueue events ^ArrayBlockingQueue pending-events 
+                    ^ArrayBlockingQueue temp-pending
+                    ^:unsynchronized-mutable ^double cur-beat 
+                    ^long buffer-size ^long sr 
+                    ^:unsynchronized-mutable ^double tempo 
                     ^:unsynchronized-mutable event-proc-fn]
   IEventList
-  (setEventProcFn [_ proc-fn] (set! event-proc-fn proc-fn))
+  (^void setEventProcFn [_ proc-fn] (set! event-proc-fn proc-fn) nil)
   (getEventProcFn [_] event-proc-fn)
+  (^double getCurBeat [_] cur-beat)
+  (^void setCurBeat [_ ^double beat] (set! cur-beat beat) nil)
+  (^double getTempo [_] tempo)
+  (^void setTempo [_ ^double new-tempo] (set! tempo new-tempo) nil) 
 
   Object
   (toString [_]  (str events))
@@ -81,20 +94,21 @@
   ([buffer-size sr] (event-list [] buffer-size sr))
   ([^Collection evts buffer-size sr] 
    (EventList. 
-     (PriorityQueue. evts) (atom []) (atom 0.0) buffer-size sr (atom *tempo*)
+     (PriorityQueue. evts) (ArrayBlockingQueue. 32768) (ArrayBlockingQueue. 32768)
+     0.0 buffer-size sr (double *tempo*) 
      wrap-relative-start)))
 
 (defn event-list-add 
   "Add an event or events to an event list"
   [^EventList evtlst evts] 
-  (let [pending (.pending-events evtlst)]
+  (let [^ArrayBlockingQueue pending (.pending-events evtlst)]
     (cond 
       (sequential? evts) 
-        (swap! pending concat evts) 
+      (.addAll pending evts)
       (:events evts)
-        (swap! pending concat (.events ^EventList evts)) 
+      (.addAll pending (.events ^EventList evts)) 
       (instance? Event evts) 
-        (swap! pending conj evts) 
+      (.add pending evts)
       :else
       (throw (Exception. (str "Unexpected event: " evts)))))
   nil)
@@ -111,15 +125,6 @@
   ; this needs to be done using a pending-removals list 
   
   )
-
-(defn event-list-get-tempo-atom
-  [^EventList evtlst]
-  (.tempo-atom evtlst))
-
-(defn event-list-beat-time
-  "Returns the current beat time for the event list."
-  ^double [^EventList evtlst]
-  (double @(.cur-beat evtlst)))
 
 (defn event-list-empty?
   [^EventList evtlst]
@@ -140,16 +145,18 @@
   "Merges pending-events with the PriorityQueue of known events. Event start
   times are processed relative to the EventList's cur-beat."
   [^EventList evtlst]
-  (let [pending (.pending-events evtlst)]
+  (let [^ArrayBlockingQueue pending (.pending-events evtlst)
+        ^ArrayBlockingQueue temp-pending (.temp-pending evtlst)
+        ^PriorityQueue active-events (.events evtlst)]
+    (.drainTo pending temp-pending)
     (try 
-      (when (not-empty @pending) 
-        (let [new-events (drain-atom! pending)
-              cur-beat (double @(.cur-beat evtlst))
-              tempo (double @(.tempo-atom evtlst))
-              event-proc-fn (partial (.getEventProcFn evtlst) cur-beat)
-              timed-events 
-              (map event-proc-fn new-events)] 
-          (.addAll ^PriorityQueue (.events evtlst) timed-events)))
+      (when (> (.size temp-pending) 0) 
+        (let [cur-beat (.getCurBeat evtlst) 
+              tempo (.getTempo evtlst) 
+              event-proc-fn (.getEventProcFn evtlst)] 
+          (doseq [x temp-pending]
+            (.add active-events (event-proc-fn cur-beat x)))
+          (.clear temp-pending)))
       (catch Exception e 
         (println "Error: Invalid pending events found!") 
         nil))))
@@ -162,20 +169,10 @@
   ^double [^double beats ^double tempo]
   (* beats (/ 60.0 tempo)))
 
-(defn event-list-tick!
-  [^EventList evtlst] 
-  (merge-pending! evtlst)
-  (let [cur-beat (double @(.cur-beat evtlst))
-        tempo (double @(.tempo-atom evtlst))
-        time-adj (seconds->beats 
-                   (/ ^double (.buffer-size evtlst) 
-                      ^double (.sr evtlst)) 
-                   tempo)
-        end-time (+ cur-beat time-adj)
-        events ^PriorityQueue (.events evtlst)]
-    (binding [*tempo* tempo
-              *beat* cur-beat]    
-      (loop [evt ^Event (.peek events)]
+(defn- proc-events
+  [^PriorityQueue events ^double cur-beat
+   ^double end-time]
+  (loop [evt ^Event (.peek events)]
         (when evt
           (if (< (.start evt) cur-beat)
             (do 
@@ -184,7 +181,26 @@
             (when (< (.start evt) end-time) 
               (fire-event (.poll events))
               (recur (.peek events)))))))
-    (reset! (.cur-beat evtlst) end-time)))
+
+(defn event-list-tick!
+  [^EventList evtlst] 
+  (merge-pending! evtlst)
+  (let [cur-beat (.getCurBeat evtlst) 
+        tempo (.getTempo evtlst) 
+        time-adj (seconds->beats 
+                   (/ (double (.buffer-size evtlst)) 
+                       (double (.sr evtlst))) 
+                   tempo)
+        end-time (+ cur-beat time-adj)
+        events ^PriorityQueue (.events evtlst)]
+    ;; setting curbeat before binding so that 
+    ;; binding is in tail-position and therefore does
+    ;; not produce closure by Clojure Compiler
+    (.setCurBeat evtlst end-time)
+    (binding [*tempo* tempo
+              *beat* cur-beat]    
+      (proc-events events cur-beat end-time))
+    ))
 
 (defn event-list-processor 
   "Returns a control-function that ticks through an event list"

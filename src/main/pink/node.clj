@@ -108,7 +108,7 @@
             (when b
               (mix-buffers b buffer)
               (.putBack afs x)))
-          (recur (inc i))))
+          (recur (+ 1 i))))
       (.swap afs)
       ))) 
 
@@ -122,7 +122,7 @@
           (let [^IFn x (.get active-funcs i)]
             (when (try-func x) 
               (.putBack cfuncs x)))
-          (recur (inc i))))
+          (recur (+ 1 i))))
       (.swap cfuncs))))
 
 ; currently will continue rendering even if afs are empty. need to have
@@ -242,11 +242,13 @@
 
        GainNode
        (set-gain! [this gain-val] 
-         (aset gain 0 (double gain-val)))
+         (aset gain 0 (double gain-val))
+         nil)
 
        StereoMixerNode
        (set-pan! [this pan-val] 
-         (aset pan 0 (double pan-val)))
+         (aset pan 0 (double pan-val))
+         nil)
 
        clojure.lang.IFn
        (invoke [this]
@@ -296,7 +298,8 @@
 
       GainNode
       (set-gain! [this gain-val] 
-        (aset gain 0 (double gain-val)))
+        (aset gain 0 (double gain-val))
+        nil)
 
       clojure.lang.IFn
       (invoke [this]

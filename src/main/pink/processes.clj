@@ -67,7 +67,7 @@
   (count-down [this])
   (latch-done? [this]))
 
-(deftype CountdownLatch [^:volatile-mutable num-wait]
+(deftype CountdownLatch [^:volatile-mutable ^long num-wait]
   ICountdownLatch
   (count-down [this] (set! num-wait (dec num-wait)))
   (latch-done? [this] (= 0 num-wait))
