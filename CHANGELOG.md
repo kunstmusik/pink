@@ -123,6 +123,8 @@ change log follows the conventions of
 
 * pink.oscillators
   * pulse - added optional amplitude argument
+  * phasor/vphasor/phasor-fixed - rewrote calculation to support negative 
+    frequencies (which occurs regularly with FM synthesis and index > 1)
 
 * General
   * Audited code for non-tail-position try-blocks (including where binding is 

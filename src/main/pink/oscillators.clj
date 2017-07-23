@@ -23,13 +23,12 @@
       [cur-phase 0.0]
       [f freq-fn
        phs phase-fn]
-      (if (<= f 0.0) 
-        (do 
-          (aset out int-indx Double/NEGATIVE_INFINITY)
-          (gen-recur cur-phase))
-        (let [incr (/ f sr)]
-          (aset out int-indx (rem (+ cur-phase phs) 1.0))
-          (gen-recur (+ cur-phase incr))))
+      (let [incr (/ f sr)
+            new-val (rem (+ cur-phase phs) 1.0)
+            next-phs (rem (+ cur-phase incr) 1.0)
+            adjusted (if (< next-phs 0.0) (+ 1.0 next-phs) next-phs)]
+        (aset out int-indx new-val) 
+        (gen-recur adjusted))
       (yield out)))) 
 
 (defn phasor-fixed
@@ -40,9 +39,11 @@
       (generator 
         [cur-phase phase]
         []
+        (let [next-phs (rem (+ cur-phase phase-incr) 1.0)
+              adjusted (if (< next-phs 0.0) (+ 1.0 next-phs) next-phs)])
         (do
           (aset out int-indx cur-phase)
-          (gen-recur (rem (+ phase-incr cur-phase) 1.0)))
+          (gen-recur adjusted))
         (yield out))))
 
 (defn phasor 
