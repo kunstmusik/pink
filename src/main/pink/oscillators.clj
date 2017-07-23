@@ -40,10 +40,9 @@
         [cur-phase phase]
         []
         (let [next-phs (rem (+ cur-phase phase-incr) 1.0)
-              adjusted (if (< next-phs 0.0) (+ 1.0 next-phs) next-phs)])
-        (do
+              adjusted (if (< next-phs 0.0) (+ 1.0 next-phs) next-phs)]
           (aset out int-indx cur-phase)
-          (gen-recur adjusted))
+          (gen-recur adjusted)) 
         (yield out))))
 
 (defn phasor 
