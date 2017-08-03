@@ -34,10 +34,13 @@
     "Returns state map for Node"))
 
 (defprotocol GainNode
-  (set-gain! [n gain-val] "Set gain [0,1] to apply to signal"))
+  (set-gain! [n gain-val] "Set gain [0,1] to apply to signal")
+  (get-gain [n] "Get gain value.")
+  )
 
 (defprotocol StereoMixerNode
-  (set-pan! [n pan-val] "Set pan [-1,1] to apply to signal"))
+  (set-pan! [n pan-val] "Set pan [-1,1] to apply to signal")
+  (get-pan [n] "Get pan value."))
 
 
 ;; NODE
@@ -244,11 +247,15 @@
        (set-gain! [this gain-val] 
          (aset gain 0 (double gain-val))
          nil)
+       (get-gain [this] 
+         (aget gain 0))
 
        StereoMixerNode
        (set-pan! [this pan-val] 
          (aset pan 0 (double pan-val))
          nil)
+       (get-pan [this] 
+         (aget pan 0))
 
        clojure.lang.IFn
        (invoke [this]
@@ -300,6 +307,8 @@
       (set-gain! [this gain-val] 
         (aset gain 0 (double gain-val))
         nil)
+      (get-gain [this] 
+        (aget gain 0))
 
       clojure.lang.IFn
       (invoke [this]
