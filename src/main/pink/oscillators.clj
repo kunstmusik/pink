@@ -36,14 +36,22 @@
   [^double freq ^double phase]
   (let [phase-incr ^double (/ freq (double *sr*))
           out ^doubles (create-buffer)]
-      (generator 
-        [cur-phase phase]
-        []
-        (let [next-phs (rem (+ cur-phase phase-incr) 1.0)
-              adjusted (if (< next-phs 0.0) (+ 1.0 next-phs) next-phs)]
-          (aset out int-indx cur-phase)
-          (gen-recur adjusted)) 
-        (yield out))))
+      (if (pos? phase-incr) 
+        (generator 
+          [cur-phase phase]
+          []
+          (let [next-phs (rem (+ cur-phase phase-incr) 1.0)]
+            (aset out int-indx cur-phase)
+            (gen-recur next-phs)) 
+          (yield out))
+        (generator 
+          [cur-phase phase]
+          []
+          (let [next-phs (rem (+ cur-phase phase-incr) 1.0)
+                adjusted (if (< next-phs 0.0) (+ 1.0 next-phs) next-phs)]
+            (aset out int-indx cur-phase)
+            (gen-recur adjusted)) 
+          (yield out)))))
 
 (defn phasor 
   "Phasor with frequency and starting phase"
