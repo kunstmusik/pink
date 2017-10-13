@@ -38,10 +38,11 @@
 
 ;; event/time functions
 
-(defn cause [func start & args]
+(defn cause 
   "Implementation of Canon-style cause function. Will create and schedule an
   event that calls the given function at given start time (in beats) and with
   given arguments."
+  [func start & args]
   (add-events (apply event func start args)))
 
 (defmacro redef! 

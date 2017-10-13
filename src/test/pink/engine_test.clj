@@ -41,5 +41,5 @@
                (map #(apply event %) 
                     [[test-func 0.5]
                      [test-func 0.0]]))]
-      (is (= (count evts)))
+      (is (= 2 (count evts)))
       ))

@@ -32,8 +32,9 @@
    :device-info info
    :device (MidiSystem/getMidiDevice info)})
 
-(defn list-devices []
+(defn list-devices
   "Fetches list of available MIDI devices."
+  []
   (map device-info->device (MidiSystem/getMidiDeviceInfo)))
 
 (defn input-device?
@@ -46,12 +47,14 @@
   [{:keys [^MidiDevice device]}] 
   (not (zero? (.getMaxReceivers device))))
 
-(defn list-input-devices []
+(defn list-input-devices 
   "Lists all MIDI input devices."
+  [] 
   (filter input-device? (list-devices)))
 
-(defn list-output-devices []
+(defn list-output-devices 
   "Lists all MIDI output devices."
+  []
   (filter output-device? (list-devices)))
 
 ;; Pink MIDI Manager

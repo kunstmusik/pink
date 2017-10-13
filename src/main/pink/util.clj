@@ -56,9 +56,10 @@
 
 ;; not== macro for fast != comparison of doubles
 
-(defmacro not== [a b]
+(defmacro not== 
   "Use for fast comparison of double != double, or long != long. 
   Based on Zach Tellman's primitive-math not=="
+[a b]
   `(pink.Utils/neq ~a ~b))
 
 ;; utility functions for tagging vars (useful for macros)
@@ -423,7 +424,7 @@
   (into-array Double/TYPE [v]))
 
 (defn- process-bindings [bindings]
-  {:pre (even? bindings)}
+  {:pre [(even? (count bindings))]}
   (reduce 
     (fn [[x y z] [b c]]
       (let [state-sym (gensym "state")] 
@@ -440,7 +441,6 @@
     (partition 2 bindings)))
 
 (defn- handle-yield [bindings ret-sym]
-  {:pre (even? bindings)}
   `(do 
      ~@bindings 
      ~ret-sym))

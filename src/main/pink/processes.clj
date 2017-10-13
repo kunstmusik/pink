@@ -99,15 +99,15 @@
   `(loop []
      (pink.processes/pink-wait ~c)))
 
-(defn process-wait  [state blk val]
+(defn process-wait  [state blk wait-val]
   (cond 
-    (number? val)
+    (number? wait-val)
     (let  [cur-wait  (long (ioc/aget-object state WAIT-IDX))
            ksmps  (long *buffer-size*)
            next-buf  (+ cur-wait ksmps)
            wait-time (long 
                        (Math/round 
-                       (+ 0.499999 (* (double *sr*) (double val)))))]
+                       (+ 0.499999 (* (double *sr*) (double wait-val)))))]
       ;(println next-buf " : " wait-time)
       (if  (> next-buf wait-time)
         (do 
@@ -118,15 +118,15 @@
         (do 
           (ioc/aset-all! state WAIT-IDX next-buf)
           true)))
-    (satisfies? PinkSignal val)
-    (if (signal-done? val)
+    (satisfies? PinkSignal wait-val)
+    (if (signal-done? wait-val)
        (do 
           (ioc/aset-all! state WAIT-IDX 0 
                          ioc/STATE-IDX blk) 
           :recur)
        true) ;; pass through
-    (fn? val)
-    (let [v (val)] 
+    (fn? wait-val)
+    (let [v (wait-val)] 
       (if v ;; function signals ready to move on 
          (do 
           (ioc/aset-all! state WAIT-IDX 0 
@@ -135,9 +135,9 @@
          true ;; pass through
         ))
     :default
-    (throw (Exception. (str "Illegal argument: " val)))))
+    (throw (Exception. (str "Illegal argument: " wait-val)))))
 
-(defn process-done [state val]
+(defn process-done [state wait-val]
   false)
 
 (defmacro process

@@ -15,7 +15,7 @@
   followed by a list of pairs of (num-samples, cached-value). opfn should
   take in [end start run]"
   [pts opfn]
-  {:pre (even? (count pts))}
+  {:pre [(even? (count pts))]}
   (let [pairs (partition 2 pts)
         [x & xs] (if (not== (double (ffirst pairs)) 0.0)
                    (cons [0.0 (second (first pairs))] pairs)
@@ -42,7 +42,7 @@
 (defn env
   "Generates an envelope given pairs of values (t0, v0, t1, v1 ...) where tx is duration of segment."
   [pts] 
-  {:pre (even? (count pts))}
+  {:pre [(even? (count pts))]}
   (let [[start & linedata] (make-env-data pts #(/ (- ^double %1 ^double %2) ^double %3))
         cur-val (double-array 1 start)
         counter (long-array 1 0)
@@ -85,7 +85,7 @@
     x))
 
 (defn- make-exp-env-data [pts]
-  {:pre (even? (count pts))}
+  {:pre [(even? (count pts))]}
   (let [adjusted-pts 
         (map #(if (even? %2) %1 (adjust-for-zero %1)) pts (range))]
    (make-env-data adjusted-pts #(Math/pow (/ ^double %1 ^double %2) (/ 1.0 ^double %3)))))
@@ -97,7 +97,7 @@
 (defn exp-env
   "Generates an exponential envelope given pairs of values (t0, v0, t1, v1 ...) where tx is duration of segment."
   [pts] 
-  {:pre (even? (count pts))}
+  {:pre [(even? (count pts))]}
   (let [[start & linedata] (make-exp-env-data pts)
         cur-val (double-array 1 start)
         counter (long-array 1 0)
@@ -147,7 +147,7 @@
 
   where i_ is a value, dur is time in seconds, and itype affects the curve of the segment (0 = straight line, < 0 = conve, > 0 = concave))"
   [[start & segments]] 
-  {:pre (zero? (rem (count segments) 3))}
+  {:pre [(zero? (rem (count segments) 3))]}
   (let [out (create-buffer)]
     (fn []
 

@@ -65,7 +65,7 @@
   0.0 to 1.0. Phases are optional and are expressed in 0-360 degrees, defaulting
   to 0."
   [tbl-size & pts]
-  {:pre (every? #(pos? ^double (first %)) pts)}
+  {:pre [(every? #(pos? ^double (first %)) pts)]}
   (let [size (long tbl-size)
         dbl-size (double size)
         out (double-array size)]

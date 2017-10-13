@@ -19,7 +19,7 @@
   Based on Csound's balance opcode."
   ([asig acomp] (balance asig acomp 10))
   ([asig acomp ^double hp]
-   {:pre (number? hp)}
+   {:pre [(number? hp)]}
    (let [TPIDSR (/ (* 2 Math/PI) (double *sr*))
          b (- 2.0 (Math/cos (* hp TPIDSR)))
          c2 (- b (Math/sqrt (- (* b b) 1.0)))

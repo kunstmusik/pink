@@ -50,7 +50,7 @@
   (double-array (int (+ 0.5 (* delay-time-max (double *sr*))))))
 
 (defn delay-read
-  ^IFn$LD [^doubles delay-buffer ^long delay-time]
+  ^clojure.lang.IFn$LD [^doubles delay-buffer ^long delay-time]
   (let [delay-length (long (alength delay-buffer))]
    (fn ^double [^long write-ptr]
       (let [indx (let [temp-indx (- write-ptr delay-time)]
@@ -58,7 +58,7 @@
         (aget delay-buffer indx)))))
 
 (defn delay-readi
-  ^IFn$LD [^doubles delay-buffer ^double delay-time]
+  ^clojure.lang.IFn$LD [^doubles delay-buffer ^double delay-time]
   (let [delay-int (long delay-time)
         delay-frac1 (- delay-time delay-int)
         delay-frac0 (- 1.0 delay-frac1)
