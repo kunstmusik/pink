@@ -6,6 +6,10 @@ change log follows the conventions of
 
 ## [Unreleased] 
 
+
+## [0.4.0] - 2018-01-18
+
+
 ### Added 
 
 * pink.live-code
@@ -254,3 +258,4 @@ change log follows the conventions of
 [Unreleased]: https://github.com/kunstmusik/pink/compare/0.3.0...HEAD
 [0.2.0]: https://github.com/kunstmusik/pink/compare/0.1.0...0.2.0
 [0.3.0]: https://github.com/kunstmusik/pink/compare/0.2.0...0.3.0
+[0.4.0]: https://github.com/kunstmusik/pink/compare/0.3.0...0.4.0
