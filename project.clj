@@ -1,4 +1,4 @@
-(defproject kunstmusik/pink "0.4.0"
+(defproject kunstmusik/pink "0.5.0-SNAPSHOT"
   :jvm-opts ;["-server" "-Xmx2g" "-XX:-UseParallelGC"]
   ^:replace
   ["-server"
@@ -34,7 +34,7 @@
   :profiles  { 
               :dev  {
                      :dependencies [[criterium "0.4.4"]] 
-                     :plugins [[lein-codox "0.9.6"]] 
+                     :plugins [[lein-codox "0.10.3"]] 
                      :source-paths ["src/demo"]
                      } 
 

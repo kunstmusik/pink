@@ -10,6 +10,6 @@ This manual serves as a guide to understanding and using Pink.  It covers high-l
 * [Architecture](architecture.md)
 * [Unit Generators](ugen.md)
 * [Events](events.md)
-* [Processes](procesess.md)
+* [Processes](processes.md)
 * [Performance](performance.md)
 * [Example Usage](examples.md)
