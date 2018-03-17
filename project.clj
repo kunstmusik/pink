@@ -1,4 +1,4 @@
-(defproject kunstmusik/pink "0.5.0-SNAPSHOT"
+(defproject kunstmusik/pink "0.4.1"
   :jvm-opts ;["-server" "-Xmx2g" "-XX:-UseParallelGC"]
   ^:replace
   ["-server"
@@ -26,7 +26,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/core.async "0.2.374"]
+                 [org.clojure/core.async "0.4.474"]
                  [kunstmusik/diff-eq "0.1.2"]]
 
   :global-vars  {*warn-on-reflection* true}
@@ -51,6 +51,9 @@
                                     ] 
                      :source-paths ["src/plotting"]
                      }
+              :1.9 {
+                    :dependencies [[org.clojure/clojure "1.9.0"]]
+                    }
               }
 
 

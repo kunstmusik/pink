@@ -143,12 +143,15 @@
 (defmacro process
   "Create a state-machine-based Pink control function."
   [& body]
-  (let  [terminators  {`pink-wait `process-wait
+  (let  [crossing-env (zipmap (keys &env) (repeatedly gensym))
+         terminators  {`pink-wait `process-wait
                        `counter `process-counter
                        :Return `process-done}]
     `(let  [captured-bindings# (clojure.lang.Var/getThreadBindingFrame) 
+
+          ~@(mapcat (fn [[l sym]] [sym `(^:once fn* [] ~(vary-meta l dissoc :tag))]) crossing-env)
             state# (~(ioc/state-machine `(do ~@body) 1  
-                                        (keys &env) 
+                                        [crossing-env &env] 
                                         terminators))]
        ;; TODO - consider replacing WAIT-IDX to use a long-array to save on object allocations
        (ioc/aset-all! state#
@@ -156,7 +159,8 @@
                       ;~ioc/BINDINGS-IDX  (clojure.lang.Var/getThreadBindingFrame)
                       )
        (fn []
-         (ioc/aset-all! state# ~ioc/BINDINGS-IDX  (clojure.lang.Var/getThreadBindingFrame))
+         (ioc/aset-all! state# ~ioc/BINDINGS-IDX  
+                        captured-bindings#)
          (ioc/run-state-machine state#)))))
 
 

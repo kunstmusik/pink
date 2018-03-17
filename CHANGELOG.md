@@ -6,6 +6,12 @@ change log follows the conventions of
 
 ## [Unreleased] 
 
+## [0.4.1] - 2018-03-17
+
+### Changed
+
+* Updated core.async to 0.4.474 and related pink.processes code to work with 
+  Clojure 1.9 [Issue #13] 
 
 ## [0.4.0] - 2018-01-18
 
@@ -259,3 +265,4 @@ change log follows the conventions of
 [0.2.0]: https://github.com/kunstmusik/pink/compare/0.1.0...0.2.0
 [0.3.0]: https://github.com/kunstmusik/pink/compare/0.2.0...0.3.0
 [0.4.0]: https://github.com/kunstmusik/pink/compare/0.3.0...0.4.0
+[0.4.1]: https://github.com/kunstmusik/pink/compare/0.4.0...0.4.1
