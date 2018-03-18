@@ -1,4 +1,4 @@
-(defproject kunstmusik/pink "0.4.1"
+(defproject kunstmusik/pink "0.5.0-SNAPSHOT"
   :jvm-opts ;["-server" "-Xmx2g" "-XX:-UseParallelGC"]
   ^:replace
   ["-server"
