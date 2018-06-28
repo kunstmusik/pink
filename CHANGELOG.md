@@ -6,6 +6,13 @@ change log follows the conventions of
 
 ## [Unreleased] 
 
+### Added 
+
+* pink.io.midi
+  * added note-on, note-off, and midi-note functions for sending MIDI note 
+    messages to MIDI output devices (see music-examples repo, midi-out.clj 
+    for example)
+
 ## [0.4.1] - 2018-03-17
 
 ### Changed

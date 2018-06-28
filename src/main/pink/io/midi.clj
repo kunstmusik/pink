@@ -17,6 +17,7 @@
 
       :author "Steven Yi"}
   pink.io.midi
+  (:require [pink.config :refer :all])
   (:import [javax.sound.midi MidiSystem MidiDevice MidiDevice$Info
                              Receiver ShortMessage]
            [clojure.lang IFn]))
@@ -202,6 +203,29 @@
     (.setReceiver (.getTransmitter device) (create-debug-receiver))
     ))
 
+;; MIDI Output
+
+(defn note-on [^Receiver receiver channel note-num velocity]
+  (let [msg (ShortMessage.)]
+    (.setMessage msg ShortMessage/NOTE_ON channel note-num velocity)    
+    (.send receiver msg -1)))
+
+(defn note-off [^Receiver receiver channel note-num velocity]
+  (let [msg (ShortMessage.)]
+    (.setMessage msg ShortMessage/NOTE_ON channel note-num 0)    
+    (.send receiver msg -1)))
+
+(defn midi-note 
+  [receiver dur channel note-num velocity]
+  (note-on receiver channel note-num velocity)
+  (let [start  (long *current-buffer-num*)
+        end  (long  (/  (* dur *sr*) *buffer-size*))]
+    (fn [] 
+      (if (> (- (long *current-buffer-num*) start) end)
+        (do 
+          (note-off receiver channel note-num velocity)
+          false)
+        true))))
 
 ;; Utility functions
 
